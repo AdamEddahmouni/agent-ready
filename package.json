@@ -1,0 +1,77 @@
+{
+  "name": "agent-ready",
+  "version": "0.1.0",
+  "description": "An open, vendor-neutral specification and CLI for defining, generating, and verifying the instructions, constraints, commands, and evidence AI coding agents need to work safely in a repository.",
+  "keywords": [
+    "agent-ready",
+    "ai-agents",
+    "specification",
+    "cli",
+    "repository-contract"
+  ],
+  "homepage": "https://github.com/agent-ready/agent-ready-repo#readme",
+  "bugs": {
+    "url": "https://github.com/agent-ready/agent-ready-repo/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agent-ready/agent-ready-repo.git"
+  },
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@10.0.0",
+  "bin": {
+    "agent-ready": "./dist/cli/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./schema": "./schemas/v1/agent-ready.schema.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "schemas",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
+    "clean": "node scripts/clean-dist.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "cli": "tsx src/cli/index.ts",
+    "prepublishOnly": "pnpm build"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "commander": "^13.1.0",
+    "semver": "^7.6.3",
+    "yaml": "^2.6.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.2",
+    "@types/semver": "^7.5.8",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^17.7.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.2",
+    "vite": "^8.1.2",
+    "vitest": "^4.1.9"
+  }
+}

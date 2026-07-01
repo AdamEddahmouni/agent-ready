@@ -1,0 +1,59 @@
+version: 1
+
+project:
+  name: agent-ready
+  description: >-
+    Open, vendor-neutral specification and CLI for defining, generating,
+    and verifying the instructions, constraints, commands, and evidence
+    AI coding agents need to work safely in a repository.
+
+environment:
+  runtimes:
+    node: ">=20"
+  packageManager:
+    name: pnpm
+    version: "10"
+
+commands:
+  install:
+    run: pnpm install --frozen-lockfile
+  format:
+    run: pnpm format:check
+  lint:
+    run: pnpm lint
+  typecheck:
+    run: pnpm typecheck
+  test:
+    run: pnpm test
+  build:
+    run: pnpm build
+
+verification:
+  required:
+    - format
+    - lint
+    - typecheck
+    - test
+    - build
+
+paths:
+  protected:
+    - ".env*"
+  generated:
+    - "dist/**"
+  ignored:
+    - "node_modules/**"
+    - "coverage/**"
+
+instructions:
+  sources:
+    - README.md
+    - CONTRIBUTING.md
+    - docs/architecture/overview.md
+    - docs/security/threat-model.md
+
+adapters:
+  agentsMd:
+    enabled: false
+  claude:
+    enabled: false

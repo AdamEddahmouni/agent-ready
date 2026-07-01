@@ -1,0 +1,33 @@
+/**
+ * Stable, documented diagnostic codes. These strings are part of the public
+ * contract: CI consumers may match on them and must not need to parse human
+ * message wording. See docs/specification/diagnostics.md for the full
+ * reference, including remediation guidance for each code.
+ */
+export const DIAGNOSTIC_CODES = [
+  "CONTRACT_NOT_FOUND",
+  "CONTRACT_READ_FAILED",
+  "YAML_PARSE_FAILED",
+  "YAML_DUPLICATE_KEY",
+  "CONTRACT_SCHEMA_INVALID",
+  "CONTRACT_VERSION_UNSUPPORTED",
+  "COMMAND_IDENTIFIER_INVALID",
+  "COMMAND_REFERENCE_INVALID",
+  "COMMAND_DUPLICATE",
+  "RUNTIME_DECLARATION_INVALID",
+  "PACKAGE_MANAGER_INVALID",
+  "PATH_PATTERN_INVALID",
+  "PATH_ABSOLUTE_DISALLOWED",
+  "PATH_TRAVERSAL_DISALLOWED",
+  "PATH_CATEGORY_CONFLICT",
+  "INSTRUCTION_SOURCE_INVALID",
+  "ADAPTER_DECLARATION_INVALID",
+  "NORMALIZATION_FAILED",
+  "INTERNAL_INVARIANT_VIOLATION",
+] as const;
+
+export type DiagnosticCode = (typeof DIAGNOSTIC_CODES)[number];
+
+export function isDiagnosticCode(value: string): value is DiagnosticCode {
+  return (DIAGNOSTIC_CODES as readonly string[]).includes(value);
+}

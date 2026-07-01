@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.agent-ready.dev/v1/agent-ready.schema.json",
+  "title": "Agent-Ready Repository Contract (v1, Phase 1 minimal core)",
+  "description": "Public JSON Schema for agent-ready.yaml. This schema is bundled locally with the Agent-Ready CLI and package; it is never fetched over the network at runtime. Unknown fields are rejected everywhere in this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "project"],
+  "properties": {
+    "version": {
+      "description": "Contract schema version. Only version 1 is currently supported by this reference implementation; other positive integers are syntactically valid but rejected as unsupported at the semantic-validation stage.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "description": "Human-readable project name.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "description": {
+          "description": "Short human-readable project description.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runtimes": {
+          "description": "Map of runtime name (e.g. \"node\") to a semver range string.",
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9]*$"
+          },
+          "patternProperties": {
+            "^[a-z][a-z0-9]*$": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "packageManager": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "enum": ["npm", "pnpm", "yarn"]
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "commands": {
+      "description": "Named repository commands. Commands are inert data in this phase and are never executed by the CLI.",
+      "type": "object",
+      "additionalProperties": false,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+      },
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(-[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["run"],
+          "properties": {
+            "run": {
+              "description": "The literal command line. Never interpreted, expanded, or executed in this phase.",
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^\\S(?:.*\\S)?$"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            }
+          }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required"],
+      "properties": {
+        "required": {
+          "description": "Ordered list of command names required for repository verification.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "paths": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protected": {
+          "$ref": "#/$defs/pathPatternList"
+        },
+        "generated": {
+          "$ref": "#/$defs/pathPatternList"
+        },
+        "ignored": {
+          "$ref": "#/$defs/pathPatternList"
+        }
+      }
+    },
+    "instructions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sources": {
+          "description": "Repository-relative paths to human-maintained documents that may later contribute to generated agent instructions.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "adapters": {
+      "description": "Declarations of which downstream adapters may eventually be enabled. Configuration only: this phase does not generate adapter output.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "agentsMd": { "$ref": "#/$defs/adapterDeclaration" },
+        "claude": { "$ref": "#/$defs/adapterDeclaration" },
+        "cursor": { "$ref": "#/$defs/adapterDeclaration" },
+        "copilot": { "$ref": "#/$defs/adapterDeclaration" },
+        "gemini": { "$ref": "#/$defs/adapterDeclaration" }
+      }
+    }
+  },
+  "$defs": {
+    "pathPatternList": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "adapterDeclaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

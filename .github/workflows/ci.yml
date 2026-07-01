@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Kept in sync with the "engines.node" minimum in package.json; the OS
+  # matrix job below additionally exercises other supported versions.
+  PRIMARY_NODE_VERSION: "22"
+
+jobs:
+  verify:
+    name: verify (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Unit and integration tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: CLI smoke test - help and version
+        shell: bash
+        run: |
+          node dist/cli/index.js --help
+          node dist/cli/index.js --version
+          node dist/cli/index.js validate --help
+          node dist/cli/index.js inspect --help
+
+      - name: CLI smoke test - valid examples pass
+        shell: bash
+        run: |
+          node dist/cli/index.js validate --config examples/minimal/agent-ready.yaml
+          node dist/cli/index.js validate --config examples/complete-phase-1/agent-ready.yaml
+          node dist/cli/index.js inspect --config examples/complete-phase-1/agent-ready.yaml --json
+
+      - name: CLI smoke test - invalid examples fail
+        shell: bash
+        run: |
+          set -e
+          for example in unknown-field invalid-command-reference invalid-path-traversal unsupported-version; do
+            if node dist/cli/index.js validate --config "examples/invalid/$example.yaml" --json; then
+              echo "Expected examples/invalid/$example.yaml to fail validation" >&2
+              exit 1
+            fi
+          done
+
+  node-versions:
+    name: node ${{ matrix.node-version }} (ubuntu-latest)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["20", "22"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Unit and integration tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      # Informational in this phase: findings are reviewed manually rather
+      # than blocking merges. See SECURITY.md for rationale.
+      - name: pnpm audit
+        run: pnpm audit --audit-level=high
+        continue-on-error: true

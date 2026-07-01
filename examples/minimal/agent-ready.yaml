@@ -1,0 +1,12 @@
+version: 1
+
+project:
+  name: minimal-example
+
+commands:
+  test:
+    run: echo "no-op test command"
+
+verification:
+  required:
+    - test

@@ -1,0 +1,8 @@
+version: 1
+
+project:
+  name: unknown-field-example
+
+# "telemetry" is not part of the Phase 1 schema and must be rejected.
+telemetry:
+  enabled: true

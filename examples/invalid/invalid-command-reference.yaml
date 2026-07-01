@@ -1,0 +1,13 @@
+version: 1
+
+project:
+  name: invalid-command-reference-example
+
+commands:
+  lint:
+    run: pnpm lint
+
+verification:
+  required:
+    # "test" is never declared under commands above.
+    - test

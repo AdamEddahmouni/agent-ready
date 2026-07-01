@@ -1,0 +1,9 @@
+version: 1
+
+project:
+  name: invalid-path-traversal-example
+
+paths:
+  ignored:
+    # Attempts to escape the repository root; must be rejected.
+    - "../outside-the-repo/**"
