@@ -27,7 +27,14 @@ export function resolveExitCode(diagnostics: readonly Diagnostic[]): ExitCode {
     return ExitCode.SUCCESS;
   }
 
-  if (errors.some((d) => d.code === "INTERNAL_INVARIANT_VIOLATION")) {
+  if (
+    errors.some(
+      (d) =>
+        d.code === "INTERNAL_INVARIANT_VIOLATION" ||
+        d.code === "GENERATE_WRITE_FAILED" ||
+        d.code === "GENERATE_OUTSIDE_REPO_ROOT",
+    )
+  ) {
     return ExitCode.INTERNAL_ERROR;
   }
 

@@ -59,6 +59,11 @@ export class InMemoryFileSystem implements FileSystem {
   async realPath(absolutePath: string): Promise<string> {
     return absolutePath;
   }
+
+  // eslint-disable-next-line @typescript-eslint/require-await -- interface is async for parity with real I/O
+  async writeTextFile(absolutePath: string, content: string): Promise<void> {
+    this.addFile(absolutePath, content);
+  }
 }
 
 function ancestorsOf(absolutePath: string): string[] {

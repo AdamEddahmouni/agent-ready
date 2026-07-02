@@ -1,4 +1,4 @@
-import { readFile, realpath, stat } from "node:fs/promises";
+import { readFile, realpath, stat, writeFile } from "node:fs/promises";
 import type { FileStat, FileSystem } from "./types.js";
 import { FileSystemError } from "./types.js";
 
@@ -43,6 +43,16 @@ export class NodeFileSystem implements FileSystem {
       return await realpath(absolutePath);
     } catch (error) {
       throw new FileSystemError(`Failed to resolve real path: ${absolutePath}`, absolutePath, {
+        cause: error,
+      });
+    }
+  }
+
+  async writeTextFile(absolutePath: string, content: string): Promise<void> {
+    try {
+      await writeFile(absolutePath, content, "utf8");
+    } catch (error) {
+      throw new FileSystemError(`Failed to write file: ${absolutePath}`, absolutePath, {
         cause: error,
       });
     }

@@ -52,8 +52,8 @@ semantics. In summary:
   references.
 - **Paths** — `paths.protected`, `paths.generated`, `paths.ignored`.
 - **Instruction sources** — `instructions.sources`.
-- **Adapter declarations** — `adapters`, configuration only in this
-  phase.
+- **Adapter declarations** — `adapters`; `agentsMd`/`claude` drive
+  `agent-ready generate`, the rest remain configuration only.
 
 ## What is explicitly out of scope
 

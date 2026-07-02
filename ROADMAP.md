@@ -18,18 +18,36 @@
 - Unit and integration test coverage, including cross-platform path
   handling and adversarial-input cases.
 
-See the [completion report](docs/architecture/overview.md) and
+See the [architecture overview](docs/architecture/overview.md) and
 [ADRs](docs/decisions/README.md) for exact detail on what was built and
 why.
+
+## Phase 2: Agent-instruction generation — complete
+
+- `agent-ready generate` CLI command: compiles the validated,
+  normalized contract into `AGENTS.md` (`adapters.agentsMd`) and
+  `CLAUDE.md` (`adapters.claude`).
+- Defaults to a dry run; `--write` opts in to writing files, `--check`
+  supports CI drift detection, `--force` overrides the unmanaged-file
+  refusal.
+- A managed-file marker so generated files are never silently
+  confused with hand-authored ones, and `generate --write` never
+  clobbers a file it didn't create (see
+  [ADR-0010](docs/decisions/0010-generate-write-boundary.md) and
+  [ADR-0011](docs/decisions/0011-adapter-rendering-design.md)).
+- Cursor, Copilot, and Gemini adapters remain declarable-but-unimplemented:
+  enabling them produces an `ADAPTER_NOT_YET_IMPLEMENTED` warning, not an
+  error.
 
 ## Long-term open-source direction
 
 The following remain **open-source, local-first roadmap categories** —
 not yet implemented, and not committed to any specific phase or date:
 
-- Agent-specific instruction generation (`AGENTS.md`, `CLAUDE.md`, Cursor
-  rules, Copilot instructions, Gemini instructions) compiled from
-  `agent-ready.yaml`.
+- Agent-specific instruction generation for Cursor rules, Copilot
+  instructions, and Gemini instructions, compiled from `agent-ready.yaml`
+  (the `agentsMd` and `claude` adapters are implemented — see Phase 2
+  above).
 - Local command execution and verification evidence (actually running the
   commands declared in `verification.required` and recording results).
 - Protected-path enforcement against real Git changes.
@@ -72,9 +90,9 @@ referenced from the project brief and enforced by
 The following are explicitly **not** implemented right now, by design —
 not oversights:
 
-`agent-ready init`/`audit`/`sync`/`verify`/`score` subcommands · any agent-
-instruction generation (`AGENTS.md`, `CLAUDE.md`, Cursor, Copilot, Gemini)
-· command or shell execution of any kind · verification-evidence
+`agent-ready init`/`audit`/`sync`/`verify`/`score` subcommands ·
+agent-instruction generation for Cursor, Copilot, or Gemini adapters ·
+command or shell execution of any kind · verification-evidence
 execution · task packets · completion records · context manifests ·
 documentation-drift detection · architecture-dependency analysis ·
 protected-path enforcement against Git changes · plugin/adapter loading ·
@@ -88,5 +106,5 @@ package publication or release.
 
 ## Recommended next phase
 
-See the completion report's "Recommended next phase" section for a
-concrete, bounded proposal (not yet started).
+Not yet decided. See the "Long-term open-source direction" list above for
+candidate categories.

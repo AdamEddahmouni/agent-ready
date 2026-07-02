@@ -67,3 +67,18 @@ export { NodeFileSystem } from "./filesystem/nodeFileSystem.js";
 export { InMemoryFileSystem } from "./filesystem/inMemoryFileSystem.js";
 export { FileSystemError } from "./filesystem/types.js";
 export type { FileStat, FileSystem } from "./filesystem/types.js";
+
+// Agent-instruction generation
+export { planGeneration, resolvePlannedOutputs } from "./generate/generate.js";
+export { renderAgentsMd } from "./generate/adapters/agentsMd.js";
+export { renderClaude } from "./generate/adapters/claude.js";
+export { GENERATED_FILE_MARKER, hasManagedMarker } from "./generate/marker.js";
+export type {
+  GeneratedFile,
+  AdapterRenderer,
+  RendererRegistry,
+  PlanEntry,
+  GenerationPlan,
+  PlannedOutputStatus,
+  PlannedOutput,
+} from "./generate/types.js";

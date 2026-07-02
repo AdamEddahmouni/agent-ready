@@ -8,7 +8,8 @@ src/
 │   ├── index.ts               Thin composition layer: commander wiring, process.exitCode, stdout/stderr writes.
 │   └── commands/
 │       ├── validate.ts        runValidate(): pipeline -> rendered output. No CLI-framework dependency.
-│       └── inspect.ts         runInspect(): pipeline -> rendered output. No CLI-framework dependency.
+│       ├── inspect.ts         runInspect(): pipeline -> rendered output. No CLI-framework dependency.
+│       └── generate.ts        runGenerate(): pipeline -> plan -> optional write -> rendered output.
 ├── contract/
 │   ├── discovery.ts           Repository-root + contract-file discovery.
 │   ├── parseYaml.ts           Safe YAML parsing; returns a plain value + a locate() closure for source spans.
@@ -29,6 +30,14 @@ src/
 │   ├── nodeFileSystem.ts        Real implementation, backed by node:fs/promises.
 │   ├── inMemoryFileSystem.ts    Deterministic test/embedding implementation.
 │   └── pathJoin.ts              OS-tolerant join/dirname for real ancestor-directory walking (see below).
+├── generate/
+│   ├── types.ts                 GeneratedFile, AdapterRenderer, RendererRegistry, plan/output types.
+│   ├── marker.ts                 The managed-file marker banner and detection.
+│   ├── generate.ts               planGeneration() (pure) and resolvePlannedOutputs() (reads disk).
+│   └── adapters/
+│       ├── shared.ts             Shared section-rendering helper (not a templating engine).
+│       ├── agentsMd.ts           NormalizedContract -> AGENTS.md. Pure function, no FileSystem access.
+│       └── claude.ts             NormalizedContract -> CLAUDE.md. Pure function, no FileSystem access.
 └── index.ts                     Public programmatic API (see docs/specification/api-stability.md).
 ```
 
@@ -36,16 +45,24 @@ src/
 
 ```text
 cli/  --------------------> contract/pipeline.ts --------------------> contract/{discovery,parseYaml,schema,semantic,normalize}
- |                                                                              |
- v                                                                              v
+ |                    \                                                        |
+ v                     \-> generate/generate.ts -> generate/adapters/*         v
 diagnostics/  <----------------------------------------------------  filesystem/ (via injected FileSystem)
 ```
 
-- `cli/` depends on `contract/` and `diagnostics/`; nothing in
-  `contract/` or `diagnostics/` depends on `cli/` or on `commander`.
-- `contract/` depends on `filesystem/` only through the `FileSystem`
-  interface — never on `node:fs` directly (`src/filesystem/nodeFileSystem.ts`
-  is the only file that imports `node:fs/promises` for actual I/O).
+- `cli/` depends on `contract/`, `generate/`, and `diagnostics/`; nothing
+  in `contract/`, `generate/`, or `diagnostics/` depends on `cli/` or on
+  `commander`.
+- `contract/` and `generate/` depend on `filesystem/` only through the
+  `FileSystem` interface — never on `node:fs` directly
+  (`src/filesystem/nodeFileSystem.ts` is the only file that imports
+  `node:fs/promises` for actual I/O, including the one write method,
+  `writeTextFile`).
+- `generate/adapters/*` depend only on `contract/types.ts` — they are
+  pure functions with no `FileSystem` dependency at all; only
+  `generate/generate.ts` (via `resolvePlannedOutputs`) and
+  `cli/commands/generate.ts` (via the actual write) touch the file
+  system.
 - `diagnostics/` has no dependency on any other module in this project —
   it is pure data-shape and rendering logic.
 - No module anywhere depends on an AI model, provider, or hosted service.
@@ -62,8 +79,7 @@ Windows and POSIX file APIs happily accept forward slashes, so
 `pathJoin.ts` implements a tiny, fully-tested, separator-tolerant
 join/dirname instead of relying on `node:path`'s platform-specific
 normalization. This was discovered and fixed via an actual cross-platform
-test failure during development — see the "Testing" section of the
-completion report.
+test failure during development.
 
 ## Pipeline stages (see also docs/specification/overview.md)
 
@@ -89,9 +105,13 @@ letting them propagate as raw stack traces to the CLI.
 
 ## File-system boundary
 
-All disk access in domain code (`contract/`) goes through the narrow
-`FileSystem` interface (`readTextFile`, `stat`, `realPath`, `cwd`) defined
-in `filesystem/types.ts`. This means:
+All disk access in domain code (`contract/`, `generate/`) goes through
+the narrow `FileSystem` interface (`readTextFile`, `stat`, `realPath`,
+`cwd`, `writeTextFile`) defined in `filesystem/types.ts`. `writeTextFile`
+is the only write path anywhere in the codebase — added specifically for
+`agent-ready generate --write`; `validate` and `inspect` never call it
+(see [ADR-0010](../decisions/0010-generate-write-boundary.md)). This
+means:
 
 - Unit tests can validate discovery and semantic-validation logic against
   an `InMemoryFileSystem` with no real disk I/O, running in milliseconds
@@ -106,23 +126,30 @@ in `filesystem/types.ts`. This means:
 ## CLI composition
 
 `src/cli/index.ts` only: parses arguments via `commander`, constructs a
-`NodeFileSystem`, calls `runValidate`/`runInspect`, writes their returned
-`stdout`/`stderr` strings, and sets `process.exitCode`. It contains no
-validation logic itself and never calls `process.exit()` from inside a
-command's business logic — `commands/validate.ts` and
-`commands/inspect.ts` are plain, directly-testable async functions that
-return a `{ exitCode, stdout, stderr }` value rather than performing I/O
-themselves, which is what the integration tests in
-`tests/integration/cli.test.ts` call directly.
+`NodeFileSystem`, calls `runValidate`/`runInspect`/`runGenerate`, writes
+their returned `stdout`/`stderr` strings, and sets `process.exitCode`. It
+contains no validation or generation logic itself and never calls
+`process.exit()` from inside a command's business logic —
+`commands/validate.ts`, `commands/inspect.ts`, and `commands/generate.ts`
+are plain, directly-testable async functions that return a `{ exitCode,
+stdout, stderr }` value rather than performing I/O themselves, which is
+what the integration tests in `tests/integration/cli.test.ts` and
+`tests/integration/generateCli.test.ts` call directly.
 
 ## Explicitly absent (by design, this phase)
 
 - No dependency-injection container, generic plugin/adapter loader, event
   system, or "manager"/"service"/"engine" class with unclear
-  responsibility.
+  responsibility. `generate/generate.ts`'s `RendererRegistry` is a plain
+  object literal mapping adapter name to renderer function, not a
+  dynamic/discoverable plugin system — adding a renderer for a new
+  adapter is a one-file, one-line-registry change, not a redesign.
 - No AI model or provider dependency anywhere.
 - No command-execution code path of any kind (see
   [ADR-0006](../decisions/0006-command-representation.md)).
 - No hosted-service client code, even as a stub.
+- No general-purpose write surface: `writeTextFile` is the only write
+  method on `FileSystem`, with no `mkdir`/`unlink`/`chmod` — output paths
+  are always adapter-hardcoded filenames, never contract-supplied.
 
 See [../../ROADMAP.md](../../ROADMAP.md) for the full non-goals list.

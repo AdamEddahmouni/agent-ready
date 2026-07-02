@@ -98,10 +98,16 @@ instructions:
 
 ## `adapters` (optional, object)
 
-Configuration only — **no adapter generation exists in this phase**.
 Recognized keys: `agentsMd`, `claude`, `cursor`, `copilot`, `gemini`.
 Each maps to `{ enabled: boolean }`; unrecognized adapter keys are
 rejected (`ADAPTER_DECLARATION_INVALID`).
+
+Enabling `agentsMd` or `claude` and running `agent-ready generate` (or
+`generate --write`) produces `AGENTS.md`/`CLAUDE.md` respectively — see
+[cli-reference.md](cli-reference.md#agent-ready-generate). `cursor`,
+`copilot`, and `gemini` remain configuration-only: they validate
+successfully, but enabling them produces an `ADAPTER_NOT_YET_IMPLEMENTED`
+warning at generation time, since no renderer exists for them yet.
 
 ```yaml
 adapters:

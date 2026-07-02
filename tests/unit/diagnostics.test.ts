@@ -27,6 +27,10 @@ describe("diagnostic codes", () => {
       "ADAPTER_DECLARATION_INVALID",
       "NORMALIZATION_FAILED",
       "INTERNAL_INVARIANT_VIOLATION",
+      "GENERATE_TARGET_UNMANAGED",
+      "GENERATE_WRITE_FAILED",
+      "GENERATE_OUTSIDE_REPO_ROOT",
+      "ADAPTER_NOT_YET_IMPLEMENTED",
     ];
     for (const code of required) {
       expect(DIAGNOSTIC_CODES).toContain(code);
@@ -136,5 +140,41 @@ describe("resolveExitCode", () => {
       { code: "INTERNAL_INVARIANT_VIOLATION", severity: "error", summary: "y" },
     ];
     expect(resolveExitCode(diagnostics)).toBe(ExitCode.INTERNAL_ERROR);
+  });
+
+  it("returns VALIDATION_FAILED for an unmanaged generate target", () => {
+    const diagnostic: Diagnostic = {
+      code: "GENERATE_TARGET_UNMANAGED",
+      severity: "error",
+      summary: "x",
+    };
+    expect(resolveExitCode([diagnostic])).toBe(ExitCode.VALIDATION_FAILED);
+  });
+
+  it("returns INTERNAL_ERROR for a generate write failure", () => {
+    const diagnostic: Diagnostic = {
+      code: "GENERATE_WRITE_FAILED",
+      severity: "error",
+      summary: "x",
+    };
+    expect(resolveExitCode([diagnostic])).toBe(ExitCode.INTERNAL_ERROR);
+  });
+
+  it("returns INTERNAL_ERROR for a generate-outside-repo-root violation", () => {
+    const diagnostic: Diagnostic = {
+      code: "GENERATE_OUTSIDE_REPO_ROOT",
+      severity: "error",
+      summary: "x",
+    };
+    expect(resolveExitCode([diagnostic])).toBe(ExitCode.INTERNAL_ERROR);
+  });
+
+  it("returns SUCCESS when only an adapter-not-yet-implemented warning is present", () => {
+    const diagnostic: Diagnostic = {
+      code: "ADAPTER_NOT_YET_IMPLEMENTED",
+      severity: "warning",
+      summary: "x",
+    };
+    expect(resolveExitCode([diagnostic])).toBe(ExitCode.SUCCESS);
   });
 });

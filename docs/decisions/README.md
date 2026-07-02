@@ -1,7 +1,7 @@
 # Architecture Decision Records
 
 This directory records consequential technical decisions made during the
-Phase 0/1 foundation of Agent-Ready, in lightweight MADR-style format
+Phase 0/1/2 foundation of Agent-Ready, in lightweight MADR-style format
 (context, alternatives, decision, consequences, reconsideration trigger).
 
 An ADR is warranted for a decision that is hard to reverse, affects the
@@ -20,3 +20,5 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0007](0007-normalization-ordering.md)            | Normalization ordering policy                         |
 | [0008](0008-diagnostics-and-exit-codes.md)        | Diagnostic shape, error codes, and exit-code mapping  |
 | [0009](0009-pre-1.0-stability-policy.md)          | Pre-1.0 stability and compatibility policy            |
+| [0010](0010-generate-write-boundary.md)           | Write boundary for `agent-ready generate`             |
+| [0011](0011-adapter-rendering-design.md)          | Adapter rendering and generated-content design        |
