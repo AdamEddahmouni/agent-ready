@@ -80,3 +80,11 @@ explicit non-goal for this phase), this discovery algorithm's "nearest
 match wins, never look further" rule will need to become "nearest match
 wins, but record the chain of ancestor contracts" — a materially
 different discovery model.
+
+## Related decisions
+
+"Git is never invoked" above is scoped specifically to **discovery**
+(finding the repository root and contract file). [ADR-0013](0013-protected-path-enforcement-and-git-invocation.md)
+introduces `agent-ready check`, which invokes the `git` executable for a
+different, narrower purpose (reading changed-file state) — discovery
+itself remains unchanged and still never invokes `git`.

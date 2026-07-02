@@ -147,15 +147,72 @@ warning and is skipped rather than failing generation.
 and `--write` together is rejected before the pipeline runs (exit code
 1, plain usage message, not a `Diagnostic`).
 
+## `agent-ready check`
+
+Runs the same pipeline as `validate`, then checks whether any file
+matching the contract's `paths.protected` patterns was changed in Git,
+relative to the working tree (default), the Git index (`--staged`), or an
+explicit ref (`--against <ref>`). **Requires a Git working tree and the
+`git` executable on `PATH`** — unlike `validate`/`inspect`/`generate`,
+which need only Node.js. Git is only ever invoked with
+Agent-Ready-hardcoded arguments (plus a validated `--against` ref, passed
+after Git's own `--end-of-options` marker so it can never be interpreted
+as an option); no contract-declared content ever reaches a `git`
+argument. See [ADR-0013](../decisions/0013-protected-path-enforcement-and-git-invocation.md).
+
+```bash
+agent-ready check                          # working tree vs HEAD (staged + unstaged + untracked)
+agent-ready check --staged                 # staged changes only
+agent-ready check --against origin/main    # changes relative to an explicit ref
+agent-ready check --json
+```
+
+| Option            | Description                                                                                                                                                     |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--staged`        | Check staged changes (`git diff --cached`) instead of the full working tree.                                                                                    |
+| `--against <ref>` | Check changes relative to an explicit Git ref instead of `HEAD`. Mutually exclusive in effect with `--staged` (`--staged` takes precedence if both are passed). |
+| `--json`          | Print a machine-readable JSON result instead of human-readable text.                                                                                            |
+| `--config <path>` | Use this exact file instead of discovering one; see [discovery.md](discovery.md#explicit---config).                                                             |
+
+By default, brand-new (never-committed) files are included: an untracked
+file matching `paths.protected` is flagged just like a modified tracked
+one. In a repository with no commits yet, every currently staged/working
+file is treated as changed rather than producing an error.
+
+**Human output** (violation found):
+
+```text
+error[PROTECTED_PATH_MODIFIED]: Protected path was modified: .env.production
+  ".env.production" matches protected pattern ".env*" declared in paths.protected.
+  suggestion: Revert this change, or update paths.protected in agent-ready.yaml if this file should no longer be protected.
+```
+
+**JSON output** (`--json`):
+
+```json
+{
+  "ok": false,
+  "contractPath": "/path/to/agent-ready.yaml",
+  "repoRoot": "/path/to",
+  "base": { "kind": "working-tree" },
+  "changedFiles": [{ "path": ".env.production", "status": "modified" }],
+  "violations": [{ "path": ".env.production", "pattern": ".env*" }],
+  "diagnostics": [{ "code": "PROTECTED_PATH_MODIFIED", "severity": "error", "...": "..." }]
+}
+```
+
+`changedFiles`/`violations`/`base` are omitted when the pipeline failed
+before Git was ever consulted (e.g. an invalid contract).
+
 ## Exit codes
 
-| Code | Meaning                                                                                                                              |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 0    | Success                                                                                                                              |
-| 1    | Validation failed (schema or semantic error), a `generate --write` target exists but is unmanaged, or `generate --check` found drift |
-| 2    | Contract not found or unreadable                                                                                                     |
-| 3    | Unsupported contract version                                                                                                         |
-| 10   | Internal Agent-Ready failure, including a `generate --write` write failure (please report as a bug)                                  |
+| Code | Meaning                                                                                                                                                         |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | Success                                                                                                                                                         |
+| 1    | Validation failed (schema or semantic error), a `generate --write` target exists but is unmanaged, `generate --check` found drift, or `check` found a violation |
+| 2    | Contract not found or unreadable, or (for `check`) the repository is not a Git working tree or Git could not be read                                            |
+| 3    | Unsupported contract version                                                                                                                                    |
+| 10   | Internal Agent-Ready failure, including a `generate --write` write failure (please report as a bug)                                                             |
 
 See [diagnostics.md](diagnostics.md) and
 [ADR-0008](../decisions/0008-diagnostics-and-exit-codes.md) for how a set

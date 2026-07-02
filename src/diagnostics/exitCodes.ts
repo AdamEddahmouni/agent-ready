@@ -38,7 +38,15 @@ export function resolveExitCode(diagnostics: readonly Diagnostic[]): ExitCode {
     return ExitCode.INTERNAL_ERROR;
   }
 
-  if (errors.some((d) => d.code === "CONTRACT_NOT_FOUND" || d.code === "CONTRACT_READ_FAILED")) {
+  if (
+    errors.some(
+      (d) =>
+        d.code === "CONTRACT_NOT_FOUND" ||
+        d.code === "CONTRACT_READ_FAILED" ||
+        d.code === "GIT_REPOSITORY_NOT_FOUND" ||
+        d.code === "GIT_UNAVAILABLE",
+    )
+  ) {
     return ExitCode.CONTRACT_NOT_FOUND;
   }
 

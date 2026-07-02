@@ -55,6 +55,28 @@ why.
   reserved for a future adapter name added to the schema ahead of its
   renderer.
 
+## Phase 4: Protected-path enforcement — complete
+
+- `agent-ready check` CLI command: reports whether any file matching the
+  contract's `paths.protected` patterns was changed in Git, relative to
+  the working tree (default), the Git index (`--staged`), or an explicit
+  ref (`--against <ref>`).
+- Untracked (never-committed) files are included by default; a fresh
+  repository with no commits yet treats all current files as changed
+  rather than erroring.
+- A new, hand-rolled glob matcher (`src/contract/globMatch.ts`) makes
+  `paths.protected`/`generated`/`ignored` load-bearing for the first
+  time — previously validated-but-inert data.
+- A new `GitClient` abstraction (`src/git/`), mirroring the existing
+  `FileSystem` pattern, makes `agent-ready check` the **first command
+  whose availability depends on an external binary** (`git` on `PATH`).
+  Git is invoked only with Agent-Ready-hardcoded arguments (plus a
+  validated `--against` ref) — the "never execute contract-declared
+  commands" boundary from Phase 0/1 is unchanged and unaffected. See
+  [ADR-0013](docs/decisions/0013-protected-path-enforcement-and-git-invocation.md).
+- New diagnostics: `PROTECTED_PATH_MODIFIED`, `GIT_UNAVAILABLE`,
+  `GIT_REPOSITORY_NOT_FOUND`, reusing the existing exit-code scheme.
+
 ## Long-term open-source direction
 
 The following remain **open-source, local-first roadmap categories** —
@@ -62,7 +84,6 @@ not yet implemented, and not committed to any specific phase or date:
 
 - Local command execution and verification evidence (actually running the
   commands declared in `verification.required` and recording results).
-- Protected-path enforcement against real Git changes.
 - Architecture-dependency and documentation-drift analysis.
 - Task packets, completion records, and context manifests.
 - Basic CI integrations beyond this repository's own workflow (i.e. a
@@ -106,7 +127,7 @@ not oversights:
 command or shell execution of any kind · verification-evidence
 execution · task packets · completion records · context manifests ·
 documentation-drift detection · architecture-dependency analysis ·
-protected-path enforcement against Git changes · plugin/adapter loading ·
+plugin/adapter loading ·
 framework detection · monorepo contract inheritance or nested contracts ·
 remote configuration · organization policies · hosted dashboards · user
 accounts · authentication · billing · telemetry · analytics · IDE
@@ -118,4 +139,5 @@ package publication or release.
 ## Recommended next phase
 
 Not yet decided. See the "Long-term open-source direction" list above for
-candidate categories.
+candidate categories (Phase 4, protected-path enforcement, is now
+complete — see above).

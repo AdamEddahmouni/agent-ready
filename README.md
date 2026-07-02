@@ -14,10 +14,11 @@ agent-ready.yaml
 
 ## What this foundation actually does today
 
-This is the **Phase 0/1/2/3 foundation**: a minimal contract core, a local
-CLI, and agent-instruction generation for `AGENTS.md`, `CLAUDE.md`,
-`.cursorrules`, `.github/copilot-instructions.md`, and `GEMINI.md`.
-Concretely, right now Agent-Ready can:
+This is the **Phase 0/1/2/3/4 foundation**: a minimal contract core, a
+local CLI, agent-instruction generation for `AGENTS.md`, `CLAUDE.md`,
+`.cursorrules`, `.github/copilot-instructions.md`, and `GEMINI.md`, and
+protected-path enforcement against real Git changes. Concretely, right
+now Agent-Ready can:
 
 - Discover a repository's `agent-ready.yaml` (see
   [docs/specification/discovery.md](docs/specification/discovery.md)).
@@ -41,11 +42,18 @@ Concretely, right now Agent-Ready can:
 - Report every failure as a structured, stable diagnostic with a code,
   severity, field, and remediation — in both human-readable and `--json`
   form.
+- Check whether any file matching the contract's `paths.protected`
+  patterns was actually changed in Git — working tree, staged, or
+  relative to an explicit ref (`agent-ready check`). This is the first
+  command that requires a Git working tree and the `git` executable.
 
 **What it deliberately does _not_ do yet:**
 
 - It does **not** execute any repository command. `commands` and
   `verification` are inert, validated data — never a shell invocation.
+  `agent-ready check` never reads `commands` or `verification` at all;
+  the only process it ever spawns is `git`, with Agent-Ready-hardcoded
+  arguments.
 - It does **not** include, require, or phone home to any hosted service.
   Everything above runs locally, in your terminal or CI runner.
 - It is **pre-1.0** and follows the compatibility policy in
@@ -68,7 +76,10 @@ validation and normalization
         |
         v
 AGENTS.md / CLAUDE.md / .cursorrules /
-.github/copilot-instructions.md / GEMINI.md generation   <-- this phase
+.github/copilot-instructions.md / GEMINI.md generation
+        |
+        v
+protected-path enforcement against Git changes   <-- this phase
         |
         v
 CI policies, verification evidence   <-- future phases
@@ -106,6 +117,11 @@ agent-ready generate --write --force       # also overwrite hand-authored files
 agent-ready generate --check               # CI mode: exit non-zero if output is stale
 agent-ready generate --json
 
+agent-ready check                          # protected-path violations vs the working tree
+agent-ready check --staged                 # ...vs the Git index
+agent-ready check --against origin/main    # ...vs an explicit ref
+agent-ready check --json
+
 agent-ready --help
 agent-ready --version
 ```
@@ -116,7 +132,10 @@ none of it writes to your repository — except `agent-ready generate
 generate (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`,
 `.github/copilot-instructions.md`, `GEMINI.md`), and refuses to overwrite
 an existing file that doesn't carry its own managed-file marker unless
-`--force` is also passed.
+`--force` is also passed. `agent-ready check` is the one command that
+requires a Git working tree and the `git` executable on `PATH`; it only
+ever invokes `git` with Agent-Ready-hardcoded arguments, never anything
+contract-supplied.
 
 ## A minimal contract
 

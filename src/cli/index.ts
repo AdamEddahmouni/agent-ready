@@ -2,9 +2,11 @@
 import { readFileSync } from "node:fs";
 import { Command } from "commander";
 import { NodeFileSystem } from "../filesystem/nodeFileSystem.js";
+import { NodeGitClient } from "../git/nodeGitClient.js";
 import { runValidate } from "./commands/validate.js";
 import { runInspect } from "./commands/inspect.js";
 import { runGenerate } from "./commands/generate.js";
+import { runCheck } from "./commands/check.js";
 
 interface PackageJson {
   readonly version: string;
@@ -86,5 +88,25 @@ program
       process.exitCode = outcome.exitCode;
     },
   );
+
+program
+  .command("check")
+  .description(
+    "Check whether any file matching the contract's paths.protected was\n" +
+      "changed in Git. Requires a Git working tree and the `git` executable\n" +
+      "on PATH; git is only ever invoked with Agent-Ready-hardcoded arguments.",
+  )
+  .option("--json", "Print results as machine-readable JSON.", false)
+  .option("--config <path>", "Explicit path to the contract file.")
+  .option("--staged", "Check staged changes instead of the full working tree.", false)
+  .option("--against <ref>", "Check changes relative to an explicit Git ref instead of HEAD.")
+  .action(async (opts: { json: boolean; config?: string; staged: boolean; against?: string }) => {
+    const fs = new NodeFileSystem();
+    const git = new NodeGitClient();
+    const outcome = await runCheck(fs, git, opts);
+    if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
+    if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
+    process.exitCode = outcome.exitCode;
+  });
 
 await program.parseAsync(process.argv);

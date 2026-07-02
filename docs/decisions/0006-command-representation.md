@@ -94,3 +94,14 @@ When a future phase implements actual command execution (explicitly out
 of scope here), revisit whether `run` needs to become a structured
 (argv-array) form to avoid shell interpretation entirely, versus staying
 a shell-invoked string with documented shell-quoting rules.
+
+## Related decisions
+
+This boundary is specifically about **contract-declared `run` strings**.
+[ADR-0013](0013-protected-path-enforcement-and-git-invocation.md)
+introduces the project's first process-spawning code path
+(`agent-ready check` invoking `git`), but it never reads `commands` or
+`verification` at all, and every argument it passes to `git` is
+Agent-Ready-hardcoded or a validated discrete CLI argument — no
+contract-declared string ever reaches a spawned process. This boundary
+remains unchanged and absolute.
