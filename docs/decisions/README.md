@@ -25,3 +25,4 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0012](0012-cursor-copilot-gemini-output-format.md)           | Cursor, Copilot, and Gemini adapter output format               |
 | [0013](0013-protected-path-enforcement-and-git-invocation.md) | Protected-path enforcement and Git invocation                   |
 | [0014](0014-verification-execution.md)                        | Verification execution and the command-execution trust boundary |
+| [0015](0015-verification-evidence-recording.md)               | Verification evidence recording                                 |

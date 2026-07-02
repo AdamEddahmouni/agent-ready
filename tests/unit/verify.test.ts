@@ -1,8 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { runVerify } from "../../src/cli/commands/verify.js";
+import { runVerify, VERIFICATION_RECORD_FILENAME } from "../../src/cli/commands/verify.js";
 import { InMemoryFileSystem } from "../../src/filesystem/inMemoryFileSystem.js";
+import { FileSystemError } from "../../src/filesystem/types.js";
 import { FakeCommandRunner } from "../../src/verify/fakeCommandRunner.js";
 import { ExitCode } from "../../src/diagnostics/exitCodes.js";
+
+class WriteFailingFileSystem extends InMemoryFileSystem {
+  // eslint-disable-next-line @typescript-eslint/require-await -- interface is async for parity with real I/O
+  override async writeTextFile(absolutePath: string): Promise<void> {
+    throw new FileSystemError("Simulated write failure.", absolutePath);
+  }
+}
 
 function contractFs(
   options: {
@@ -124,5 +132,105 @@ describe("runVerify", () => {
     const outcome = await runVerify(fs, runner, { json: true, execute: true }, "/repo");
     expect(outcome.exitCode).not.toBe(ExitCode.SUCCESS);
     expect(runner.calls).toHaveLength(0);
+  });
+
+  describe("--record", () => {
+    it("rejects --record without --execute and writes nothing", async () => {
+      const fs = contractFs();
+      const runner = new FakeCommandRunner();
+      const outcome = await runVerify(
+        fs,
+        runner,
+        { json: true, execute: false, record: true },
+        "/repo",
+      );
+      expect(outcome.exitCode).toBe(ExitCode.VALIDATION_FAILED);
+      expect(runner.calls).toHaveLength(0);
+      expect(await fs.stat(`/repo/${VERIFICATION_RECORD_FILENAME}`)).toBeUndefined();
+    });
+
+    it("writes an evidence file with a deterministic recordedAt when all commands pass", async () => {
+      const fs = contractFs();
+      const runner = new FakeCommandRunner();
+      const now = () => new Date("2026-01-01T00:00:00.000Z");
+      const outcome = await runVerify(
+        fs,
+        runner,
+        { json: true, execute: true, record: true },
+        "/repo",
+        now,
+      );
+      expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
+      const parsed = JSON.parse(outcome.stdout) as { recordedTo: string };
+      expect(parsed.recordedTo).toBe(`/repo/${VERIFICATION_RECORD_FILENAME}`);
+
+      const written = JSON.parse(
+        await fs.readTextFile(`/repo/${VERIFICATION_RECORD_FILENAME}`),
+      ) as {
+        ok: boolean;
+        recordedAt: string;
+        mode: string;
+        commands: { id: string; status: string }[];
+      };
+      expect(written.ok).toBe(true);
+      expect(written.recordedAt).toBe("2026-01-01T00:00:00.000Z");
+      expect(written.mode).toBe("execute");
+      expect(written.commands.map((c) => c.status)).toEqual(["passed", "passed"]);
+    });
+
+    it("still writes the evidence file (with failed/skipped statuses) when a command fails", async () => {
+      const fs = contractFs({
+        commands: { install: "pnpm install", lint: "pnpm lint", test: "pnpm test" },
+      });
+      const runner = new FakeCommandRunner({ statusById: { lint: "failed" } });
+      const outcome = await runVerify(
+        fs,
+        runner,
+        { json: true, execute: true, record: true },
+        "/repo",
+      );
+      expect(outcome.exitCode).toBe(ExitCode.VALIDATION_FAILED);
+      const written = JSON.parse(
+        await fs.readTextFile(`/repo/${VERIFICATION_RECORD_FILENAME}`),
+      ) as { ok: boolean; commands: { status: string }[] };
+      expect(written.ok).toBe(false);
+      expect(written.commands.map((c) => c.status)).toEqual(["passed", "failed", "skipped"]);
+    });
+
+    it("writes an evidence file with an empty commands array when nothing is declared", async () => {
+      const fs = contractFs({ noVerification: true });
+      const runner = new FakeCommandRunner();
+      const outcome = await runVerify(
+        fs,
+        runner,
+        { json: true, execute: true, record: true },
+        "/repo",
+      );
+      expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
+      const written = JSON.parse(
+        await fs.readTextFile(`/repo/${VERIFICATION_RECORD_FILENAME}`),
+      ) as { commands: unknown[]; diagnostics: { code: string }[] };
+      expect(written.commands).toEqual([]);
+      expect(written.diagnostics[0]?.code).toBe("VERIFICATION_NOT_DECLARED");
+    });
+
+    it("reports VERIFICATION_RECORD_WRITE_FAILED when the evidence file can't be written", async () => {
+      const fs = new WriteFailingFileSystem("/repo");
+      fs.addFile(
+        "/repo/agent-ready.yaml",
+        "version: 1\nproject:\n  name: example\ncommands:\n  install:\n    run: pnpm install\nverification:\n  required:\n    - install\n",
+      );
+      const runner = new FakeCommandRunner();
+      const outcome = await runVerify(
+        fs,
+        runner,
+        { json: true, execute: true, record: true },
+        "/repo",
+      );
+      expect(outcome.exitCode).toBe(ExitCode.INTERNAL_ERROR);
+      const parsed = JSON.parse(outcome.stdout) as { ok: boolean; diagnostics: { code: string }[] };
+      expect(parsed.ok).toBe(false);
+      expect(parsed.diagnostics.map((d) => d.code)).toContain("VERIFICATION_RECORD_WRITE_FAILED");
+    });
   });
 });

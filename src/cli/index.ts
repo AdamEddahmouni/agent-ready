@@ -8,7 +8,7 @@ import { runValidate } from "./commands/validate.js";
 import { runInspect } from "./commands/inspect.js";
 import { runGenerate } from "./commands/generate.js";
 import { runCheck } from "./commands/check.js";
-import { runVerify } from "./commands/verify.js";
+import { runVerify, VERIFICATION_RECORD_FILENAME } from "./commands/verify.js";
 
 interface PackageJson {
   readonly version: string;
@@ -130,20 +130,34 @@ program
     "Per-command timeout in seconds (default: 900).",
     (value: string) => Number.parseInt(value, 10),
   )
+  .option(
+    "--record",
+    `With --execute, write a JSON evidence file (${VERIFICATION_RECORD_FILENAME}) to the repo root.`,
+    false,
+  )
   .option("--json", "Print results as machine-readable JSON.", false)
   .option("--config <path>", "Explicit path to the contract file.")
-  .action(async (opts: { execute: boolean; timeout?: number; json: boolean; config?: string }) => {
-    const fs = new NodeFileSystem();
-    const commandRunner = new NodeCommandRunner();
-    const outcome = await runVerify(fs, commandRunner, {
-      json: opts.json,
-      execute: opts.execute,
-      ...(opts.config !== undefined && { config: opts.config }),
-      ...(opts.timeout !== undefined && { timeoutSeconds: opts.timeout }),
-    });
-    if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
-    if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
-    process.exitCode = outcome.exitCode;
-  });
+  .action(
+    async (opts: {
+      execute: boolean;
+      timeout?: number;
+      record: boolean;
+      json: boolean;
+      config?: string;
+    }) => {
+      const fs = new NodeFileSystem();
+      const commandRunner = new NodeCommandRunner();
+      const outcome = await runVerify(fs, commandRunner, {
+        json: opts.json,
+        execute: opts.execute,
+        record: opts.record,
+        ...(opts.config !== undefined && { config: opts.config }),
+        ...(opts.timeout !== undefined && { timeoutSeconds: opts.timeout }),
+      });
+      if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
+      if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
+      process.exitCode = outcome.exitCode;
+    },
+  );
 
 await program.parseAsync(process.argv);

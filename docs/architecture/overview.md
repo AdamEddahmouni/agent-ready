@@ -11,7 +11,7 @@ src/
 │       ├── inspect.ts         runInspect(): pipeline -> rendered output. No CLI-framework dependency.
 │       ├── generate.ts        runGenerate(): pipeline -> plan -> optional write -> rendered output.
 │       ├── check.ts           runCheck(): pipeline -> Git diff -> protected-path match -> rendered output.
-│       └── verify.ts          runVerify(): pipeline -> ordered plan -> optional execution -> rendered output.
+│       └── verify.ts          runVerify(): pipeline -> ordered plan -> optional execution -> optional evidence write -> rendered output.
 ├── contract/
 │   ├── discovery.ts           Repository-root + contract-file discovery.
 │   ├── parseYaml.ts           Safe YAML parsing; returns a plain value + a locate() closure for source spans.
@@ -127,9 +127,11 @@ All disk access in domain code (`contract/`, `generate/`) goes through
 the narrow `FileSystem` interface (`readTextFile`, `stat`, `realPath`,
 `cwd`, `writeTextFile`) defined in `filesystem/types.ts`. `writeTextFile`
 is the only write path anywhere in the codebase — added specifically for
-`agent-ready generate --write`; `validate` and `inspect` never call it
-(see [ADR-0010](../decisions/0010-generate-write-boundary.md)). This
-means:
+`agent-ready generate --write`, and used by exactly one other command,
+`agent-ready verify --execute --record` (see
+[ADR-0010](../decisions/0010-generate-write-boundary.md) and
+[ADR-0015](../decisions/0015-verification-evidence-recording.md));
+`validate` and `inspect` never call it. This means:
 
 - Unit tests can validate discovery and semantic-validation logic against
   an `InMemoryFileSystem` with no real disk I/O, running in milliseconds
@@ -171,6 +173,8 @@ and `tests/integration/verifyCli.test.ts` call directly.
 - No hosted-service client code, even as a stub.
 - No general-purpose write surface: `writeTextFile` is the only write
   method on `FileSystem`, with no `mkdir`/`unlink`/`chmod` — output paths
-  are always adapter-hardcoded filenames, never contract-supplied.
+  (adapter output files, and the `verify --execute --record` evidence
+  file) are always Agent-Ready-hardcoded filenames, never
+  contract-supplied.
 
 See [../../ROADMAP.md](../../ROADMAP.md) for the full non-goals list.

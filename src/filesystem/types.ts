@@ -22,7 +22,8 @@ export interface FileSystem {
    * Writes UTF-8 text to a file, creating it if it does not exist and
    * overwriting it if it does. Never creates directories. Throws
    * FileSystemError if the write fails. The only write path in the
-   * FileSystem interface — used exclusively by `agent-ready generate --write`.
+   * FileSystem interface — used by `agent-ready generate --write` and by
+   * `agent-ready verify --execute --record` (see ADR-0015).
    */
   writeTextFile(absolutePath: string, content: string): Promise<void>;
 }

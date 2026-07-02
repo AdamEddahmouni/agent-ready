@@ -131,6 +131,41 @@ jobs:
             exit 1
           fi
 
+      - name: CLI smoke test - verify --execute --record (evidence file)
+        shell: bash
+        run: |
+          set -e
+          tmp="$(mktemp -d)"
+          cat > "$tmp/agent-ready.yaml" <<'YAML'
+          version: 1
+          project:
+            name: verify-record-smoke-test
+          commands:
+            ok:
+              run: node -e "process.exit(0)"
+          verification:
+            required:
+              - ok
+          YAML
+
+          if node dist/cli/index.js verify --config "$tmp/agent-ready.yaml" --record --json; then
+            echo "Expected --record without --execute to fail" >&2
+            exit 1
+          fi
+
+          output="$(node dist/cli/index.js verify --config "$tmp/agent-ready.yaml" --execute --record --json)"
+          echo "$output"
+          echo "$output" | grep -q '"recordedTo"'
+
+          evidence="$tmp/agent-ready-verify-result.json"
+          if [ ! -f "$evidence" ]; then
+            echo "Expected $evidence to exist" >&2
+            exit 1
+          fi
+          cat "$evidence"
+          grep -q '"recordedAt"' "$evidence"
+          grep -q '"status": "passed"' "$evidence"
+
   node-versions:
     name: node ${{ matrix.node-version }} (ubuntu-latest)
     runs-on: ubuntu-latest

@@ -99,13 +99,38 @@ why.
   `VERIFICATION_COMMAND_SPAWN_FAILED`, reusing the existing exit-code
   scheme.
 
+## Phase 6: Verification evidence recording — complete
+
+- `agent-ready verify --execute --record`: writes the run's result to a
+  fixed, hardcoded file at the repository root
+  (`agent-ready-verify-result.json`), overwritten on every run — a
+  durable, local artifact proving verification ran and what happened,
+  closing the gap ADR-0014 named in its own reconsideration trigger.
+- `--record` requires `--execute`; the evidence file's shape is the same
+  structured `{ ok, contractPath, repoRoot, mode, commands, diagnostics }`
+  body `verify --json` already produced, plus one new field,
+  `recordedAt`. Still never captures a command's actual stdout/stderr —
+  only the same non-sensitive status fields already exposed today.
+- Unlike `generate --write`, there is no managed-file-marker protection:
+  every `--record` run overwrites its target unconditionally, since the
+  evidence file is inherently ephemeral, per-run data rather than
+  content a user might hand-author. See
+  [ADR-0015](docs/decisions/0015-verification-evidence-recording.md) for
+  the full design, including why this is deliberately scoped away from
+  the "historical verification-evidence retention" category reserved
+  below for a future commercial product — this phase persists exactly one
+  local file, with no history, aggregation, or central storage.
+- New diagnostic code: `VERIFICATION_RECORD_WRITE_FAILED`.
+
 ## Long-term open-source direction
 
 The following remain **open-source, local-first roadmap categories** —
 not yet implemented, and not committed to any specific phase or date:
 
 - Architecture-dependency and documentation-drift analysis.
-- Task packets, completion records, and context manifests.
+- Task packets and context manifests; richer completion records beyond
+  the single-run evidence file `agent-ready verify --execute --record`
+  now writes (Phase 6).
 - Basic CI integrations beyond this repository's own workflow (i.e. a
   reusable action/workflow other repositories can adopt).
 - An adapter/plugin interface, once there is more than one concrete
@@ -146,8 +171,10 @@ not oversights:
 `agent-ready init`/`audit`/`sync`/`score` subcommands ·
 command or shell execution outside `agent-ready verify --execute` ·
 per-command timeout/environment/working-directory declarations ·
-capturing or persisting command output as evidence · task packets ·
-completion records · context manifests ·
+capturing or persisting a command's actual stdout/stderr as evidence
+(only structured status is persisted, via `verify --execute --record`) ·
+historical/multi-run verification-evidence retention · task packets ·
+context manifests ·
 documentation-drift detection · architecture-dependency analysis ·
 plugin/adapter loading ·
 framework detection · monorepo contract inheritance or nested contracts ·
@@ -161,5 +188,5 @@ package publication or release.
 ## Recommended next phase
 
 Not yet decided. See the "Long-term open-source direction" list above for
-candidate categories (Phase 5, verification execution, is now
+candidate categories (Phase 6, verification evidence recording, is now
 complete — see above).

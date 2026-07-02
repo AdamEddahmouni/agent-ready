@@ -6,3 +6,4 @@ coverage/
 Thumbs.db
 .pnpm-store/
 *.tsbuildinfo
+agent-ready-verify-result.json

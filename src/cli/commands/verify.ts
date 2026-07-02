@@ -1,19 +1,30 @@
 import { loadContract } from "../../contract/pipeline.js";
 import { renderDiagnosticsHuman } from "../../diagnostics/humanRender.js";
 import { renderDiagnosticsJson } from "../../diagnostics/jsonRender.js";
-import { resolveExitCode } from "../../diagnostics/exitCodes.js";
+import { ExitCode, resolveExitCode } from "../../diagnostics/exitCodes.js";
 import type { Diagnostic } from "../../diagnostics/types.js";
+import { joinPath } from "../../filesystem/pathJoin.js";
+import { FileSystemError } from "../../filesystem/types.js";
 import type { FileSystem } from "../../filesystem/types.js";
 import type { CommandOutcome, CommandOutcomeStatus, CommandRunner } from "../../verify/types.js";
 import type { CliOutcome } from "./validate.js";
 
 export const DEFAULT_VERIFY_TIMEOUT_SECONDS = 900;
 
+/**
+ * Hardcoded, repo-root-relative filename for `verify --execute --record`'s
+ * evidence output. Never contract-supplied and never a subdirectory
+ * (FileSystem.writeTextFile deliberately has no mkdir — see ADR-0010 and
+ * ADR-0015).
+ */
+export const VERIFICATION_RECORD_FILENAME = "agent-ready-verify-result.json";
+
 export interface VerifyArgs {
   readonly json: boolean;
   readonly config?: string;
   readonly execute: boolean;
   readonly timeoutSeconds?: number;
+  readonly record?: boolean;
 }
 
 type VerifyMode = "dry-run" | "execute";
@@ -44,8 +55,26 @@ export async function runVerify(
   commandRunner: CommandRunner,
   args: VerifyArgs,
   startDir?: string,
+  now: () => Date = () => new Date(),
 ): Promise<CliOutcome> {
   const mode: VerifyMode = args.execute ? "execute" : "dry-run";
+
+  if (args.record === true && !args.execute) {
+    const message = "--record requires --execute (there is nothing to record from a dry run).";
+    if (args.json) {
+      const body = { ok: false, error: message };
+      return {
+        exitCode: ExitCode.VALIDATION_FAILED,
+        stdout: JSON.stringify(body, null, 2) + "\n",
+        stderr: "",
+      };
+    }
+    return {
+      exitCode: ExitCode.VALIDATION_FAILED,
+      stdout: "",
+      stderr: `agent-ready verify: ${message}\n`,
+    };
+  }
 
   const result = await loadContract({
     fs,
@@ -54,7 +83,7 @@ export async function runVerify(
   });
 
   if (!result.ok) {
-    return finish(mode, args, result.diagnostics);
+    return finish(fs, mode, args, now, result.diagnostics);
   }
 
   const { contract, repoRoot, contractPath } = result.value;
@@ -78,7 +107,7 @@ export async function runVerify(
       remediation:
         "Add a verification.required list to agent-ready.yaml to enable `agent-ready verify`.",
     });
-    return finish(mode, args, diagnostics, { contractPath, repoRoot, reports: [] });
+    return finish(fs, mode, args, now, diagnostics, { contractPath, repoRoot, reports: [] });
   }
 
   if (mode === "dry-run") {
@@ -89,7 +118,7 @@ export async function runVerify(
       exitCode: null,
       durationMs: 0,
     }));
-    return finish(mode, args, diagnostics, { contractPath, repoRoot, reports });
+    return finish(fs, mode, args, now, diagnostics, { contractPath, repoRoot, reports });
   }
 
   const timeoutMs = (args.timeoutSeconds ?? DEFAULT_VERIFY_TIMEOUT_SECONDS) * 1000;
@@ -117,7 +146,7 @@ export async function runVerify(
     }
   }
 
-  return finish(mode, args, diagnostics, { contractPath, repoRoot, reports });
+  return finish(fs, mode, args, now, diagnostics, { contractPath, repoRoot, reports });
 }
 
 function diagnosticForOutcome(outcome: CommandOutcome): Diagnostic {
@@ -151,12 +180,50 @@ function diagnosticForOutcome(outcome: CommandOutcome): Diagnostic {
   };
 }
 
-function finish(
+async function finish(
+  fs: FileSystem,
   mode: VerifyMode,
   args: VerifyArgs,
-  diagnostics: readonly Diagnostic[],
+  now: () => Date,
+  diagnosticsIn: readonly Diagnostic[],
   context: FinishContext = {},
-): CliOutcome {
+): Promise<CliOutcome> {
+  const diagnostics = [...diagnosticsIn];
+  let recordedTo: string | undefined;
+
+  if (args.record === true && mode === "execute" && context.repoRoot !== undefined) {
+    const ok = !diagnostics.some((d) => d.severity === "error");
+    const evidencePath = joinPath(context.repoRoot, VERIFICATION_RECORD_FILENAME);
+    const evidenceBody = {
+      ok,
+      recordedAt: now().toISOString(),
+      contractPath: context.contractPath,
+      repoRoot: context.repoRoot,
+      mode,
+      commands: (context.reports ?? []).map((r) => ({
+        id: r.id,
+        run: r.run,
+        status: r.status,
+        exitCode: r.exitCode,
+        durationMs: r.durationMs,
+      })),
+      diagnostics: renderDiagnosticsJson(diagnostics),
+    };
+    try {
+      await fs.writeTextFile(evidencePath, JSON.stringify(evidenceBody, null, 2) + "\n");
+      recordedTo = evidencePath;
+    } catch (error) {
+      diagnostics.push({
+        code: "VERIFICATION_RECORD_WRITE_FAILED",
+        severity: "error",
+        summary: `Failed to write verification evidence to ${VERIFICATION_RECORD_FILENAME}.`,
+        detail: error instanceof FileSystemError ? error.message : "Unknown write error.",
+        sourcePath: VERIFICATION_RECORD_FILENAME,
+        remediation: "Check file permissions and available disk space.",
+      });
+    }
+  }
+
   const exitCode = resolveExitCode(diagnostics);
   const ok = !diagnostics.some((d) => d.severity === "error");
 
@@ -175,6 +242,7 @@ function finish(
           durationMs: r.durationMs,
         })),
       }),
+      ...(recordedTo !== undefined && { recordedTo }),
       diagnostics: renderDiagnosticsJson(diagnostics),
     };
     return { exitCode, stdout: JSON.stringify(body, null, 2) + "\n", stderr: "" };
@@ -199,6 +267,9 @@ function finish(
           : ` (exit ${String(r.exitCode)}, ${(r.durationMs / 1000).toFixed(1)}s)`;
       lines.push(`  ${r.id}: ${r.status}${suffix}`);
     }
+  }
+  if (recordedTo !== undefined) {
+    lines.push("", `Recorded verification evidence to ${recordedTo}`);
   }
   if (diagnostics.length > 0) {
     lines.push("", renderDiagnosticsHuman(diagnostics));

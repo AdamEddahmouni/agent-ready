@@ -3,9 +3,13 @@
 The `agent-ready` CLI never modifies the repository it inspects — except
 `agent-ready generate --write`, which writes only the adapter-hardcoded
 files it plans to generate (see [`agent-ready generate`](#agent-ready-generate)
-below) — and never executes a command declared in a contract, except
-`agent-ready verify --execute`, which runs exactly the commands declared
-in `verification.required` (see [`agent-ready verify`](#agent-ready-verify)
+below), and `agent-ready verify --execute --record`, which writes a single
+JSON evidence file to the repository root (see
+[`agent-ready verify`](#agent-ready-verify) below and
+[ADR-0015](../decisions/0015-verification-evidence-recording.md)) — and
+never executes a command declared in a contract, except `agent-ready
+verify --execute`, which runs exactly the commands declared in
+`verification.required` (see [`agent-ready verify`](#agent-ready-verify)
 below and [ADR-0014](../decisions/0014-verification-execution.md)).
 
 ## `agent-ready --help` / `agent-ready --version`
@@ -220,15 +224,17 @@ scoped trust-boundary exception.
 agent-ready verify                         # dry run: print the ordered plan, execute nothing
 agent-ready verify --execute               # actually run the commands
 agent-ready verify --execute --timeout 60  # override the per-command timeout (seconds; default 900)
+agent-ready verify --execute --record      # also write a JSON evidence file to the repo root
 agent-ready verify --json
 ```
 
-| Option                | Description                                                                                   |
-| --------------------- | --------------------------------------------------------------------------------------------- |
-| `--execute`           | Actually run the commands. Without this flag, nothing is spawned.                             |
-| `--timeout <seconds>` | Per-command timeout in seconds (default: 900). Applies uniformly to every command in the run. |
-| `--json`              | Print results as machine-readable JSON.                                                       |
-| `--config <path>`     | Explicit path to the contract file.                                                           |
+| Option                | Description                                                                                                                                              |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--execute`           | Actually run the commands. Without this flag, nothing is spawned.                                                                                        |
+| `--timeout <seconds>` | Per-command timeout in seconds (default: 900). Applies uniformly to every command in the run.                                                            |
+| `--record`            | Requires `--execute`. Write a JSON evidence file (`agent-ready-verify-result.json`) to the repository root. See "Recording verification evidence" below. |
+| `--json`              | Print results as machine-readable JSON.                                                                                                                  |
+| `--config <path>`     | Explicit path to the contract file.                                                                                                                      |
 
 Commands run **sequentially, in the order declared in
 `verification.required`**, invoked through the platform's native shell
@@ -272,6 +278,45 @@ expect these commands to run in).
 true`, `commands: []`) with a `VERIFICATION_NOT_DECLARED` warning rather
 than failing — there is simply nothing to verify.
 
+### Recording verification evidence
+
+`agent-ready verify --execute --record` writes the run's result to a
+fixed file at the repository root, `agent-ready-verify-result.json`,
+overwriting it on every run — it reflects only the most recent
+invocation, with no history or aggregation across runs. `--record`
+without `--execute` is a usage error (exit code 1): a dry run has nothing
+verified to attest to.
+
+The evidence file's shape is the same as the `--json` body above, plus
+one field, `recordedAt` (an ISO-8601 timestamp):
+
+```json
+{
+  "ok": true,
+  "recordedAt": "2026-01-01T00:00:00.000Z",
+  "contractPath": "/path/to/agent-ready.yaml",
+  "repoRoot": "/path/to",
+  "mode": "execute",
+  "commands": [
+    { "id": "lint", "run": "pnpm lint", "status": "passed", "exitCode": 0, "durationMs": 842 }
+  ],
+  "diagnostics": []
+}
+```
+
+When a record is written, the CLI's own output (both `--json` and human
+text) additionally reports where: a `recordedTo` field in JSON mode, or a
+`Recorded verification evidence to <path>` line in human mode. Like every
+other write in this project, the output path is hardcoded and never
+contract-supplied, and never captures a command's actual stdout/stderr —
+only the same structured status fields already shown above. If the write
+itself fails (permissions, disk space), `VERIFICATION_RECORD_WRITE_FAILED`
+is reported and the run's own exit code reflects the failure. See
+[ADR-0015](../decisions/0015-verification-evidence-recording.md) for the
+full design and its explicit scope boundary against
+`ROADMAP.md`'s commercial "historical verification-evidence retention"
+category (this is a single local file, not history or a dashboard).
+
 ## Exit codes
 
 | Code | Meaning                                                                                                                                                                                                           |
@@ -280,7 +325,7 @@ than failing — there is simply nothing to verify.
 | 1    | Validation failed (schema or semantic error), a `generate --write` target exists but is unmanaged, `generate --check` found drift, `check` found a violation, or a `verify --execute` command failed or timed out |
 | 2    | Contract not found or unreadable; the repository is not a Git working tree or Git could not be read (`check`); or a `verify --execute` command could not be spawned at all                                        |
 | 3    | Unsupported contract version                                                                                                                                                                                      |
-| 10   | Internal Agent-Ready failure, including a `generate --write` write failure (please report as a bug)                                                                                                               |
+| 10   | Internal Agent-Ready failure, including a `generate --write` or `verify --execute --record` write failure (please report as a bug)                                                                                |
 
 See [diagnostics.md](diagnostics.md) and
 [ADR-0008](../decisions/0008-diagnostics-and-exit-codes.md) for how a set

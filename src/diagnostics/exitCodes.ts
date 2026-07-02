@@ -32,7 +32,8 @@ export function resolveExitCode(diagnostics: readonly Diagnostic[]): ExitCode {
       (d) =>
         d.code === "INTERNAL_INVARIANT_VIOLATION" ||
         d.code === "GENERATE_WRITE_FAILED" ||
-        d.code === "GENERATE_OUTSIDE_REPO_ROOT",
+        d.code === "GENERATE_OUTSIDE_REPO_ROOT" ||
+        d.code === "VERIFICATION_RECORD_WRITE_FAILED",
     )
   ) {
     return ExitCode.INTERNAL_ERROR;

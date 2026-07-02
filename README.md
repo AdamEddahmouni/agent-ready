@@ -14,12 +14,12 @@ agent-ready.yaml
 
 ## What this foundation actually does today
 
-This is the **Phase 0/1/2/3/4/5 foundation**: a minimal contract core, a
+This is the **Phase 0/1/2/3/4/5/6 foundation**: a minimal contract core, a
 local CLI, agent-instruction generation for `AGENTS.md`, `CLAUDE.md`,
 `.cursorrules`, `.github/copilot-instructions.md`, and `GEMINI.md`,
-protected-path enforcement against real Git changes, and local execution
-of a contract's declared verification commands. Concretely, right now
-Agent-Ready can:
+protected-path enforcement against real Git changes, local execution of a
+contract's declared verification commands, and local recording of that
+execution's evidence. Concretely, right now Agent-Ready can:
 
 - Discover a repository's `agent-ready.yaml` (see
   [docs/specification/discovery.md](docs/specification/discovery.md)).
@@ -53,6 +53,10 @@ Agent-Ready can:
   unless `--execute` is passed. This is the **only** Agent-Ready command
   that executes contract-declared content — see
   [ADR-0014](docs/decisions/0014-verification-execution.md).
+- Record that evidence to a local JSON file
+  (`agent-ready verify --execute --record`), so a CI run or agent session
+  leaves durable proof of what it verified and what happened — see
+  [ADR-0015](docs/decisions/0015-verification-evidence-recording.md).
 
 **What it deliberately does _not_ do yet:**
 
@@ -92,7 +96,10 @@ AGENTS.md / CLAUDE.md / .cursorrules /
 protected-path enforcement against Git changes
         |
         v
-local verification execution and evidence   <-- this phase
+local verification execution
+        |
+        v
+local verification evidence recording   <-- this phase
         |
         v
 CI policies, richer evidence retention   <-- future phases
@@ -138,6 +145,7 @@ agent-ready check --json
 agent-ready verify                         # dry run: print the verification.required plan
 agent-ready verify --execute               # actually run those commands, in order
 agent-ready verify --execute --timeout 60  # override the per-command timeout (seconds)
+agent-ready verify --execute --record      # also write a JSON evidence file to the repo root
 agent-ready verify --json
 
 agent-ready --help
@@ -149,10 +157,13 @@ generate --write`, which writes only the adapter-hardcoded files it plans
 to generate (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`,
 `.github/copilot-instructions.md`, `GEMINI.md`), and refuses to overwrite
 an existing file that doesn't carry its own managed-file marker unless
-`--force` is also passed. None of the above executes a command declared
-in the contract — except `agent-ready verify --execute`, which runs
-exactly the commands declared in `verification.required`, as real shell
-commands, and nothing else (see
+`--force` is also passed, and `agent-ready verify --execute --record`,
+which writes a single JSON evidence file (`agent-ready-verify-result.json`)
+to the repository root, overwritten on every run (see
+[ADR-0015](docs/decisions/0015-verification-evidence-recording.md)). None
+of the above executes a command declared in the contract — except
+`agent-ready verify --execute`, which runs exactly the commands declared
+in `verification.required`, as real shell commands, and nothing else (see
 [ADR-0014](docs/decisions/0014-verification-execution.md)). `agent-ready
 check` is the one command that requires a Git working tree and the `git`
 executable on `PATH`; it only ever invokes `git` with Agent-Ready-hardcoded

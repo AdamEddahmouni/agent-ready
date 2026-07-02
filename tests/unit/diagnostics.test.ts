@@ -38,6 +38,7 @@ describe("diagnostic codes", () => {
       "VERIFICATION_COMMAND_FAILED",
       "VERIFICATION_COMMAND_TIMEOUT",
       "VERIFICATION_COMMAND_SPAWN_FAILED",
+      "VERIFICATION_RECORD_WRITE_FAILED",
     ];
     for (const code of required) {
       expect(DIAGNOSTIC_CODES).toContain(code);
