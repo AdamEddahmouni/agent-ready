@@ -49,6 +49,16 @@ describe("examples/complete-phase-1", () => {
   });
 });
 
+describe("examples/adversarial-content", () => {
+  it("validates successfully despite Markdown-significant content", async () => {
+    const result = await loadContract({
+      fs: new NodeFileSystem(),
+      startDir: join(examplesRoot, "adversarial-content"),
+    });
+    expect(result.ok).toBe(true);
+  });
+});
+
 describe("examples/invalid", () => {
   it("rejects unknown-field.yaml with CONTRACT_SCHEMA_INVALID", async () => {
     const result = await loadContract({

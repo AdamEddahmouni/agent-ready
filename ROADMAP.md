@@ -146,6 +146,45 @@ why.
   `.github/workflows/ci.yml`) exercises the action via `uses: ./` on every
   PR.
 
+## Phase 8: Adapter output Markdown escaping — complete
+
+- `src/generate/adapters/shared.ts` and all five adapters
+  (`agentsMd`/`claude`/`cursor`/`copilot`/`gemini`) now escape
+  contract-supplied free text before interpolating it into generated
+  Markdown, closing a previously untested gap: `project.name`,
+  `project.description`, `command.description`, `command.run`,
+  `runtime.range`, `packageManager.version`, `paths.*` glob patterns, and
+  `instructions.sources` paths could all contain Markdown-significant
+  characters (a leading `#`, an unbalanced backtick, a `)`/space in a link
+  target, or an embedded newline) that would silently corrupt the
+  rendered file's structure.
+- A new module, `src/generate/adapters/escape.ts`, exports three pure
+  functions — `escapeMarkdownText` (plain-text positions),
+  `wrapCodeSpan` (inline-code positions, using a CommonMark-correct
+  backtick-fence-length algorithm), and `renderMarkdownLink`
+  (`instructions.sources`, using CommonMark's angle-bracket destination
+  form when needed) — following the same pure-function, no-templating-
+  engine style [ADR-0011](docs/decisions/0011-adapter-rendering-design.md)
+  already established.
+- **No schema change.** Tightening `project.description`/
+  `command.description`'s JSON Schema `pattern` to forbid these
+  characters was deliberately rejected in favor of a pure rendering-side
+  fix — see [ADR-0017](docs/decisions/0017-adapter-output-markdown-escaping.md)
+  for the full reasoning, including why this avoids the heavier
+  specification-change governance bar and a breaking change to
+  already-valid contracts.
+- No new diagnostic code: escaping is silent and deterministic, with no
+  new failure mode.
+- New adversarial-input test coverage: `tests/unit/adaptersEscaping.test.ts`,
+  a new example (`examples/adversarial-content/`), and five new
+  byte-exact golden fixtures (`tests/fixtures/generate/expected-adversarial-*.txt`)
+  exercised via `tests/integration/generateCli.test.ts` — extending the
+  adversarial-input testing discipline Phase 0/1 established for contract
+  _parsing_ to contract _rendering_ for the first time. All five
+  pre-existing golden fixtures remain byte-identical, since neither
+  example contract in `examples/` contains a Markdown-significant
+  character in any free-text field.
+
 ## Long-term open-source direction
 
 The following remain **open-source, local-first roadmap categories** —
@@ -210,5 +249,5 @@ package publication or release.
 ## Recommended next phase
 
 Not yet decided. See the "Long-term open-source direction" list above for
-candidate categories (Phase 7, reusable CI integration, is now
+candidate categories (Phase 8, adapter output Markdown escaping, is now
 complete — see above).

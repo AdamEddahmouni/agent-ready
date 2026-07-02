@@ -14,7 +14,7 @@ agent-ready.yaml
 
 ## What this foundation actually does today
 
-This is the **Phase 0/1/2/3/4/5/6/7 foundation**: a minimal contract
+This is the **Phase 0/1/2/3/4/5/6/7/8 foundation**: a minimal contract
 core, a local CLI, agent-instruction generation for `AGENTS.md`,
 `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, and
 `GEMINI.md`, protected-path enforcement against real Git changes, local
@@ -41,7 +41,10 @@ Concretely, right now Agent-Ready can:
   `agentsMd`/`claude`/`cursor`/`copilot`/`gemini` adapters
   (`agent-ready generate`), with an opt-in `--write`, a `--check` mode for
   CI drift detection, and a managed-file marker so a re-run never silently
-  overwrites a file you wrote by hand.
+  overwrites a file you wrote by hand. Contract-supplied free text is
+  escaped before it reaches generated Markdown, so it can never corrupt
+  the rendered file's structure — see
+  [ADR-0017](docs/decisions/0017-adapter-output-markdown-escaping.md).
 - Report every failure as a structured, stable diagnostic with a code,
   severity, field, and remediation — in both human-readable and `--json`
   form.
@@ -109,7 +112,7 @@ local verification execution
 local verification evidence recording
         |
         v
-reusable CI integration (GitHub action)   <-- this phase
+reusable CI integration (GitHub action)
         |
         v
 richer evidence retention, other future phases

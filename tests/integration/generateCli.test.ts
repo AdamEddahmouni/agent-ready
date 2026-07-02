@@ -257,6 +257,73 @@ describe("agent-ready generate (CLI composition)", () => {
     expect(geminiMd).toBe(expectedGemini);
   });
 
+  it("matches the golden fixtures for a contract with adversarial Markdown content", async () => {
+    const { root } = await repo({
+      "agent-ready.yaml": await readFile(
+        join(process.cwd(), "examples/adversarial-content/agent-ready.yaml"),
+        "utf8",
+      ),
+      "docs/notes (draft).md": await readFile(
+        join(process.cwd(), "examples/adversarial-content/docs/notes (draft).md"),
+        "utf8",
+      ),
+      ".github/workflows/ci.yml": "",
+    });
+    const outcome = await runGenerate(
+      new NodeFileSystem(),
+      { json: false, write: true, check: false, force: false },
+      root,
+    );
+    expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
+
+    const [
+      agentsMd,
+      claudeMd,
+      cursorrules,
+      copilotInstructions,
+      geminiMd,
+      expectedAgentsMd,
+      expectedClaudeMd,
+      expectedCursor,
+      expectedCopilot,
+      expectedGemini,
+    ] = await Promise.all([
+      readFile(join(root, "AGENTS.md"), "utf8"),
+      readFile(join(root, "CLAUDE.md"), "utf8"),
+      readFile(join(root, ".cursorrules"), "utf8"),
+      readFile(join(root, ".github/copilot-instructions.md"), "utf8"),
+      readFile(join(root, "GEMINI.md"), "utf8"),
+      readFile(
+        join(process.cwd(), "tests/fixtures/generate/expected-adversarial-agents-md.txt"),
+        "utf8",
+      ),
+      readFile(
+        join(process.cwd(), "tests/fixtures/generate/expected-adversarial-claude-md.txt"),
+        "utf8",
+      ),
+      readFile(
+        join(process.cwd(), "tests/fixtures/generate/expected-adversarial-cursor.txt"),
+        "utf8",
+      ),
+      readFile(
+        join(
+          process.cwd(),
+          "tests/fixtures/generate/expected-adversarial-copilot-instructions.txt",
+        ),
+        "utf8",
+      ),
+      readFile(
+        join(process.cwd(), "tests/fixtures/generate/expected-adversarial-gemini-md.txt"),
+        "utf8",
+      ),
+    ]);
+    expect(agentsMd).toBe(expectedAgentsMd);
+    expect(claudeMd).toBe(expectedClaudeMd);
+    expect(cursorrules).toBe(expectedCursor);
+    expect(copilotInstructions).toBe(expectedCopilot);
+    expect(geminiMd).toBe(expectedGemini);
+  });
+
   it("reports GENERATE_WRITE_FAILED when copilot's target directory doesn't exist", async () => {
     const { root } = await repo({
       "agent-ready.yaml": [

@@ -1,4 +1,5 @@
 import type { NormalizedContract } from "../../contract/types.js";
+import { escapeMarkdownText, renderMarkdownLink, wrapCodeSpan } from "./escape.js";
 
 /**
  * Renders the section body shared by every adapter's output. Adapters
@@ -9,9 +10,9 @@ import type { NormalizedContract } from "../../contract/types.js";
 export function renderContractSections(contract: NormalizedContract): string {
   const lines: string[] = [];
 
-  lines.push("## Project", "", contract.project.name);
+  lines.push("## Project", "", escapeMarkdownText(contract.project.name));
   if (contract.project.description !== undefined) {
-    lines.push("", contract.project.description);
+    lines.push("", escapeMarkdownText(contract.project.description));
   }
 
   lines.push("", "## Environment");
@@ -22,12 +23,14 @@ export function renderContractSections(contract: NormalizedContract): string {
     lines.push("", "(none declared)");
   } else {
     for (const runtime of contract.environment.runtimes) {
-      lines.push("", `- Runtime \`${runtime.name}\`: \`${runtime.range}\``);
+      lines.push("", `- Runtime \`${runtime.name}\`: ${wrapCodeSpan(runtime.range)}`);
     }
     if (contract.environment.packageManager !== undefined) {
       lines.push(
         "",
-        `- Package manager: \`${contract.environment.packageManager.name}@${contract.environment.packageManager.version}\``,
+        `- Package manager: ${wrapCodeSpan(
+          `${contract.environment.packageManager.name}@${contract.environment.packageManager.version}`,
+        )}`,
       );
     }
   }
@@ -37,8 +40,9 @@ export function renderContractSections(contract: NormalizedContract): string {
     lines.push("", "(none declared)");
   } else {
     for (const command of contract.commands) {
-      const description = command.description !== undefined ? ` — ${command.description}` : "";
-      lines.push("", `- **${command.name}**: \`${command.run}\`${description}`);
+      const description =
+        command.description !== undefined ? ` — ${escapeMarkdownText(command.description)}` : "";
+      lines.push("", `- **${command.name}**: ${wrapCodeSpan(command.run)}${description}`);
     }
   }
 
@@ -61,7 +65,7 @@ export function renderContractSections(contract: NormalizedContract): string {
   } else {
     lines.push("", "See the following files for more detail:");
     for (const source of contract.instructions.sources) {
-      lines.push(`- [${source}](${source})`);
+      lines.push(`- ${renderMarkdownLink(source)}`);
     }
   }
 
@@ -69,5 +73,7 @@ export function renderContractSections(contract: NormalizedContract): string {
 }
 
 function formatPathList(patterns: readonly string[]): string {
-  return patterns.length > 0 ? patterns.map((pattern) => `\`${pattern}\``).join(", ") : "(none)";
+  return patterns.length > 0
+    ? patterns.map((pattern) => wrapCodeSpan(pattern)).join(", ")
+    : "(none)";
 }

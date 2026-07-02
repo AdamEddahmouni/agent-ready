@@ -1,4 +1,5 @@
 import type { NormalizedContract } from "../../contract/types.js";
+import { escapeMarkdownText } from "./escape.js";
 import { GENERATED_FILE_MARKER } from "../marker.js";
 import type { GeneratedFile } from "../types.js";
 import { renderContractSections } from "./shared.js";
@@ -9,7 +10,7 @@ export function renderAgentsMd(contract: NormalizedContract): GeneratedFile {
     [
       GENERATED_FILE_MARKER,
       "",
-      `# AGENTS.md — ${contract.project.name}`,
+      `# AGENTS.md — ${escapeMarkdownText(contract.project.name)}`,
       "",
       renderContractSections(contract),
     ].join("\n") + "\n";

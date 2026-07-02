@@ -27,3 +27,4 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0014](0014-verification-execution.md)                        | Verification execution and the command-execution trust boundary |
 | [0015](0015-verification-evidence-recording.md)               | Verification evidence recording                                 |
 | [0016](0016-reusable-ci-action.md)                            | Reusable CI integration (GitHub composite action)               |
+| [0017](0017-adapter-output-markdown-escaping.md)              | Adapter output Markdown escaping                                |

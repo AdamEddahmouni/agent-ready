@@ -17,6 +17,14 @@ per the schema but rejected during semantic validation with
 | `name`        | yes      | string, 1–100 chars | No leading/trailing whitespace. |
 | `description` | no       | string, 1–500 chars |                                 |
 
+Generated adapter output (`agent-ready generate`) escapes
+Markdown-significant characters in free-text fields (`project.name`,
+`project.description`, `command.description`, command/path/version
+values, and instruction-source links) so generated files always render
+as valid, unambiguous Markdown. This means generated output is not a
+byte-identical round-trip of what you typed — see
+[ADR-0017](../decisions/0017-adapter-output-markdown-escaping.md).
+
 ## `environment` (optional, object)
 
 | Field                    | Required                          | Type                        | Notes                                                                                                                                                                                        |
