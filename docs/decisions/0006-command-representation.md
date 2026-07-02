@@ -104,4 +104,12 @@ introduces the project's first process-spawning code path
 `verification` at all, and every argument it passes to `git` is
 Agent-Ready-hardcoded or a validated discrete CLI argument — no
 contract-declared string ever reaches a spawned process. This boundary
-remains unchanged and absolute.
+remains unchanged and absolute for `validate`, `inspect`, `generate`, and
+`check`.
+
+[ADR-0014](0014-verification-execution.md) is the future phase anticipated
+by this ADR's reconsideration trigger: it implements actual command
+execution, scoped to exactly one new command (`agent-ready verify
+--execute`) rather than removing this boundary project-wide. See ADR-0014
+for the full reasoning, including why `run` stays a shell-invoked string
+rather than becoming an argv-array form.

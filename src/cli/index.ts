@@ -3,10 +3,12 @@ import { readFileSync } from "node:fs";
 import { Command } from "commander";
 import { NodeFileSystem } from "../filesystem/nodeFileSystem.js";
 import { NodeGitClient } from "../git/nodeGitClient.js";
+import { NodeCommandRunner } from "../verify/nodeCommandRunner.js";
 import { runValidate } from "./commands/validate.js";
 import { runInspect } from "./commands/inspect.js";
 import { runGenerate } from "./commands/generate.js";
 import { runCheck } from "./commands/check.js";
+import { runVerify } from "./commands/verify.js";
 
 interface PackageJson {
   readonly version: string;
@@ -22,8 +24,9 @@ program
   .name("agent-ready")
   .description(
     "Validate, inspect, and generate agent instructions from a repository's\n" +
-      "agent-ready.yaml contract. This CLI never executes repository commands,\n" +
-      "and never modifies the repository unless `generate --write` is used.",
+      "agent-ready.yaml contract. This CLI never modifies the repository unless\n" +
+      "`generate --write` is used, and never executes repository commands\n" +
+      "unless `verify --execute` is used.",
   )
   .version(pkg.version);
 
@@ -104,6 +107,40 @@ program
     const fs = new NodeFileSystem();
     const git = new NodeGitClient();
     const outcome = await runCheck(fs, git, opts);
+    if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
+    if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
+    process.exitCode = outcome.exitCode;
+  });
+
+program
+  .command("verify")
+  .description(
+    "Run the contract's verification.required commands, in declared order.\n" +
+      "Defaults to a dry run (prints the plan, executes nothing); pass\n" +
+      "--execute to actually run the commands. This is the only Agent-Ready\n" +
+      "command that executes contract-declared `run` strings (see ADR-0014).",
+  )
+  .option(
+    "--execute",
+    "Actually run the commands. Without this, verify only prints the plan.",
+    false,
+  )
+  .option(
+    "--timeout <seconds>",
+    "Per-command timeout in seconds (default: 900).",
+    (value: string) => Number.parseInt(value, 10),
+  )
+  .option("--json", "Print results as machine-readable JSON.", false)
+  .option("--config <path>", "Explicit path to the contract file.")
+  .action(async (opts: { execute: boolean; timeout?: number; json: boolean; config?: string }) => {
+    const fs = new NodeFileSystem();
+    const commandRunner = new NodeCommandRunner();
+    const outcome = await runVerify(fs, commandRunner, {
+      json: opts.json,
+      execute: opts.execute,
+      ...(opts.config !== undefined && { config: opts.config }),
+      ...(opts.timeout !== undefined && { timeoutSeconds: opts.timeout }),
+    });
     if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
     if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
     process.exitCode = outcome.exitCode;

@@ -60,10 +60,11 @@ Guidelines:
   plugin systems, unused adapter interfaces) ahead of an actual, current
   need — see `ROADMAP.md` and the architecture principles in
   `docs/architecture/overview.md`.
-- **Never execute contract-declared commands.** This is a hard
-  boundary for the current phase (see
-  [docs/security/threat-model.md](docs/security/threat-model.md)) —
-  PRs that add any code path spawning a process or shell based on
+- **Never execute contract-declared commands outside `agent-ready verify
+--execute`.** `verify` is the one, deliberate exception to this
+  boundary (see [ADR-0014](docs/decisions/0014-verification-execution.md)
+  and [docs/security/threat-model.md](docs/security/threat-model.md)) —
+  PRs that add any other code path spawning a process or shell based on
   contract content will not be accepted.
 
 ## Commit and PR style

@@ -44,7 +44,8 @@ export function resolveExitCode(diagnostics: readonly Diagnostic[]): ExitCode {
         d.code === "CONTRACT_NOT_FOUND" ||
         d.code === "CONTRACT_READ_FAILED" ||
         d.code === "GIT_REPOSITORY_NOT_FOUND" ||
-        d.code === "GIT_UNAVAILABLE",
+        d.code === "GIT_UNAVAILABLE" ||
+        d.code === "VERIFICATION_COMMAND_SPAWN_FAILED",
     )
   ) {
     return ExitCode.CONTRACT_NOT_FOUND;

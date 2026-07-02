@@ -9,7 +9,9 @@ src/
 │   └── commands/
 │       ├── validate.ts        runValidate(): pipeline -> rendered output. No CLI-framework dependency.
 │       ├── inspect.ts         runInspect(): pipeline -> rendered output. No CLI-framework dependency.
-│       └── generate.ts        runGenerate(): pipeline -> plan -> optional write -> rendered output.
+│       ├── generate.ts        runGenerate(): pipeline -> plan -> optional write -> rendered output.
+│       ├── check.ts           runCheck(): pipeline -> Git diff -> protected-path match -> rendered output.
+│       └── verify.ts          runVerify(): pipeline -> ordered plan -> optional execution -> rendered output.
 ├── contract/
 │   ├── discovery.ts           Repository-root + contract-file discovery.
 │   ├── parseYaml.ts           Safe YAML parsing; returns a plain value + a locate() closure for source spans.
@@ -30,6 +32,14 @@ src/
 │   ├── nodeFileSystem.ts        Real implementation, backed by node:fs/promises.
 │   ├── inMemoryFileSystem.ts    Deterministic test/embedding implementation.
 │   └── pathJoin.ts              OS-tolerant join/dirname for real ancestor-directory walking (see below).
+├── git/
+│   ├── types.ts                 GitClient interface (the only Git boundary domain code depends on).
+│   ├── nodeGitClient.ts         Real implementation, backed by execFile("git", ...).
+│   └── fakeGitClient.ts         Deterministic test double; no real `git` process ever spawned in tests.
+├── verify/
+│   ├── types.ts                 CommandRunner interface (the only process-execution boundary domain code depends on).
+│   ├── nodeCommandRunner.ts     Real implementation, backed by child_process.spawn; the project's only code path that executes contract-declared `run` strings (see ADR-0014).
+│   └── fakeCommandRunner.ts     Deterministic test double; no real process ever spawned in tests.
 ├── generate/
 │   ├── types.ts                 GeneratedFile, AdapterRenderer, RendererRegistry, plan/output types.
 │   ├── marker.ts                 The managed-file marker banner and detection.
@@ -68,6 +78,11 @@ diagnostics/  <----------------------------------------------------  filesystem/
   system.
 - `diagnostics/` has no dependency on any other module in this project —
   it is pure data-shape and rendering logic.
+- `cli/commands/check.ts` and `cli/commands/verify.ts` depend on `git/`
+  and `verify/` respectively only through their `GitClient`/
+  `CommandRunner` interfaces, mirroring the `FileSystem` pattern — real
+  Git/process I/O is confined to `NodeGitClient`/`NodeCommandRunner`, and
+  tests exercise `FakeGitClient`/`FakeCommandRunner` instead.
 - No module anywhere depends on an AI model, provider, or hosted service.
 
 ## Why `filesystem/pathJoin.ts` exists instead of `node:path`
@@ -132,12 +147,13 @@ means:
 `NodeFileSystem`, calls `runValidate`/`runInspect`/`runGenerate`, writes
 their returned `stdout`/`stderr` strings, and sets `process.exitCode`. It
 contains no validation or generation logic itself and never calls
-`process.exit()` from inside a command's business logic —
-`commands/validate.ts`, `commands/inspect.ts`, and `commands/generate.ts`
-are plain, directly-testable async functions that return a `{ exitCode,
-stdout, stderr }` value rather than performing I/O themselves, which is
-what the integration tests in `tests/integration/cli.test.ts` and
-`tests/integration/generateCli.test.ts` call directly.
+`process.exit()` from inside a command's business logic — every file in
+`commands/` (`validate.ts`, `inspect.ts`, `generate.ts`, `check.ts`,
+`verify.ts`) is a plain, directly-testable async function that returns a
+`{ exitCode, stdout, stderr }` value rather than performing I/O itself,
+which is what the integration tests in `tests/integration/cli.test.ts`,
+`tests/integration/generateCli.test.ts`, `tests/integration/checkCli.test.ts`,
+and `tests/integration/verifyCli.test.ts` call directly.
 
 ## Explicitly absent (by design, this phase)
 
@@ -148,8 +164,10 @@ what the integration tests in `tests/integration/cli.test.ts` and
   dynamic/discoverable plugin system — adding a renderer for a new
   adapter is a one-file, one-line-registry change, not a redesign.
 - No AI model or provider dependency anywhere.
-- No command-execution code path of any kind (see
-  [ADR-0006](../decisions/0006-command-representation.md)).
+- No command-execution code path outside `verify/nodeCommandRunner.ts`,
+  used only by `cli/commands/verify.ts`, used only when `--execute` is
+  passed (see [ADR-0006](../decisions/0006-command-representation.md) and
+  [ADR-0014](../decisions/0014-verification-execution.md)).
 - No hosted-service client code, even as a stub.
 - No general-purpose write surface: `writeTextFile` is the only write
   method on `FileSystem`, with no `mkdir`/`unlink`/`chmod` — output paths

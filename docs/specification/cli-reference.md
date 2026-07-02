@@ -1,10 +1,12 @@
 # CLI reference
 
-The `agent-ready` CLI never executes a command declared in a contract,
-and never modifies the repository it inspects — except `agent-ready
-generate --write`, which writes only the adapter-hardcoded files it
-plans to generate (see [`agent-ready generate`](#agent-ready-generate)
-below).
+The `agent-ready` CLI never modifies the repository it inspects — except
+`agent-ready generate --write`, which writes only the adapter-hardcoded
+files it plans to generate (see [`agent-ready generate`](#agent-ready-generate)
+below) — and never executes a command declared in a contract, except
+`agent-ready verify --execute`, which runs exactly the commands declared
+in `verification.required` (see [`agent-ready verify`](#agent-ready-verify)
+below and [ADR-0014](../decisions/0014-verification-execution.md)).
 
 ## `agent-ready --help` / `agent-ready --version`
 
@@ -204,15 +206,81 @@ error[PROTECTED_PATH_MODIFIED]: Protected path was modified: .env.production
 `changedFiles`/`violations`/`base` are omitted when the pipeline failed
 before Git was ever consulted (e.g. an invalid contract).
 
+## `agent-ready verify`
+
+Runs the same pipeline as `validate`, then runs the contract's
+`verification.required` commands, in declared order. **Defaults to a dry
+run** — nothing is executed unless `--execute` is passed. This is the
+**only** Agent-Ready command that executes contract-declared `run`
+strings; see [ADR-0014](../decisions/0014-verification-execution.md) for
+why, and `docs/security/threat-model.md` for the resulting, narrowly
+scoped trust-boundary exception.
+
+```bash
+agent-ready verify                         # dry run: print the ordered plan, execute nothing
+agent-ready verify --execute               # actually run the commands
+agent-ready verify --execute --timeout 60  # override the per-command timeout (seconds; default 900)
+agent-ready verify --json
+```
+
+| Option                | Description                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| `--execute`           | Actually run the commands. Without this flag, nothing is spawned.                             |
+| `--timeout <seconds>` | Per-command timeout in seconds (default: 900). Applies uniformly to every command in the run. |
+| `--json`              | Print results as machine-readable JSON.                                                       |
+| `--config <path>`     | Explicit path to the contract file.                                                           |
+
+Commands run **sequentially, in the order declared in
+`verification.required`**, invoked through the platform's native shell
+(`cmd.exe` on Windows, `/bin/sh` elsewhere) — the same approach `npm run`/
+`pnpm run` use. Each command's stdout/stderr is inherited straight to the
+terminal; Agent-Ready never captures or persists command output. As soon
+as one command does not pass, execution stops and every remaining command
+is reported `"skipped"` — a contract's `verification.required` order is
+meaningful (it is also the order a future consumer of the contract would
+expect these commands to run in).
+
+**Per-command status values:**
+
+| Status         | Meaning                                                                  |
+| -------------- | ------------------------------------------------------------------------ |
+| `planned`      | Dry-run only: this command would run at this position, but did not.      |
+| `passed`       | The command exited with status 0.                                        |
+| `failed`       | The command exited with a non-zero status.                               |
+| `timed-out`    | The command exceeded `--timeout` and was killed.                         |
+| `spawn-failed` | The command's process could not be started at all (e.g. missing binary). |
+| `skipped`      | Execution had already stopped due to an earlier non-passing command.     |
+
+**JSON output** (`--json`):
+
+```json
+{
+  "ok": false,
+  "contractPath": "/path/to/agent-ready.yaml",
+  "repoRoot": "/path/to",
+  "mode": "execute",
+  "commands": [
+    { "id": "lint", "run": "pnpm lint", "status": "failed", "exitCode": 1, "durationMs": 1123 },
+    { "id": "test", "run": "pnpm test", "status": "skipped", "exitCode": null, "durationMs": 0 }
+  ],
+  "diagnostics": [{ "code": "VERIFICATION_COMMAND_FAILED", "...": "..." }]
+}
+```
+
+`mode` is `"dry-run"` or `"execute"`. If the contract declares no
+`verification.required` commands, `agent-ready verify` succeeds (`ok:
+true`, `commands: []`) with a `VERIFICATION_NOT_DECLARED` warning rather
+than failing — there is simply nothing to verify.
+
 ## Exit codes
 
-| Code | Meaning                                                                                                                                                         |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | Success                                                                                                                                                         |
-| 1    | Validation failed (schema or semantic error), a `generate --write` target exists but is unmanaged, `generate --check` found drift, or `check` found a violation |
-| 2    | Contract not found or unreadable, or (for `check`) the repository is not a Git working tree or Git could not be read                                            |
-| 3    | Unsupported contract version                                                                                                                                    |
-| 10   | Internal Agent-Ready failure, including a `generate --write` write failure (please report as a bug)                                                             |
+| Code | Meaning                                                                                                                                                                                                           |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | Success                                                                                                                                                                                                           |
+| 1    | Validation failed (schema or semantic error), a `generate --write` target exists but is unmanaged, `generate --check` found drift, `check` found a violation, or a `verify --execute` command failed or timed out |
+| 2    | Contract not found or unreadable; the repository is not a Git working tree or Git could not be read (`check`); or a `verify --execute` command could not be spawned at all                                        |
+| 3    | Unsupported contract version                                                                                                                                                                                      |
+| 10   | Internal Agent-Ready failure, including a `generate --write` write failure (please report as a bug)                                                                                                               |
 
 See [diagnostics.md](diagnostics.md) and
 [ADR-0008](../decisions/0008-diagnostics-and-exit-codes.md) for how a set

@@ -57,6 +57,7 @@ jobs:
           node dist/cli/index.js --version
           node dist/cli/index.js validate --help
           node dist/cli/index.js inspect --help
+          node dist/cli/index.js verify --help
 
       - name: CLI smoke test - valid examples pass
         shell: bash
@@ -86,6 +87,49 @@ jobs:
               exit 1
             fi
           done
+
+      - name: CLI smoke test - verify dry run (this repo's own contract)
+        shell: bash
+        run: |
+          set -e
+          output="$(node dist/cli/index.js verify --json)"
+          echo "$output"
+          echo "$output" | grep -q '"mode": "dry-run"'
+          echo "$output" | grep -q '"id": "build"'
+
+      - name: CLI smoke test - verify --execute (synthetic contract, real process spawning)
+        shell: bash
+        run: |
+          set -e
+          tmp="$(mktemp -d)"
+          cat > "$tmp/agent-ready.yaml" <<'YAML'
+          version: 1
+          project:
+            name: verify-smoke-test
+          commands:
+            ok:
+              run: node -e "process.exit(0)"
+            fail:
+              run: node -e "process.exit(1)"
+            unreached:
+              run: node -e "process.exit(0)"
+          verification:
+            required:
+              - ok
+              - fail
+              - unreached
+          YAML
+
+          output="$(node dist/cli/index.js verify --config "$tmp/agent-ready.yaml" --execute --json || true)"
+          echo "$output"
+          echo "$output" | grep -q '"status": "passed"'
+          echo "$output" | grep -q '"status": "failed"'
+          echo "$output" | grep -q '"status": "skipped"'
+
+          if node dist/cli/index.js verify --config "$tmp/agent-ready.yaml" --execute --json; then
+            echo "Expected the synthetic contract's failing command to make verify exit non-zero" >&2
+            exit 1
+          fi
 
   node-versions:
     name: node ${{ matrix.node-version }} (ubuntu-latest)

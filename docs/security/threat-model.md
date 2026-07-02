@@ -1,14 +1,29 @@
-# Threat model (Phase 0/1/2)
+# Threat model (Phase 0-5)
 
 ## Trust boundary
 
 Agent-Ready runs locally, as a CLI or an embedded library, operating on
 files the invoking user/CI job already has read (and, for `generate
---write` only, write) access to. There is no network service, no
-account, and no remote code path in this phase. The threat model here is
-specifically about **untrusted repository content** — a malicious or
-malformed `agent-ready.yaml`, or adversarial paths within it — not about
-a multi-tenant or networked attacker model.
+--write`, write; and, for `agent-ready verify --execute`, execute) access
+to. There is no network service, no account, and no remote code path in
+this phase. The threat model here is specifically about **untrusted
+repository content** — a malicious or malformed `agent-ready.yaml`, or
+adversarial paths within it — not about a multi-tenant or networked
+attacker model.
+
+**One narrow, explicit exception:** `agent-ready verify --execute` runs the
+contract's `verification.required` commands as real shell commands (see
+[ADR-0014](../decisions/0014-verification-execution.md)). For that one
+command only, `commands[].run` is treated as trusted, executable content —
+the same trust boundary `package.json` scripts, a `Makefile`'s targets, or
+a CI config's `run:` steps already have. Whoever can edit
+`agent-ready.yaml` already has write access to those files in the same
+repository, so this does not introduce a new privilege boundary; it makes
+an existing one (repo-write access implies command-execution access)
+explicit for a fifth file. Every other command (`validate`, `inspect`,
+`generate`, `check`, and `agent-ready verify` without `--execute`) remains
+exactly as non-executing as before — this exception does not widen without
+the `--execute` flag being passed by the invoking user.
 
 ## Assets
 
@@ -31,7 +46,10 @@ declared path/glob patterns, working-directory state, symbolic links
 encountered during discovery, project name/description strings, command
 strings, instruction-source references, and CLI arguments (`--config`,
 and, for `agent-ready check`, `--staged`/`--against <ref>`, and the
-`git` executable's own output).
+`git` executable's own output). **Exception**: `commands[].run` strings
+are treated as trusted, executable content specifically by
+`agent-ready verify --execute` (and by nothing else) — see "Trust
+boundary" above and ADR-0014.
 
 ## Controls implemented in this phase
 
@@ -54,6 +72,9 @@ and, for `agent-ready check`, `--staged`/`--against <ref>`, and the
 | Symlink write-through (`generate --write`)                        | `writeTextFile` uses ordinary `node:fs` write semantics (symlinks followed transparently), consistent with this project's existing discovery-time symlink policy; since output paths are never contract-supplied, an attacker cannot use contract content to redirect a write. Documented limitation, not actively defended against a locally-planted malicious symlink — see "Known limitations" below.                                                                                                        |
 | Command/option injection via Git invocation (`agent-ready check`) | `NodeGitClient` uses `execFile` (never a shell, never string interpolation into a command line); every `git` argument is either Agent-Ready-hardcoded or the single caller-influenced `--against <ref>` value, which is passed after Git's own `--end-of-options` marker so it is always treated as a revision, never as an option, even if it starts with `-`. No contract-declared content ever reaches a `git` argument. See [ADR-0013](../decisions/0013-protected-path-enforcement-and-git-invocation.md). |
 | Untrusted subprocess output (`agent-ready check`)                 | `git diff --name-status`/`git status --porcelain` output is parsed with a strict, bounded line format (status code + tab/columns + path) and never evaluated as anything beyond path/status pairs; output is capped at 16 MB (`maxBuffer`) to bound memory use against a pathologically large diff.                                                                                                                                                                                                             |
+| Arbitrary command execution via `verification.required`           | Deliberate and scoped, not prevented: only `agent-ready verify --execute` runs `commands[].run` strings, as shell commands, and only those reachable from `verification.required`. Every other command remains non-executing. Plain `agent-ready verify` (no `--execute`) never spawns anything — it only prints the ordered plan. See [ADR-0014](../decisions/0014-verification-execution.md).                                                                                                                 |
+| Secret leakage via captured command output (`agent-ready verify`) | `NodeCommandRunner` never captures a command's stdout/stderr; it inherits the parent process's stdio, so output goes straight to the invoking terminal exactly as if the command were run by hand. The structured per-command result (`--json`, diagnostics) carries only `id`, `run`, `status`, `exitCode`, and `durationMs` — never captured output, avoiding the need for output redaction entirely.                                                                                                         |
+| Hung command (`agent-ready verify --execute`)                     | A per-run `--timeout` (default 900s) bounds each command; on expiry, the whole process tree spawned for that command is killed (`taskkill /t` on Windows, a negative-pid signal to the process group on POSIX — see "Known limitations" below) and the command is reported `"timed-out"`.                                                                                                                                                                                                                       |
 
 ## Known limitations (accepted for this phase)
 
@@ -107,6 +128,18 @@ and, for `agent-ready check`, `--staged`/`--against <ref>`, and the
   explicitly configured) — a rename Git does not detect as such is
   instead reported as a plain delete-plus-add, which is still caught (the
   new path is still checked), just not labeled as a rename.
+- **`agent-ready verify --execute`'s shell invocation is platform-native**
+  (`cmd.exe` on Windows, `/bin/sh` elsewhere) rather than a single
+  cross-platform shell grammar — the same characteristic every tool that
+  takes this approach (`npm run`, `make`) already has. A `run` string that
+  relies on shell-specific syntax will not behave identically on every
+  platform; this is inherent to shell invocation, not a defect.
+- **`agent-ready verify --execute`'s timeout kill is best-effort, not a
+  hard guarantee.** On POSIX it signals the negative process-group pid
+  (`SIGTERM`); on Windows it shells out to `taskkill /t /f`. A process that
+  ignores `SIGTERM`, or reparents a grandchild out of its process group
+  before the timeout fires, can outlive the reported `"timed-out"` result.
+  No `SIGKILL` escalation or forced-wait is implemented in this phase.
 
 ## Explicitly out of scope for this threat model
 

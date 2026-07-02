@@ -31,6 +31,13 @@ describe("diagnostic codes", () => {
       "GENERATE_WRITE_FAILED",
       "GENERATE_OUTSIDE_REPO_ROOT",
       "ADAPTER_NOT_YET_IMPLEMENTED",
+      "PROTECTED_PATH_MODIFIED",
+      "GIT_UNAVAILABLE",
+      "GIT_REPOSITORY_NOT_FOUND",
+      "VERIFICATION_NOT_DECLARED",
+      "VERIFICATION_COMMAND_FAILED",
+      "VERIFICATION_COMMAND_TIMEOUT",
+      "VERIFICATION_COMMAND_SPAWN_FAILED",
     ];
     for (const code of required) {
       expect(DIAGNOSTIC_CODES).toContain(code);
@@ -176,5 +183,41 @@ describe("resolveExitCode", () => {
       summary: "x",
     };
     expect(resolveExitCode([diagnostic])).toBe(ExitCode.SUCCESS);
+  });
+
+  it("returns SUCCESS when only a verification-not-declared warning is present", () => {
+    const diagnostic: Diagnostic = {
+      code: "VERIFICATION_NOT_DECLARED",
+      severity: "warning",
+      summary: "x",
+    };
+    expect(resolveExitCode([diagnostic])).toBe(ExitCode.SUCCESS);
+  });
+
+  it("returns VALIDATION_FAILED for a failed verification command", () => {
+    const diagnostic: Diagnostic = {
+      code: "VERIFICATION_COMMAND_FAILED",
+      severity: "error",
+      summary: "x",
+    };
+    expect(resolveExitCode([diagnostic])).toBe(ExitCode.VALIDATION_FAILED);
+  });
+
+  it("returns VALIDATION_FAILED for a timed-out verification command", () => {
+    const diagnostic: Diagnostic = {
+      code: "VERIFICATION_COMMAND_TIMEOUT",
+      severity: "error",
+      summary: "x",
+    };
+    expect(resolveExitCode([diagnostic])).toBe(ExitCode.VALIDATION_FAILED);
+  });
+
+  it("returns CONTRACT_NOT_FOUND for a verification command spawn failure", () => {
+    const diagnostic: Diagnostic = {
+      code: "VERIFICATION_COMMAND_SPAWN_FAILED",
+      severity: "error",
+      summary: "x",
+    };
+    expect(resolveExitCode([diagnostic])).toBe(ExitCode.CONTRACT_NOT_FOUND);
   });
 });

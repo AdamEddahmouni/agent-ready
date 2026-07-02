@@ -14,11 +14,12 @@ agent-ready.yaml
 
 ## What this foundation actually does today
 
-This is the **Phase 0/1/2/3/4 foundation**: a minimal contract core, a
+This is the **Phase 0/1/2/3/4/5 foundation**: a minimal contract core, a
 local CLI, agent-instruction generation for `AGENTS.md`, `CLAUDE.md`,
-`.cursorrules`, `.github/copilot-instructions.md`, and `GEMINI.md`, and
-protected-path enforcement against real Git changes. Concretely, right
-now Agent-Ready can:
+`.cursorrules`, `.github/copilot-instructions.md`, and `GEMINI.md`,
+protected-path enforcement against real Git changes, and local execution
+of a contract's declared verification commands. Concretely, right now
+Agent-Ready can:
 
 - Discover a repository's `agent-ready.yaml` (see
   [docs/specification/discovery.md](docs/specification/discovery.md)).
@@ -46,14 +47,23 @@ now Agent-Ready can:
   patterns was actually changed in Git — working tree, staged, or
   relative to an explicit ref (`agent-ready check`). This is the first
   command that requires a Git working tree and the `git` executable.
+- Run the contract's `verification.required` commands, in declared order,
+  and report pass/fail/timeout evidence for each (`agent-ready verify`).
+  Defaults to a dry run that only prints the plan; nothing is executed
+  unless `--execute` is passed. This is the **only** Agent-Ready command
+  that executes contract-declared content — see
+  [ADR-0014](docs/decisions/0014-verification-execution.md).
 
 **What it deliberately does _not_ do yet:**
 
-- It does **not** execute any repository command. `commands` and
-  `verification` are inert, validated data — never a shell invocation.
-  `agent-ready check` never reads `commands` or `verification` at all;
-  the only process it ever spawns is `git`, with Agent-Ready-hardcoded
-  arguments.
+- It does **not** execute any repository command, **except**
+  `agent-ready verify --execute`, which runs exactly the commands declared
+  in `verification.required` and nothing else. Every other command
+  (`validate`, `inspect`, `generate`, `check`, and `agent-ready verify`
+  without `--execute`) treats `commands`/`verification` as inert,
+  validated data and never invokes a shell. `agent-ready check` never
+  reads `commands` or `verification` at all; the only process it ever
+  spawns is `git`, with Agent-Ready-hardcoded arguments.
 - It does **not** include, require, or phone home to any hosted service.
   Everything above runs locally, in your terminal or CI runner.
 - It is **pre-1.0** and follows the compatibility policy in
@@ -79,10 +89,13 @@ AGENTS.md / CLAUDE.md / .cursorrules /
 .github/copilot-instructions.md / GEMINI.md generation
         |
         v
-protected-path enforcement against Git changes   <-- this phase
+protected-path enforcement against Git changes
         |
         v
-CI policies, verification evidence   <-- future phases
+local verification execution and evidence   <-- this phase
+        |
+        v
+CI policies, richer evidence retention   <-- future phases
 ```
 
 Agent-Ready does not compete with `AGENTS.md`, `CLAUDE.md`, Cursor rules,
@@ -122,20 +135,28 @@ agent-ready check --staged                 # ...vs the Git index
 agent-ready check --against origin/main    # ...vs an explicit ref
 agent-ready check --json
 
+agent-ready verify                         # dry run: print the verification.required plan
+agent-ready verify --execute               # actually run those commands, in order
+agent-ready verify --execute --timeout 60  # override the per-command timeout (seconds)
+agent-ready verify --json
+
 agent-ready --help
 agent-ready --version
 ```
 
-None of the above ever executes a command declared in the contract, and
-none of it writes to your repository — except `agent-ready generate
---write`, which writes only the adapter-hardcoded files it plans to
-generate (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`,
+None of the above writes to your repository — except `agent-ready
+generate --write`, which writes only the adapter-hardcoded files it plans
+to generate (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`,
 `.github/copilot-instructions.md`, `GEMINI.md`), and refuses to overwrite
 an existing file that doesn't carry its own managed-file marker unless
-`--force` is also passed. `agent-ready check` is the one command that
-requires a Git working tree and the `git` executable on `PATH`; it only
-ever invokes `git` with Agent-Ready-hardcoded arguments, never anything
-contract-supplied.
+`--force` is also passed. None of the above executes a command declared
+in the contract — except `agent-ready verify --execute`, which runs
+exactly the commands declared in `verification.required`, as real shell
+commands, and nothing else (see
+[ADR-0014](docs/decisions/0014-verification-execution.md)). `agent-ready
+check` is the one command that requires a Git working tree and the `git`
+executable on `PATH`; it only ever invokes `git` with Agent-Ready-hardcoded
+arguments, never anything contract-supplied.
 
 ## A minimal contract
 

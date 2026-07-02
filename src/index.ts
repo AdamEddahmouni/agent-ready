@@ -85,3 +85,14 @@ export type {
   PlannedOutputStatus,
   PlannedOutput,
 } from "./generate/types.js";
+
+// Verification execution
+export { NodeCommandRunner } from "./verify/nodeCommandRunner.js";
+export { FakeCommandRunner } from "./verify/fakeCommandRunner.js";
+export type {
+  CommandToRun,
+  CommandOutcome,
+  CommandOutcomeStatus,
+  CommandRunner,
+  RunCommandOptions,
+} from "./verify/types.js";

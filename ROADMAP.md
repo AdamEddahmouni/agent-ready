@@ -77,13 +77,33 @@ why.
 - New diagnostics: `PROTECTED_PATH_MODIFIED`, `GIT_UNAVAILABLE`,
   `GIT_REPOSITORY_NOT_FOUND`, reusing the existing exit-code scheme.
 
+## Phase 5: Verification execution — complete
+
+- `agent-ready verify` CLI command: runs the contract's
+  `verification.required` commands, in declared order, and reports a
+  pass/fail/timeout status for each. Defaults to a dry run that only
+  prints the plan; nothing is executed unless `--execute` is passed.
+- This is the **only** Agent-Ready command that executes contract-declared
+  content. Every other command remains exactly as non-executing as before
+  — this is a narrow, explicit, opt-in exception, not a removal, of the
+  boundary [ADR-0006](docs/decisions/0006-command-representation.md)
+  established. See
+  [ADR-0014](docs/decisions/0014-verification-execution.md) for the full
+  design, including why `run` stays a shell-invoked string, why execution
+  stops at the first non-passing command, and why command output is never
+  captured into diagnostics or `--json` output.
+- A new `src/verify/` module (`CommandRunner`, `NodeCommandRunner`,
+  `FakeCommandRunner`), mirroring the `src/git/` pattern from Phase 4.
+- New diagnostics: `VERIFICATION_NOT_DECLARED`,
+  `VERIFICATION_COMMAND_FAILED`, `VERIFICATION_COMMAND_TIMEOUT`,
+  `VERIFICATION_COMMAND_SPAWN_FAILED`, reusing the existing exit-code
+  scheme.
+
 ## Long-term open-source direction
 
 The following remain **open-source, local-first roadmap categories** —
 not yet implemented, and not committed to any specific phase or date:
 
-- Local command execution and verification evidence (actually running the
-  commands declared in `verification.required` and recording results).
 - Architecture-dependency and documentation-drift analysis.
 - Task packets, completion records, and context manifests.
 - Basic CI integrations beyond this repository's own workflow (i.e. a
@@ -123,9 +143,11 @@ referenced from the project brief and enforced by
 The following are explicitly **not** implemented right now, by design —
 not oversights:
 
-`agent-ready init`/`audit`/`sync`/`verify`/`score` subcommands ·
-command or shell execution of any kind · verification-evidence
-execution · task packets · completion records · context manifests ·
+`agent-ready init`/`audit`/`sync`/`score` subcommands ·
+command or shell execution outside `agent-ready verify --execute` ·
+per-command timeout/environment/working-directory declarations ·
+capturing or persisting command output as evidence · task packets ·
+completion records · context manifests ·
 documentation-drift detection · architecture-dependency analysis ·
 plugin/adapter loading ·
 framework detection · monorepo contract inheritance or nested contracts ·
@@ -139,5 +161,5 @@ package publication or release.
 ## Recommended next phase
 
 Not yet decided. See the "Long-term open-source direction" list above for
-candidate categories (Phase 4, protected-path enforcement, is now
+candidate categories (Phase 5, verification execution, is now
 complete — see above).
