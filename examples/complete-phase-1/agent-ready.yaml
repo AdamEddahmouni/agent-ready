@@ -50,3 +50,9 @@ adapters:
     enabled: true
   claude:
     enabled: true
+  cursor:
+    enabled: true
+  copilot:
+    enabled: true
+  gemini:
+    enabled: true

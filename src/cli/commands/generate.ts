@@ -28,9 +28,11 @@ interface GenerateFileReport {
 }
 
 /**
- * Plans and (optionally) writes AGENTS.md/CLAUDE.md from the validated
- * contract. Defaults to a dry run — nothing is written unless `--write`
- * is passed. Never executes repository commands.
+ * Plans and (optionally) writes the enabled adapters' output
+ * (AGENTS.md, CLAUDE.md, .cursorrules, .github/copilot-instructions.md,
+ * GEMINI.md) from the validated contract. Defaults to a dry run —
+ * nothing is written unless `--write` is passed. Never executes
+ * repository commands.
  */
 export async function runGenerate(
   fs: FileSystem,

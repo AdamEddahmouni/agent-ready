@@ -65,6 +65,17 @@ jobs:
           node dist/cli/index.js validate --config examples/complete-phase-1/agent-ready.yaml
           node dist/cli/index.js inspect --config examples/complete-phase-1/agent-ready.yaml --json
 
+      - name: CLI smoke test - generate dry run
+        shell: bash
+        run: |
+          set -e
+          output="$(node dist/cli/index.js generate --config examples/complete-phase-1/agent-ready.yaml --json)"
+          echo "$output"
+          if echo "$output" | grep -q "ADAPTER_NOT_YET_IMPLEMENTED"; then
+            echo "Expected all five example adapters to be implemented" >&2
+            exit 1
+          fi
+
       - name: CLI smoke test - invalid examples fail
         shell: bash
         run: |

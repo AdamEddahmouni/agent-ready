@@ -72,6 +72,9 @@ export type { FileStat, FileSystem } from "./filesystem/types.js";
 export { planGeneration, resolvePlannedOutputs } from "./generate/generate.js";
 export { renderAgentsMd } from "./generate/adapters/agentsMd.js";
 export { renderClaude } from "./generate/adapters/claude.js";
+export { renderCursor } from "./generate/adapters/cursor.js";
+export { renderCopilot } from "./generate/adapters/copilot.js";
+export { renderGemini } from "./generate/adapters/gemini.js";
 export { GENERATED_FILE_MARKER, hasManagedMarker } from "./generate/marker.js";
 export type {
   GeneratedFile,

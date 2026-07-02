@@ -102,18 +102,31 @@ Recognized keys: `agentsMd`, `claude`, `cursor`, `copilot`, `gemini`.
 Each maps to `{ enabled: boolean }`; unrecognized adapter keys are
 rejected (`ADAPTER_DECLARATION_INVALID`).
 
-Enabling `agentsMd` or `claude` and running `agent-ready generate` (or
-`generate --write`) produces `AGENTS.md`/`CLAUDE.md` respectively — see
-[cli-reference.md](cli-reference.md#agent-ready-generate). `cursor`,
-`copilot`, and `gemini` remain configuration-only: they validate
-successfully, but enabling them produces an `ADAPTER_NOT_YET_IMPLEMENTED`
-warning at generation time, since no renderer exists for them yet.
+Enabling an adapter and running `agent-ready generate` (or `generate --write`)
+produces its output file — see
+[cli-reference.md](cli-reference.md#agent-ready-generate) and
+[ADR-0012](../decisions/0012-cursor-copilot-gemini-output-format.md) for the
+exact output paths:
+
+| Adapter    | Output file                       |
+| ---------- | --------------------------------- |
+| `agentsMd` | `AGENTS.md`                       |
+| `claude`   | `CLAUDE.md`                       |
+| `cursor`   | `.cursorrules`                    |
+| `copilot`  | `.github/copilot-instructions.md` |
+| `gemini`   | `GEMINI.md`                       |
 
 ```yaml
 adapters:
   agentsMd:
     enabled: true
   claude:
+    enabled: true
+  cursor:
+    enabled: true
+  copilot:
+    enabled: true
+  gemini:
     enabled: true
 ```
 

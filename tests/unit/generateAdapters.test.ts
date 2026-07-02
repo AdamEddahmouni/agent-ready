@@ -3,6 +3,9 @@ import { normalizeContract } from "../../src/contract/normalize.js";
 import type { RawContract } from "../../src/contract/types.js";
 import { renderAgentsMd } from "../../src/generate/adapters/agentsMd.js";
 import { renderClaude } from "../../src/generate/adapters/claude.js";
+import { renderCopilot } from "../../src/generate/adapters/copilot.js";
+import { renderCursor } from "../../src/generate/adapters/cursor.js";
+import { renderGemini } from "../../src/generate/adapters/gemini.js";
 import { GENERATED_FILE_MARKER, hasManagedMarker } from "../../src/generate/marker.js";
 
 const minimalRaw: RawContract = { version: 1, project: { name: "example" } };
@@ -31,6 +34,13 @@ const fullRaw: RawContract = {
 describe.each([
   { name: "agentsMd", render: renderAgentsMd, relativePath: "AGENTS.md" },
   { name: "claude", render: renderClaude, relativePath: "CLAUDE.md" },
+  { name: "cursor", render: renderCursor, relativePath: ".cursorrules" },
+  {
+    name: "copilot",
+    render: renderCopilot,
+    relativePath: ".github/copilot-instructions.md",
+  },
+  { name: "gemini", render: renderGemini, relativePath: "GEMINI.md" },
 ])("$name adapter renderer", ({ render, relativePath }) => {
   it("targets the expected file name", () => {
     const contract = normalizeContract(minimalRaw);

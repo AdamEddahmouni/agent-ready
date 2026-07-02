@@ -14,9 +14,10 @@ agent-ready.yaml
 
 ## What this foundation actually does today
 
-This is the **Phase 0/1/2 foundation**: a minimal contract core, a local
-CLI, and agent-instruction generation. Concretely, right now Agent-Ready
-can:
+This is the **Phase 0/1/2/3 foundation**: a minimal contract core, a local
+CLI, and agent-instruction generation for `AGENTS.md`, `CLAUDE.md`,
+`.cursorrules`, `.github/copilot-instructions.md`, and `GEMINI.md`.
+Concretely, right now Agent-Ready can:
 
 - Discover a repository's `agent-ready.yaml` (see
   [docs/specification/discovery.md](docs/specification/discovery.md)).
@@ -31,10 +32,12 @@ can:
   checks, semver validation, and instruction-source existence.
 - Normalize the validated contract into a deterministic, strongly-typed
   form and print it (`agent-ready inspect`).
-- Generate `AGENTS.md` and `CLAUDE.md` from the enabled `agentsMd`/
-  `claude` adapters (`agent-ready generate`), with an opt-in `--write`,
-  a `--check` mode for CI drift detection, and a managed-file marker so
-  a re-run never silently overwrites a file you wrote by hand.
+- Generate `AGENTS.md`, `CLAUDE.md`, `.cursorrules`,
+  `.github/copilot-instructions.md`, and `GEMINI.md` from the enabled
+  `agentsMd`/`claude`/`cursor`/`copilot`/`gemini` adapters
+  (`agent-ready generate`), with an opt-in `--write`, a `--check` mode for
+  CI drift detection, and a managed-file marker so a re-run never silently
+  overwrites a file you wrote by hand.
 - Report every failure as a structured, stable diagnostic with a code,
   severity, field, and remediation — in both human-readable and `--json`
   form.
@@ -43,10 +46,6 @@ can:
 
 - It does **not** execute any repository command. `commands` and
   `verification` are inert, validated data — never a shell invocation.
-- It does **not** generate Cursor rules, Copilot instructions, Gemini
-  instructions, or any other downstream format yet. Enabling those
-  adapters in the contract validates successfully but produces an
-  `ADAPTER_NOT_YET_IMPLEMENTED` warning at generation time.
 - It does **not** include, require, or phone home to any hosted service.
   Everything above runs locally, in your terminal or CI runner.
 - It is **pre-1.0** and follows the compatibility policy in
@@ -68,17 +67,17 @@ agent-ready.yaml
 validation and normalization
         |
         v
-AGENTS.md / CLAUDE.md generation   <-- this phase
+AGENTS.md / CLAUDE.md / .cursorrules /
+.github/copilot-instructions.md / GEMINI.md generation   <-- this phase
         |
         v
-CI policies, verification evidence, remaining adapters   <-- future phases
+CI policies, verification evidence   <-- future phases
 ```
 
 Agent-Ready does not compete with `AGENTS.md`, `CLAUDE.md`, Cursor rules,
 Copilot instructions, or Gemini instructions. The intent is for those to
 be **generated outputs** of one structured source of truth, not for
-Agent-Ready to replace them — `AGENTS.md` and `CLAUDE.md` already are;
-the rest remain on the roadmap.
+Agent-Ready to replace them — all five are.
 
 ## Installation
 
@@ -102,7 +101,7 @@ agent-ready inspect                        # print the normalized contract
 agent-ready inspect --json
 
 agent-ready generate                       # dry run: show what would be generated
-agent-ready generate --write               # write AGENTS.md / CLAUDE.md
+agent-ready generate --write               # write the enabled adapters' output files
 agent-ready generate --write --force       # also overwrite hand-authored files
 agent-ready generate --check               # CI mode: exit non-zero if output is stale
 agent-ready generate --json
@@ -113,10 +112,11 @@ agent-ready --version
 
 None of the above ever executes a command declared in the contract, and
 none of it writes to your repository — except `agent-ready generate
---write`, which writes only the adapter-hardcoded files (`AGENTS.md`,
-`CLAUDE.md`) it plans to generate, and refuses to overwrite an existing
-file that doesn't carry its own managed-file marker unless `--force` is
-also passed.
+--write`, which writes only the adapter-hardcoded files it plans to
+generate (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`,
+`.github/copilot-instructions.md`, `GEMINI.md`), and refuses to overwrite
+an existing file that doesn't carry its own managed-file marker unless
+`--force` is also passed.
 
 ## A minimal contract
 

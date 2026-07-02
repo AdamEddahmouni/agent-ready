@@ -4,12 +4,18 @@ import { joinPath } from "../filesystem/pathJoin.js";
 import type { FileSystem } from "../filesystem/types.js";
 import { renderAgentsMd } from "./adapters/agentsMd.js";
 import { renderClaude } from "./adapters/claude.js";
+import { renderCopilot } from "./adapters/copilot.js";
+import { renderCursor } from "./adapters/cursor.js";
+import { renderGemini } from "./adapters/gemini.js";
 import { hasManagedMarker } from "./marker.js";
 import type { GenerationPlan, PlanEntry, PlannedOutput, RendererRegistry } from "./types.js";
 
 const RENDERERS: RendererRegistry = {
   agentsMd: renderAgentsMd,
   claude: renderClaude,
+  cursor: renderCursor,
+  copilot: renderCopilot,
+  gemini: renderGemini,
 };
 
 /**

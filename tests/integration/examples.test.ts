@@ -41,6 +41,9 @@ describe("examples/complete-phase-1", () => {
       expect(result.value.contract.adapters).toEqual([
         { name: "agentsMd", enabled: true },
         { name: "claude", enabled: true },
+        { name: "copilot", enabled: true },
+        { name: "cursor", enabled: true },
+        { name: "gemini", enabled: true },
       ]);
     }
   });

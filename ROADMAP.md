@@ -39,15 +39,27 @@ why.
   enabling them produces an `ADAPTER_NOT_YET_IMPLEMENTED` warning, not an
   error.
 
+## Phase 3: Cursor, Copilot, and Gemini adapters — complete
+
+- Renderers for the three remaining declared adapter names: `cursor` ->
+  `.cursorrules`, `copilot` -> `.github/copilot-instructions.md`, `gemini`
+  -> `GEMINI.md`.
+- No changes to `planGeneration`'s control flow, the CLI surface, the JSON
+  Schema, or the diagnostic-code registry — purely additive, following the
+  same pattern as the `agentsMd`/`claude` adapters from Phase 2.
+- The output-format tradeoffs (flat `.cursorrules` rather than a
+  `.cursor/rules/*.mdc` directory; `.github/copilot-instructions.md`'s
+  nested, non-repo-root path) are documented in
+  [ADR-0012](docs/decisions/0012-cursor-copilot-gemini-output-format.md).
+- `ADAPTER_NOT_YET_IMPLEMENTED` remains in the diagnostic registry, now
+  reserved for a future adapter name added to the schema ahead of its
+  renderer.
+
 ## Long-term open-source direction
 
 The following remain **open-source, local-first roadmap categories** —
 not yet implemented, and not committed to any specific phase or date:
 
-- Agent-specific instruction generation for Cursor rules, Copilot
-  instructions, and Gemini instructions, compiled from `agent-ready.yaml`
-  (the `agentsMd` and `claude` adapters are implemented — see Phase 2
-  above).
 - Local command execution and verification evidence (actually running the
   commands declared in `verification.required` and recording results).
 - Protected-path enforcement against real Git changes.
@@ -91,7 +103,6 @@ The following are explicitly **not** implemented right now, by design —
 not oversights:
 
 `agent-ready init`/`audit`/`sync`/`verify`/`score` subcommands ·
-agent-instruction generation for Cursor, Copilot, or Gemini adapters ·
 command or shell execution of any kind · verification-evidence
 execution · task packets · completion records · context manifests ·
 documentation-drift detection · architecture-dependency analysis ·

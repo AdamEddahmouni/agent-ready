@@ -213,6 +213,9 @@ describe("agent-ready generate (CLI composition)", () => {
       ),
       "README.md": "",
       "docs/architecture.md": "",
+      // A pre-existing .github/ directory, as in this repo itself, so the
+      // copilot adapter's nested output path has somewhere to land.
+      ".github/workflows/ci.yml": "",
     });
     const outcome = await runGenerate(
       new NodeFileSystem(),
@@ -221,13 +224,60 @@ describe("agent-ready generate (CLI composition)", () => {
     );
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
 
-    const [agentsMd, claudeMd, expectedAgentsMd, expectedClaudeMd] = await Promise.all([
+    const [
+      agentsMd,
+      claudeMd,
+      cursorrules,
+      copilotInstructions,
+      geminiMd,
+      expectedAgentsMd,
+      expectedClaudeMd,
+      expectedCursor,
+      expectedCopilot,
+      expectedGemini,
+    ] = await Promise.all([
       readFile(join(root, "AGENTS.md"), "utf8"),
       readFile(join(root, "CLAUDE.md"), "utf8"),
+      readFile(join(root, ".cursorrules"), "utf8"),
+      readFile(join(root, ".github/copilot-instructions.md"), "utf8"),
+      readFile(join(root, "GEMINI.md"), "utf8"),
       readFile(join(process.cwd(), "tests/fixtures/generate/expected-agents-md.txt"), "utf8"),
       readFile(join(process.cwd(), "tests/fixtures/generate/expected-claude-md.txt"), "utf8"),
+      readFile(join(process.cwd(), "tests/fixtures/generate/expected-cursor.txt"), "utf8"),
+      readFile(
+        join(process.cwd(), "tests/fixtures/generate/expected-copilot-instructions.txt"),
+        "utf8",
+      ),
+      readFile(join(process.cwd(), "tests/fixtures/generate/expected-gemini-md.txt"), "utf8"),
     ]);
     expect(agentsMd).toBe(expectedAgentsMd);
     expect(claudeMd).toBe(expectedClaudeMd);
+    expect(cursorrules).toBe(expectedCursor);
+    expect(copilotInstructions).toBe(expectedCopilot);
+    expect(geminiMd).toBe(expectedGemini);
+  });
+
+  it("reports GENERATE_WRITE_FAILED when copilot's target directory doesn't exist", async () => {
+    const { root } = await repo({
+      "agent-ready.yaml": [
+        "version: 1",
+        "project:",
+        "  name: generate-example",
+        "adapters:",
+        "  copilot:",
+        "    enabled: true",
+        "",
+      ].join("\n"),
+    });
+    const outcome = await runGenerate(
+      new NodeFileSystem(),
+      { json: true, write: true, check: false, force: false },
+      root,
+    );
+    expect(outcome.exitCode).toBe(ExitCode.INTERNAL_ERROR);
+    expect(outcome.stdout).toContain("GENERATE_WRITE_FAILED");
+    const body = JSON.parse(outcome.stdout) as { files: { status: string }[] };
+    expect(body.files.map((f) => f.status)).toEqual(["refused"]);
+    expect(await readIfExists(join(root, ".github/copilot-instructions.md"))).toBeUndefined();
   });
 });

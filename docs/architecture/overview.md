@@ -37,7 +37,10 @@ src/
 │   └── adapters/
 │       ├── shared.ts             Shared section-rendering helper (not a templating engine).
 │       ├── agentsMd.ts           NormalizedContract -> AGENTS.md. Pure function, no FileSystem access.
-│       └── claude.ts             NormalizedContract -> CLAUDE.md. Pure function, no FileSystem access.
+│       ├── claude.ts             NormalizedContract -> CLAUDE.md. Pure function, no FileSystem access.
+│       ├── cursor.ts             NormalizedContract -> .cursorrules. Pure function, no FileSystem access.
+│       ├── copilot.ts            NormalizedContract -> .github/copilot-instructions.md. Pure function, no FileSystem access.
+│       └── gemini.ts             NormalizedContract -> GEMINI.md. Pure function, no FileSystem access.
 └── index.ts                     Public programmatic API (see docs/specification/api-stability.md).
 ```
 

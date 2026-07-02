@@ -78,8 +78,11 @@ Verification, Paths, Instruction sources, Adapters.
 ## `agent-ready generate`
 
 Runs the same pipeline as `validate`, then compiles the normalized
-contract's enabled adapters (`agentsMd` -> `AGENTS.md`, `claude` ->
-`CLAUDE.md`) into files at the repository root. Defaults to a dry run —
+contract's enabled adapters into their output files: `agentsMd` ->
+`AGENTS.md`, `claude` -> `CLAUDE.md`, `cursor` -> `.cursorrules`, `copilot`
+-> `.github/copilot-instructions.md`, `gemini` -> `GEMINI.md` (see
+[ADR-0012](../decisions/0012-cursor-copilot-gemini-output-format.md) for why
+`copilot`'s output isn't at the repository root). Defaults to a dry run —
 nothing is written to disk unless `--write` is passed.
 
 ```bash
@@ -104,9 +107,11 @@ Agent-Ready-generated content apart from a file you wrote by hand, so a
 re-run never silently clobbers hand-authored content. See
 [ADR-0010](../decisions/0010-generate-write-boundary.md).
 
-Adapters with no renderer yet (`cursor`, `copilot`, `gemini`) produce an
-`ADAPTER_NOT_YET_IMPLEMENTED` warning if enabled, and are skipped rather
-than failing generation.
+All five adapter names (`agentsMd`, `claude`, `cursor`, `copilot`, `gemini`)
+have a renderer as of this release. Enabling an adapter name Agent-Ready
+doesn't yet recognize a renderer for (reserved for a future adapter added to
+the schema ahead of its renderer) produces an `ADAPTER_NOT_YET_IMPLEMENTED`
+warning and is skipped rather than failing generation.
 
 **Per-file status values:**
 
