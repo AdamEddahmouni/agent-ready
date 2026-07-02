@@ -26,3 +26,4 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0013](0013-protected-path-enforcement-and-git-invocation.md) | Protected-path enforcement and Git invocation                   |
 | [0014](0014-verification-execution.md)                        | Verification execution and the command-execution trust boundary |
 | [0015](0015-verification-evidence-recording.md)               | Verification evidence recording                                 |
+| [0016](0016-reusable-ci-action.md)                            | Reusable CI integration (GitHub composite action)               |

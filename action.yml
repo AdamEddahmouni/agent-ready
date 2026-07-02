@@ -1,0 +1,114 @@
+name: "Agent-Ready"
+description: >-
+  Validate, inspect, generate, check, and verify a repository's
+  agent-ready.yaml contract, using this repository's own CLI built from
+  source. See docs/specification/ci-integration.md.
+author: "Agent-Ready"
+
+inputs:
+  command:
+    description: >-
+      The agent-ready subcommand to run: validate, inspect, generate,
+      check, or verify.
+    required: true
+  config:
+    description: "Explicit path to the contract file (agent-ready.yaml)."
+    required: false
+  json:
+    description: "Print machine-readable JSON output instead of human-readable text."
+    required: false
+    default: "false"
+  write:
+    description: "(generate) Write planned files to disk."
+    required: false
+    default: "false"
+  check:
+    description: "(generate) Exit non-zero if generated output would differ from what's on disk. Never writes."
+    required: false
+    default: "false"
+  force:
+    description: "(generate --write) Overwrite existing files that lack the managed-file marker."
+    required: false
+    default: "false"
+  staged:
+    description: "(check) Check staged changes instead of the full working tree."
+    required: false
+    default: "false"
+  against:
+    description: "(check) Check changes relative to this explicit Git ref instead of HEAD."
+    required: false
+  execute:
+    description: "(verify) Actually run the contract's verification.required commands. Without this, verify only prints the plan."
+    required: false
+    default: "false"
+  timeout:
+    description: "(verify --execute) Per-command timeout in seconds (default: 900)."
+    required: false
+  record:
+    description: "(verify --execute) Write a JSON evidence file (agent-ready-verify-result.json) to the repository root."
+    required: false
+    default: "false"
+  node-version:
+    description: "Node.js version to build and run Agent-Ready with."
+    required: false
+    default: "22"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: pnpm
+        cache-dependency-path: ${{ github.action_path }}/pnpm-lock.yaml
+
+    - name: Install Agent-Ready dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: pnpm install --frozen-lockfile
+
+    - name: Build Agent-Ready
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: pnpm build
+
+    - name: Run agent-ready
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        INPUT_COMMAND: ${{ inputs.command }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        INPUT_JSON: ${{ inputs.json }}
+        INPUT_WRITE: ${{ inputs.write }}
+        INPUT_CHECK: ${{ inputs.check }}
+        INPUT_FORCE: ${{ inputs.force }}
+        INPUT_STAGED: ${{ inputs.staged }}
+        INPUT_AGAINST: ${{ inputs.against }}
+        INPUT_EXECUTE: ${{ inputs.execute }}
+        INPUT_TIMEOUT: ${{ inputs.timeout }}
+        INPUT_RECORD: ${{ inputs.record }}
+      run: |
+        set -euo pipefail
+
+        args=("$INPUT_COMMAND")
+
+        if [ -n "${INPUT_CONFIG:-}" ]; then args+=("--config" "$INPUT_CONFIG"); fi
+        if [ "${INPUT_JSON:-false}" = "true" ]; then args+=("--json"); fi
+        if [ "${INPUT_WRITE:-false}" = "true" ]; then args+=("--write"); fi
+        if [ "${INPUT_CHECK:-false}" = "true" ]; then args+=("--check"); fi
+        if [ "${INPUT_FORCE:-false}" = "true" ]; then args+=("--force"); fi
+        if [ "${INPUT_STAGED:-false}" = "true" ]; then args+=("--staged"); fi
+        if [ -n "${INPUT_AGAINST:-}" ]; then args+=("--against" "$INPUT_AGAINST"); fi
+        if [ "${INPUT_EXECUTE:-false}" = "true" ]; then args+=("--execute"); fi
+        if [ -n "${INPUT_TIMEOUT:-}" ]; then args+=("--timeout" "$INPUT_TIMEOUT"); fi
+        if [ "${INPUT_RECORD:-false}" = "true" ]; then args+=("--record"); fi
+
+        node "$ACTION_PATH/dist/cli/index.js" "${args[@]}"
+
+branding:
+  icon: "check-circle"
+  color: "blue"

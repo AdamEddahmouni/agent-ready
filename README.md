@@ -14,12 +14,14 @@ agent-ready.yaml
 
 ## What this foundation actually does today
 
-This is the **Phase 0/1/2/3/4/5/6 foundation**: a minimal contract core, a
-local CLI, agent-instruction generation for `AGENTS.md`, `CLAUDE.md`,
-`.cursorrules`, `.github/copilot-instructions.md`, and `GEMINI.md`,
-protected-path enforcement against real Git changes, local execution of a
-contract's declared verification commands, and local recording of that
-execution's evidence. Concretely, right now Agent-Ready can:
+This is the **Phase 0/1/2/3/4/5/6/7 foundation**: a minimal contract
+core, a local CLI, agent-instruction generation for `AGENTS.md`,
+`CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, and
+`GEMINI.md`, protected-path enforcement against real Git changes, local
+execution of a contract's declared verification commands, local
+recording of that execution's evidence, and a reusable GitHub composite
+action for adopting all of the above in another repository's CI.
+Concretely, right now Agent-Ready can:
 
 - Discover a repository's `agent-ready.yaml` (see
   [docs/specification/discovery.md](docs/specification/discovery.md)).
@@ -57,6 +59,11 @@ execution's evidence. Concretely, right now Agent-Ready can:
   (`agent-ready verify --execute --record`), so a CI run or agent session
   leaves durable proof of what it verified and what happened — see
   [ADR-0015](docs/decisions/0015-verification-evidence-recording.md).
+- Run any of the above from another repository's CI via a reusable
+  GitHub composite action (`action.yml`), which builds Agent-Ready from
+  this repository's own source and requires no npm publish — see
+  [docs/specification/ci-integration.md](docs/specification/ci-integration.md)
+  and [ADR-0016](docs/decisions/0016-reusable-ci-action.md).
 
 **What it deliberately does _not_ do yet:**
 
@@ -99,10 +106,13 @@ protected-path enforcement against Git changes
 local verification execution
         |
         v
-local verification evidence recording   <-- this phase
+local verification evidence recording
         |
         v
-CI policies, richer evidence retention   <-- future phases
+reusable CI integration (GitHub action)   <-- this phase
+        |
+        v
+richer evidence retention, other future phases
 ```
 
 Agent-Ready does not compete with `AGENTS.md`, `CLAUDE.md`, Cursor rules,
@@ -169,6 +179,24 @@ check` is the one command that requires a Git working tree and the `git`
 executable on `PATH`; it only ever invokes `git` with Agent-Ready-hardcoded
 arguments, never anything contract-supplied.
 
+## CI integration
+
+Adopt the same commands in another repository's CI via the reusable
+GitHub composite action this repository publishes at `action.yml`,
+instead of hand-copying CLI invocations:
+
+```yaml
+- uses: actions/checkout@v4
+- uses: agent-ready/agent-ready-repo@<commit-sha> # no tagged release yet; pin to a SHA
+  with:
+    command: verify
+    execute: "true"
+```
+
+See [docs/specification/ci-integration.md](docs/specification/ci-integration.md)
+for the full input reference and [ADR-0016](docs/decisions/0016-reusable-ci-action.md)
+for the design rationale.
+
 ## A minimal contract
 
 ```yaml
@@ -201,6 +229,7 @@ and intentionally invalid contracts.
 - [CLI reference](docs/specification/cli-reference.md)
 - [Diagnostic and error-code reference](docs/specification/diagnostics.md)
 - [Repository and contract discovery](docs/specification/discovery.md)
+- [CI integration (GitHub composite action)](docs/specification/ci-integration.md)
 - [Path and glob semantics](docs/specification/paths-and-globs.md)
 - [Schema versioning policy](docs/specification/schema-versioning.md)
 - [Public API stability](docs/specification/api-stability.md)

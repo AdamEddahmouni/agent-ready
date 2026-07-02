@@ -122,6 +122,30 @@ why.
   local file, with no history, aggregation, or central storage.
 - New diagnostic code: `VERIFICATION_RECORD_WRITE_FAILED`.
 
+## Phase 7: Reusable CI integration — complete
+
+- A GitHub composite action (`action.yml` at the repository root) other
+  repositories can `uses:` in their own CI, instead of hand-copying this
+  repository's own `.github/workflows/ci.yml` shell steps.
+- The action builds Agent-Ready from source inside its own checkout
+  (`github.action_path`) and invokes the resulting `dist/cli/index.js`
+  against the caller's repository — no npm publish required, sidestepping
+  the "automated package publication or release" non-goal entirely. See
+  [ADR-0016](docs/decisions/0016-reusable-ci-action.md).
+- Typed inputs mirror every CLI flag `validate`/`inspect`/`generate`/
+  `check`/`verify` already accept; inputs reach the action's shell step
+  only via `env:`-mapped variables, never interpolated directly into the
+  script body, avoiding the standard GitHub Actions script-injection
+  footgun.
+- No new diagnostics, exit codes, or schema changes — this phase adds no
+  lines to `src/`. See
+  [docs/specification/ci-integration.md](docs/specification/ci-integration.md)
+  for adoption instructions, including the pinning caveat until a Git tag
+  exists.
+- This repository's own CI (`dogfood-action` job in
+  `.github/workflows/ci.yml`) exercises the action via `uses: ./` on every
+  PR.
+
 ## Long-term open-source direction
 
 The following remain **open-source, local-first roadmap categories** —
@@ -131,8 +155,6 @@ not yet implemented, and not committed to any specific phase or date:
 - Task packets and context manifests; richer completion records beyond
   the single-run evidence file `agent-ready verify --execute --record`
   now writes (Phase 6).
-- Basic CI integrations beyond this repository's own workflow (i.e. a
-  reusable action/workflow other repositories can adopt).
 - An adapter/plugin interface, once there is more than one concrete
   adapter to justify the abstraction.
 - A compatibility test suite for downstream adapter output.
@@ -188,5 +210,5 @@ package publication or release.
 ## Recommended next phase
 
 Not yet decided. See the "Long-term open-source direction" list above for
-candidate categories (Phase 6, verification evidence recording, is now
+candidate categories (Phase 7, reusable CI integration, is now
 complete — see above).
