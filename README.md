@@ -14,7 +14,7 @@ agent-ready.yaml
 
 ## What this foundation actually does today
 
-This is the **Phase 0/1/2/3/4/5/6/7/8 foundation**: a minimal contract
+This is the **Phase 0/1/2/3/4/5/6/7/8/9 foundation**: a minimal contract
 core, a local CLI, agent-instruction generation for `AGENTS.md`,
 `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, and
 `GEMINI.md`, protected-path enforcement against real Git changes, local
@@ -67,6 +67,10 @@ Concretely, right now Agent-Ready can:
   this repository's own source and requires no npm publish — see
   [docs/specification/ci-integration.md](docs/specification/ci-integration.md)
   and [ADR-0016](docs/decisions/0016-reusable-ci-action.md).
+- Test downstream renderer compatibility against a versioned, byte-exact,
+  offline corpus shipped with the package — see
+  [adapter output compatibility](docs/specification/adapter-output-compatibility.md)
+  and [ADR-0018](docs/decisions/0018-versioned-adapter-output-compatibility.md).
 
 **What it deliberately does _not_ do yet:**
 
@@ -190,7 +194,7 @@ instead of hand-copying CLI invocations:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: agent-ready/agent-ready-repo@<commit-sha> # no tagged release yet; pin to a SHA
+- uses: agent-ready/agent-ready-repo@v0.1.0 # or pin the full release commit SHA
   with:
     command: verify
     execute: "true"
@@ -233,6 +237,7 @@ and intentionally invalid contracts.
 - [Diagnostic and error-code reference](docs/specification/diagnostics.md)
 - [Repository and contract discovery](docs/specification/discovery.md)
 - [CI integration (GitHub composite action)](docs/specification/ci-integration.md)
+- [Adapter output compatibility](docs/specification/adapter-output-compatibility.md)
 - [Path and glob semantics](docs/specification/paths-and-globs.md)
 - [Schema versioning policy](docs/specification/schema-versioning.md)
 - [Public API stability](docs/specification/api-stability.md)
@@ -241,6 +246,8 @@ and intentionally invalid contracts.
 - [Architecture Decision Records](docs/decisions/README.md)
 - [Roadmap](ROADMAP.md)
 - [Governance](GOVERNANCE.md)
+- [Changelog](CHANGELOG.md)
+- [Release process](docs/releasing.md)
 
 ## Project status and roadmap
 

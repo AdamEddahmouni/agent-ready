@@ -19,17 +19,16 @@ installing an npm package: GitHub already checks out this repository (at
 the ref you pin) before running the action, so the action can build
 itself in place.
 
-## Pinning caveat
+## Pinning
 
-No tagged release of this repository exists yet. Until a maintainer cuts
-one, pin `uses:` to a full commit SHA, not a branch name — branch names
-are mutable and a moving target is not a safe thing to trust in CI:
+Prefer an immutable full commit SHA when your supply-chain policy requires it:
 
 ```yaml
 uses: agent-ready/agent-ready-repo@<commit-sha>
 ```
 
-Once a tag exists (e.g. `v0.1.0`), prefer pinning to that instead.
+For readable version pinning, use the corresponding release tag, such as
+`v0.1.0`. Do not pin a mutable branch name.
 
 ## Usage
 
@@ -49,23 +48,23 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Validate contract
-        uses: agent-ready/agent-ready-repo@<commit-sha>
+        uses: agent-ready/agent-ready-repo@v0.1.0
         with:
           command: validate
 
       - name: Check generated files are up to date
-        uses: agent-ready/agent-ready-repo@<commit-sha>
+        uses: agent-ready/agent-ready-repo@v0.1.0
         with:
           command: generate
           check: "true"
 
       - name: Check protected paths
-        uses: agent-ready/agent-ready-repo@<commit-sha>
+        uses: agent-ready/agent-ready-repo@v0.1.0
         with:
           command: check
 
       - name: Run verification
-        uses: agent-ready/agent-ready-repo@<commit-sha>
+        uses: agent-ready/agent-ready-repo@v0.1.0
         with:
           command: verify
           execute: "true"

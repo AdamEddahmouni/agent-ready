@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "name": "complete",
+      "contract": "cases/complete/agent-ready.yaml",
+      "files": [
+        { "path": "README.md", "content": "" },
+        { "path": "docs/architecture.md", "content": "" },
+        { "path": ".github/workflows/ci.yml", "content": "" }
+      ],
+      "outputs": [
+        {
+          "adapter": "agentsMd",
+          "path": "AGENTS.md",
+          "fixture": "cases/complete/expected/AGENTS.md"
+        },
+        {
+          "adapter": "claude",
+          "path": "CLAUDE.md",
+          "fixture": "cases/complete/expected/CLAUDE.md"
+        },
+        {
+          "adapter": "cursor",
+          "path": ".cursorrules",
+          "fixture": "cases/complete/expected/cursorrules"
+        },
+        {
+          "adapter": "copilot",
+          "path": ".github/copilot-instructions.md",
+          "fixture": "cases/complete/expected/copilot-instructions.md"
+        },
+        { "adapter": "gemini", "path": "GEMINI.md", "fixture": "cases/complete/expected/GEMINI.md" }
+      ]
+    },
+    {
+      "name": "adversarial-markdown",
+      "contract": "cases/adversarial/agent-ready.yaml",
+      "files": [
+        {
+          "path": "docs/notes (draft).md",
+          "source": "cases/adversarial/inputs/docs/notes (draft).md"
+        },
+        { "path": ".github/workflows/ci.yml", "content": "" }
+      ],
+      "outputs": [
+        {
+          "adapter": "agentsMd",
+          "path": "AGENTS.md",
+          "fixture": "cases/adversarial/expected/AGENTS.md"
+        },
+        {
+          "adapter": "claude",
+          "path": "CLAUDE.md",
+          "fixture": "cases/adversarial/expected/CLAUDE.md"
+        },
+        {
+          "adapter": "cursor",
+          "path": ".cursorrules",
+          "fixture": "cases/adversarial/expected/cursorrules"
+        },
+        {
+          "adapter": "copilot",
+          "path": ".github/copilot-instructions.md",
+          "fixture": "cases/adversarial/expected/copilot-instructions.md"
+        },
+        {
+          "adapter": "gemini",
+          "path": "GEMINI.md",
+          "fixture": "cases/adversarial/expected/GEMINI.md"
+        }
+      ]
+    }
+  ]
+}

@@ -40,7 +40,8 @@
     "dist",
     "schemas",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "compatibility"
   ],
   "scripts": {
     "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
@@ -50,6 +51,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "test:package": "pnpm build && node scripts/package-smoke.mjs",
     "test:watch": "vitest",
     "cli": "tsx src/cli/index.ts",
     "prepublishOnly": "pnpm build"

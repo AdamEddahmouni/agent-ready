@@ -1,0 +1,58 @@
+version: 1
+
+project:
+  name: complete-phase-1-example
+  description: Demonstrates every field supported by the Phase 1 contract schema.
+
+environment:
+  runtimes:
+    node: ">=20 <23"
+  packageManager:
+    name: pnpm
+    version: "10"
+
+commands:
+  install:
+    run: pnpm install --frozen-lockfile
+  lint:
+    run: pnpm lint
+  typecheck:
+    run: pnpm typecheck
+  test:
+    run: pnpm test
+  build:
+    run: pnpm build
+    description: Compiles the project into dist/.
+
+verification:
+  required:
+    - lint
+    - typecheck
+    - test
+    - build
+
+paths:
+  protected:
+    - ".env*"
+  generated:
+    - "src/generated/**"
+  ignored:
+    - "node_modules/**"
+    - "dist/**"
+
+instructions:
+  sources:
+    - README.md
+    - docs/architecture.md
+
+adapters:
+  agentsMd:
+    enabled: true
+  claude:
+    enabled: true
+  cursor:
+    enabled: true
+  copilot:
+    enabled: true
+  gemini:
+    enabled: true

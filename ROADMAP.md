@@ -1,6 +1,6 @@
 # Roadmap
 
-## Current phase: Foundation (Phase 0/1) — complete
+## Foundation (Phase 0/1) — complete
 
 - Public open-source project scaffolding: license, governance,
   contribution guidelines, security policy, CI.
@@ -185,6 +185,20 @@ why.
   example contract in `examples/` contains a Markdown-significant
   character in any free-text field.
 
+## Phase 9: Adapter output compatibility corpus — complete
+
+- A self-contained, versioned corpus under
+  `compatibility/adapter-output/v1` maps representative contracts and
+  supporting files to byte-exact output for all five adapters.
+- The corpus is included in the npm package so downstream implementations can
+  test compatibility without importing internal modules or using network
+  services.
+- The reference implementation runs the public corpus in its own test suite;
+  existing expectations are immutable within a corpus version. See
+  [ADR-0018](docs/decisions/0018-versioned-adapter-output-compatibility.md)
+  and the
+  [compatibility specification](docs/specification/adapter-output-compatibility.md).
+
 ## Long-term open-source direction
 
 The following remain **open-source, local-first roadmap categories** —
@@ -196,7 +210,6 @@ not yet implemented, and not committed to any specific phase or date:
   now writes (Phase 6).
 - An adapter/plugin interface, once there is more than one concrete
   adapter to justify the abstraction.
-- A compatibility test suite for downstream adapter output.
 - More example repositories and framework-specific guidance.
 
 These are directional, not scheduled — the project intends to keep
@@ -248,6 +261,7 @@ package publication or release.
 
 ## Recommended next phase
 
-Not yet decided. See the "Long-term open-source direction" list above for
-candidate categories (Phase 8, adapter output Markdown escaping, is now
-complete — see above).
+Complete the `v0.1.0` stabilization and release process before selecting another
+feature phase. After release, use a focused ADR to choose between
+architecture/documentation drift analysis, task/context packets, or broader
+framework-specific examples; no Phase 10 scope is committed yet.

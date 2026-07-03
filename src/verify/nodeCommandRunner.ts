@@ -34,9 +34,15 @@ export class NodeCommandRunner implements CommandRunner {
       });
 
       let timedOut = false;
+      let termination: Promise<void> | undefined;
       const timer = setTimeout(() => {
         timedOut = true;
-        killTree(child.pid);
+        // Do not leave taskkill as an unobserved, pipe-owning child process.
+        // In particular, Vitest cannot finish (and Windows cannot remove the
+        // command's cwd) until both taskkill and the original process tree have
+        // exited. killTree also falls back to killing the shell itself if tree
+        // termination cannot be started.
+        termination = killTree(child.pid, () => child.kill());
       }, options.timeoutMs);
 
       child.once("error", () => {
@@ -51,26 +57,24 @@ export class NodeCommandRunner implements CommandRunner {
       });
 
       child.once("close", (code) => {
+        void finishClose(code);
+      });
+
+      async function finishClose(code: number | null): Promise<void> {
         clearTimeout(timer);
+        // The shell may emit `close` while taskkill is still walking its
+        // descendants. Waiting here prevents callers from treating the cwd as
+        // reusable while a descendant still has it open on Windows.
+        await termination;
         const durationMs = Date.now() - startedAt;
-        if (timedOut) {
-          resolve({
-            id: command.id,
-            run: command.run,
-            status: "timed-out",
-            exitCode: null,
-            durationMs,
-          });
-          return;
-        }
         resolve({
           id: command.id,
           run: command.run,
-          status: code === 0 ? "passed" : "failed",
-          exitCode: code,
+          status: timedOut ? "timed-out" : code === 0 ? "passed" : "failed",
+          exitCode: timedOut ? null : code,
           durationMs,
         });
-      });
+      }
     });
   }
 }
@@ -85,12 +89,29 @@ export class NodeCommandRunner implements CommandRunner {
  *   leader of its own process group; signalling the negative pid signals
  *   the whole group.
  */
-function killTree(pid: number | undefined): void {
+async function killTree(pid: number | undefined, killShell: () => boolean): Promise<void> {
   if (pid === undefined) {
     return;
   }
   if (process.platform === "win32") {
-    spawn("taskkill", ["/pid", String(pid), "/t", "/f"]);
+    const killedTree = await new Promise<boolean>((resolve) => {
+      const killer = spawn("taskkill", ["/pid", String(pid), "/t", "/f"], {
+        stdio: "ignore",
+        windowsHide: true,
+      });
+      killer.once("error", () => {
+        resolve(false);
+      });
+      killer.once("close", (code) => {
+        resolve(code === 0);
+      });
+    });
+    if (!killedTree) {
+      // Best-effort fallback. This cannot guarantee descendant termination on
+      // Windows, but it does guarantee the shell is not left alive when
+      // taskkill itself is unavailable or rejected.
+      killShell();
+    }
     return;
   }
   try {

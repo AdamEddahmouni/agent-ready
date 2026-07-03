@@ -28,3 +28,4 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0015](0015-verification-evidence-recording.md)               | Verification evidence recording                                 |
 | [0016](0016-reusable-ci-action.md)                            | Reusable CI integration (GitHub composite action)               |
 | [0017](0017-adapter-output-markdown-escaping.md)              | Adapter output Markdown escaping                                |
+| [0018](0018-versioned-adapter-output-compatibility.md)        | Versioned adapter output compatibility corpus                   |

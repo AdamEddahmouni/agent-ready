@@ -50,6 +50,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Package smoke test
+        run: node scripts/package-smoke.mjs
+
       - name: CLI smoke test - help and version
         shell: bash
         run: |
@@ -196,22 +199,20 @@ jobs:
         run: pnpm build
 
   dogfood-action:
-    name: dogfood composite action
+    name: dogfood composite action (${{ matrix.command }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        command: [validate, inspect, generate, check, verify]
     steps:
       - uses: actions/checkout@v4
 
-      - name: agent-ready validate (via ./action.yml)
+      - name: agent-ready ${{ matrix.command }} (via ./action.yml)
         uses: ./
         with:
-          command: validate
+          command: ${{ matrix.command }}
           config: examples/complete-phase-1/agent-ready.yaml
-          json: "true"
-
-      - name: agent-ready check (via ./action.yml)
-        uses: ./
-        with:
-          command: check
           json: "true"
 
   audit:
