@@ -1,7 +1,7 @@
 # Architecture Decision Records
 
-This directory records consequential technical decisions made during the
-Phase 0/1/2 foundation of Agent-Ready, in lightweight MADR-style format
+This directory records consequential technical decisions made through Phase 9
+of Agent-Ready, in lightweight MADR-style format
 (context, alternatives, decision, consequences, reconsideration trigger).
 
 An ADR is warranted for a decision that is hard to reverse, affects the
@@ -29,3 +29,4 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0016](0016-reusable-ci-action.md)                            | Reusable CI integration (GitHub composite action)               |
 | [0017](0017-adapter-output-markdown-escaping.md)              | Adapter output Markdown escaping                                |
 | [0018](0018-versioned-adapter-output-compatibility.md)        | Versioned adapter output compatibility corpus                   |
+| [0019](0019-phase-10-direction.md)                            | Phase 10 direction: architecture and documentation drift        |

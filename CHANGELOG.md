@@ -3,6 +3,19 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
+## Unreleased
+
+### Fixed
+
+- Enforced LF working-tree line endings across platforms so formatting checks
+  and the byte-exact adapter compatibility corpus remain deterministic on
+  Windows.
+
+### Documentation
+
+- Corrected stale architecture and threat-model claims and selected local
+  architecture/documentation drift analysis as the Phase 10 direction.
+
 ## 0.1.0 - 2026-07-03
 
 ### Added

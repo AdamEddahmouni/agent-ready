@@ -261,7 +261,9 @@ package publication or release.
 
 ## Recommended next phase
 
-Complete the `v0.1.0` stabilization and release process before selecting another
-feature phase. After release, use a focused ADR to choose between
-architecture/documentation drift analysis, task/context packets, or broader
-framework-specific examples; no Phase 10 scope is committed yet.
+Complete the `v0.1.0` stabilization and release process before beginning another
+feature phase. [ADR-0019](docs/decisions/0019-phase-10-direction.md) selects
+architecture-dependency and documentation-drift analysis as the Phase 10
+direction. Phase 10 begins with a separate design ADR; no CLI, schema, or
+diagnostic surface is committed yet. Task/context packets and broader
+framework-specific examples remain later roadmap candidates.

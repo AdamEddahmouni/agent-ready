@@ -145,9 +145,11 @@ is the only write path anywhere in the codebase — added specifically for
 
 ## CLI composition
 
-`src/cli/index.ts` only: parses arguments via `commander`, constructs a
-`NodeFileSystem`, calls `runValidate`/`runInspect`/`runGenerate`, writes
-their returned `stdout`/`stderr` strings, and sets `process.exitCode`. It
+`src/cli/index.ts` only: parses arguments via `commander`, constructs the
+`NodeFileSystem`, `NodeGitClient`, and `NodeCommandRunner` boundary
+implementations needed by each command, calls `runValidate`/`runInspect`/
+`runGenerate`/`runCheck`/`runVerify`, writes their returned `stdout`/`stderr`
+strings, and sets `process.exitCode`. It
 contains no validation or generation logic itself and never calls
 `process.exit()` from inside a command's business logic — every file in
 `commands/` (`validate.ts`, `inspect.ts`, `generate.ts`, `check.ts`,
