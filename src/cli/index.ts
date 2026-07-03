@@ -9,6 +9,7 @@ import { runInspect } from "./commands/inspect.js";
 import { runGenerate } from "./commands/generate.js";
 import { runCheck } from "./commands/check.js";
 import { runVerify, VERIFICATION_RECORD_FILENAME } from "./commands/verify.js";
+import { runAnalyze } from "./commands/analyze.js";
 
 interface PackageJson {
   readonly version: string;
@@ -23,7 +24,7 @@ const program = new Command();
 program
   .name("agent-ready")
   .description(
-    "Validate, inspect, and generate agent instructions from a repository's\n" +
+    "Validate, inspect, generate, check, analyze, and verify a repository's\n" +
       "agent-ready.yaml contract. This CLI never modifies the repository unless\n" +
       "`generate --write` is used, and never executes repository commands\n" +
       "unless `verify --execute` is used.",
@@ -107,6 +108,22 @@ program
     const fs = new NodeFileSystem();
     const git = new NodeGitClient();
     const outcome = await runCheck(fs, git, opts);
+    if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
+    if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
+    process.exitCode = outcome.exitCode;
+  });
+
+program
+  .command("analyze")
+  .description(
+    "Check declared instruction sources for broken repository-relative\n" +
+      "Markdown links. Read-only; never executes commands or rewrites documentation.",
+  )
+  .option("--json", "Print results as machine-readable JSON.", false)
+  .option("--config <path>", "Explicit path to the contract file.")
+  .action(async (opts: { json: boolean; config?: string }) => {
+    const fs = new NodeFileSystem();
+    const outcome = await runAnalyze(fs, opts);
     if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
     if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
     process.exitCode = outcome.exitCode;

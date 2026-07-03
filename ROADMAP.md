@@ -199,12 +199,27 @@ why.
   and the
   [compatibility specification](docs/specification/adapter-output-compatibility.md).
 
+## Phase 10: Instruction-source documentation drift analysis — complete
+
+- A read-only `agent-ready analyze` command checks repository-relative Markdown
+  links in the files explicitly declared by `instructions.sources`.
+- The bounded parser recognizes inline/image links and reference definitions,
+  ignores fenced/inline code and remote/root-relative destinations, strips
+  fragments and queries, and reports deterministic source locations.
+- Broken targets and lexical traversal outside the repository produce stable
+  diagnostics and non-zero exit status; JSON output includes per-source counts
+  and ordered findings.
+- No schema change, Git invocation, command execution, network access, LLM call,
+  or automatic documentation rewrite. See
+  [ADR-0020](docs/decisions/0020-instruction-source-link-analysis.md).
+
 ## Long-term open-source direction
 
 The following remain **open-source, local-first roadmap categories** —
 not yet implemented, and not committed to any specific phase or date:
 
-- Architecture-dependency and documentation-drift analysis.
+- Broader architecture-dependency analysis beyond Phase 10's instruction-source
+  link check.
 - Task packets and context manifests; richer completion records beyond
   the single-run evidence file `agent-ready verify --execute --record`
   now writes (Phase 6).
@@ -249,7 +264,7 @@ capturing or persisting a command's actual stdout/stderr as evidence
 (only structured status is persisted, via `verify --execute --record`) ·
 historical/multi-run verification-evidence retention · task packets ·
 context manifests ·
-documentation-drift detection · architecture-dependency analysis ·
+architecture-dependency analysis beyond declared documentation links ·
 plugin/adapter loading ·
 framework detection · monorepo contract inheritance or nested contracts ·
 remote configuration · organization policies · hosted dashboards · user
@@ -261,9 +276,7 @@ package publication or release.
 
 ## Recommended next phase
 
-Complete the `v0.1.0` stabilization and release process before beginning another
-feature phase. [ADR-0019](docs/decisions/0019-phase-10-direction.md) selects
-architecture-dependency and documentation-drift analysis as the Phase 10
-direction. Phase 10 begins with a separate design ADR; no CLI, schema, or
-diagnostic surface is committed yet. Task/context packets and broader
-framework-specific examples remain later roadmap candidates.
+Stabilize and release Phase 10 as `v0.2.0` before selecting another feature phase. After
+release, use a focused ADR to choose between broader architecture-dependency
+analysis, task/context packets, and framework-specific examples; no Phase 11
+scope is committed yet.

@@ -1,6 +1,6 @@
 name: "Agent-Ready"
 description: >-
-  Validate, inspect, generate, check, and verify a repository's
+  Validate, inspect, generate, check, analyze, and verify a repository's
   agent-ready.yaml contract, using this repository's own CLI built from
   source. See docs/specification/ci-integration.md.
 author: "Agent-Ready"
@@ -9,7 +9,7 @@ inputs:
   command:
     description: >-
       The agent-ready subcommand to run: validate, inspect, generate,
-      check, or verify.
+      check, analyze, or verify.
     required: true
   config:
     description: "Explicit path to the contract file (agent-ready.yaml)."

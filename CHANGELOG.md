@@ -3,7 +3,15 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
-## Unreleased
+## 0.2.0 - 2026-07-03
+
+### Added
+
+- `agent-ready analyze`, a read-only documentation drift check for local
+  Markdown links in declared `instructions.sources`, with human and structured
+  JSON output.
+- Stable documentation-analysis diagnostics for unreadable sources, target
+  inspection failures, broken links, and repository-escaping links.
 
 ### Fixed
 
@@ -15,6 +23,13 @@ All notable changes to Agent-Ready are documented here. The project follows
 
 - Corrected stale architecture and threat-model claims and selected local
   architecture/documentation drift analysis as the Phase 10 direction.
+- Added ADR-0020 and full CLI, CI-action, security, and architecture
+  documentation for Phase 10's bounded link-analysis design.
+
+### Security
+
+- Documentation analysis rejects lexical traversal above the repository root
+  and never follows remote or root-relative link destinations.
 
 ## 0.1.0 - 2026-07-03
 

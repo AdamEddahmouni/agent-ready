@@ -60,6 +60,7 @@ jobs:
           node dist/cli/index.js --version
           node dist/cli/index.js validate --help
           node dist/cli/index.js inspect --help
+          node dist/cli/index.js analyze --help
           node dist/cli/index.js verify --help
 
       - name: CLI smoke test - valid examples pass
@@ -79,6 +80,15 @@ jobs:
             echo "Expected all five example adapters to be implemented" >&2
             exit 1
           fi
+
+      - name: CLI smoke test - analyze documentation drift
+        shell: bash
+        run: |
+          set -e
+          output="$(node dist/cli/index.js analyze --json)"
+          echo "$output"
+          echo "$output" | grep -q '"ok": true'
+          echo "$output" | grep -q '"linksChecked"'
 
       - name: CLI smoke test - invalid examples fail
         shell: bash
@@ -204,7 +214,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        command: [validate, inspect, generate, check, verify]
+        command: [validate, inspect, generate, check, analyze, verify]
     steps:
       - uses: actions/checkout@v4
 

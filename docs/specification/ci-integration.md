@@ -28,7 +28,7 @@ uses: agent-ready/agent-ready-repo@<commit-sha>
 ```
 
 For readable version pinning, use the corresponding release tag, such as
-`v0.1.0`. Do not pin a mutable branch name.
+`v0.2.0`. Do not pin a mutable branch name.
 
 ## Usage
 
@@ -48,23 +48,28 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Validate contract
-        uses: agent-ready/agent-ready-repo@v0.1.0
+        uses: agent-ready/agent-ready-repo@v0.2.0
         with:
           command: validate
 
       - name: Check generated files are up to date
-        uses: agent-ready/agent-ready-repo@v0.1.0
+        uses: agent-ready/agent-ready-repo@v0.2.0
         with:
           command: generate
           check: "true"
 
       - name: Check protected paths
-        uses: agent-ready/agent-ready-repo@v0.1.0
+        uses: agent-ready/agent-ready-repo@v0.2.0
         with:
           command: check
 
+      - name: Check documentation links
+        uses: agent-ready/agent-ready-repo@v0.2.0
+        with:
+          command: analyze
+
       - name: Run verification
-        uses: agent-ready/agent-ready-repo@v0.1.0
+        uses: agent-ready/agent-ready-repo@v0.2.0
         with:
           command: verify
           execute: "true"
@@ -73,24 +78,24 @@ jobs:
 
 ## Inputs
 
-| Input          | Maps to                                                             | Default                  |
-| -------------- | ------------------------------------------------------------------- | ------------------------ |
-| `command`      | (required) `validate` / `inspect` / `generate` / `check` / `verify` | —                        |
-| `config`       | `--config <path>`                                                   | discovery, unset         |
-| `json`         | `--json`                                                            | `false`                  |
-| `write`        | (generate) `--write`                                                | `false`                  |
-| `check`        | (generate) `--check`                                                | `false`                  |
-| `force`        | (generate --write) `--force`                                        | `false`                  |
-| `staged`       | (check) `--staged`                                                  | `false`                  |
-| `against`      | (check) `--against <ref>`                                           | unset                    |
-| `execute`      | (verify) `--execute`                                                | `false`                  |
-| `timeout`      | (verify --execute) `--timeout <seconds>`                            | unset (CLI default: 900) |
-| `record`       | (verify --execute) `--record`                                       | `false`                  |
-| `node-version` | Node.js version used to build and run Agent-Ready                   | `"22"`                   |
+| Input          | Maps to                                                                         | Default                  |
+| -------------- | ------------------------------------------------------------------------------- | ------------------------ |
+| `command`      | (required) `validate` / `inspect` / `generate` / `check` / `analyze` / `verify` | —                        |
+| `config`       | `--config <path>`                                                               | discovery, unset         |
+| `json`         | `--json`                                                                        | `false`                  |
+| `write`        | (generate) `--write`                                                            | `false`                  |
+| `check`        | (generate) `--check`                                                            | `false`                  |
+| `force`        | (generate --write) `--force`                                                    | `false`                  |
+| `staged`       | (check) `--staged`                                                              | `false`                  |
+| `against`      | (check) `--against <ref>`                                                       | unset                    |
+| `execute`      | (verify) `--execute`                                                            | `false`                  |
+| `timeout`      | (verify --execute) `--timeout <seconds>`                                        | unset (CLI default: 900) |
+| `record`       | (verify --execute) `--record`                                                   | `false`                  |
+| `node-version` | Node.js version used to build and run Agent-Ready                               | `"22"`                   |
 
 A step's exit code is exactly the CLI's exit code (see
 [cli-reference.md](cli-reference.md#exit-codes)) — a failing
-`validate`/`check`/`verify` fails the job with no extra wiring. The
+`validate`/`check`/`analyze`/`verify` fails the job with no extra wiring. The
 action never captures or parses the CLI's stdout/stderr; it flows
 straight to the job log exactly as if you had run the command yourself.
 

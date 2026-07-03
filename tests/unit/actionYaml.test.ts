@@ -10,7 +10,7 @@ interface CompositeStep {
 }
 
 interface ActionYaml {
-  readonly inputs: Record<string, { required?: boolean; default?: string }>;
+  readonly inputs: Record<string, { required?: boolean; default?: string; description?: string }>;
   readonly runs: {
     readonly using: string;
     readonly steps: readonly CompositeStep[];
@@ -27,6 +27,7 @@ describe("action.yml", () => {
 
   it("declares command as a required input", () => {
     expect(action.inputs["command"]?.required).toBe(true);
+    expect(action.inputs["command"]?.description).toContain("analyze");
   });
 
   it("never interpolates a GitHub Actions expression inside a run: script", () => {

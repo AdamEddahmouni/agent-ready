@@ -1,4 +1,4 @@
-# Threat model (Phase 0-9)
+# Threat model (Phase 0-10)
 
 ## Trust boundary
 
@@ -29,9 +29,9 @@ the `--execute` flag being passed by the invoking user.
 
 - The integrity of the machine running Agent-Ready (no arbitrary code
   execution triggered by contract content).
-- Files outside the repository boundary (no path-traversal read; writes
-  are restricted to a hardcoded, repo-root-relative filename per
-  adapter — never a contract-supplied path).
+- Files outside the repository boundary (no path-traversal read; writes are
+  restricted to Agent-Ready-hardcoded, repo-root-relative output filenames —
+  never contract-supplied paths).
 - Hand-authored files a user has already created (a `generate --write`
   must never silently overwrite content it did not itself generate).
 - Availability (no denial-of-service via pathological input).
@@ -44,7 +44,7 @@ the `--execute` flag being passed by the invoking user.
 Treated as untrusted throughout: contract file contents, YAML structures,
 declared path/glob patterns, working-directory state, symbolic links
 encountered during discovery, project name/description strings, command
-strings, instruction-source references, and CLI arguments (`--config`,
+strings, instruction-source references and Markdown contents, and CLI arguments (`--config`,
 and, for `agent-ready check`, `--staged`/`--against <ref>`, and the
 `git` executable's own output). **Exception**: `commands[].run` strings
 are treated as trusted, executable content specifically by
@@ -77,9 +77,15 @@ boundary" above and ADR-0014.
 | Secret leakage via captured command output (`agent-ready verify`)                         | `NodeCommandRunner` never captures a command's stdout/stderr; it inherits the parent process's stdio, so output goes straight to the invoking terminal exactly as if the command were run by hand. The structured per-command result (`--json`, diagnostics) carries only `id`, `run`, `status`, `exitCode`, and `durationMs` — never captured output, avoiding the need for output redaction entirely.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Hung command (`agent-ready verify --execute`)                                             | A per-run `--timeout` (default 900s) bounds each command; on expiry, the whole process tree spawned for that command is killed (`taskkill /t` on Windows, a negative-pid signal to the process group on POSIX — see "Known limitations" below) and the command is reported `"timed-out"`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | Path escape / secret leakage via evidence write (`agent-ready verify --execute --record`) | The evidence output path is a single Agent-Ready-hardcoded filename (`agent-ready-verify-result.json`) joined against the already-verified `repoRoot` — never contract-supplied, never CLI-configurable. The file's content is exactly the same structured, non-output fields (`id`, `run`, `status`, `exitCode`, `durationMs`, plus diagnostics) `verify --json` already prints; a command's actual stdout/stderr is never captured or written. See [ADR-0015](../decisions/0015-verification-evidence-recording.md).                                                                                                                                                                                                                                                                                                                                 |
+| Repository escape via documentation links (`agent-ready analyze`)                         | Local link destinations are resolved lexically from their declared instruction source; traversal above the repository root is rejected before any filesystem lookup. URI-scheme, protocol-relative, and root-relative destinations are ignored, so analysis performs no network requests or host-root probes. See [ADR-0020](../decisions/0020-instruction-source-link-analysis.md).                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ## Known limitations (accepted for this phase)
 
+- **Instruction sources have no dedicated size cap.** `agent-ready analyze`
+  reads each explicitly declared source as UTF-8 and scans it in memory. The
+  scanner is linear for ordinary input and never follows discovered links, but
+  an unusually large local document can still consume proportionate memory and
+  time. Add a separate analysis-input cap if this becomes a practical problem.
 - **Deep, non-aliased YAML nesting** is not specifically depth-limited
   beyond the 1 MB size cap and the JS engine's own recursion limits. A
   pathological (but small) deeply-nested document could still be slow to

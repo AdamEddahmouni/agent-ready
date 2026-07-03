@@ -1,7 +1,7 @@
 # Specification overview
 
 Agent-Ready defines a canonical, repository-relative contract file named
-`agent-ready.yaml`. This document is the entry point into the Phase 1
+`agent-ready.yaml`. This document is the entry point into the version 1
 specification; see the other files in this directory for full detail on
 each area.
 
@@ -39,7 +39,7 @@ Every stage that can fail produces structured diagnostics (see
 throws for something the codebase considers an internal invariant
 violation (a bug, not a user mistake).
 
-## What the contract covers in Phase 1
+## What the version 1 contract covers
 
 See [contract-reference.md](contract-reference.md) for exact field
 semantics. In summary:
@@ -52,11 +52,12 @@ semantics. In summary:
   references.
 - **Paths** — `paths.protected`, `paths.generated`, `paths.ignored`.
 - **Instruction sources** — `instructions.sources`.
-- **Adapter declarations** — `adapters`; `agentsMd`/`claude` drive
-  `agent-ready generate`, the rest remain configuration only.
+- **Adapter declarations** — `adapters`; all five declared adapters drive
+  `agent-ready generate` when enabled.
 
 ## What is explicitly out of scope
 
 See [../../ROADMAP.md](../../ROADMAP.md) for the full, explicit list of
-strict non-goals for this phase — most importantly, **no command declared
-in the contract is ever executed** by anything in this repository.
+strict non-goals for this phase. Contract commands remain inert except for the
+explicit, opt-in `agent-ready verify --execute` boundary described in
+[ADR-0014](../decisions/0014-verification-execution.md).

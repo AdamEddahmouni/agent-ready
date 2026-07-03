@@ -14,13 +14,14 @@ agent-ready.yaml
 
 ## What this foundation actually does today
 
-This is the **Phase 0/1/2/3/4/5/6/7/8/9 foundation**: a minimal contract
+This is the **Phase 0/1/2/3/4/5/6/7/8/9/10 foundation**: a minimal contract
 core, a local CLI, agent-instruction generation for `AGENTS.md`,
 `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, and
 `GEMINI.md`, protected-path enforcement against real Git changes, local
 execution of a contract's declared verification commands, local
 recording of that execution's evidence, and a reusable GitHub composite
-action for adopting all of the above in another repository's CI.
+action for adopting all of the above in another repository's CI, plus local
+documentation-link drift analysis for declared instruction sources.
 Concretely, right now Agent-Ready can:
 
 - Discover a repository's `agent-ready.yaml` (see
@@ -52,6 +53,10 @@ Concretely, right now Agent-Ready can:
   patterns was actually changed in Git — working tree, staged, or
   relative to an explicit ref (`agent-ready check`). This is the first
   command that requires a Git working tree and the `git` executable.
+- Analyze declared `instructions.sources` for broken repository-relative
+  Markdown links (`agent-ready analyze`) without following remote links or
+  rewriting documentation; see
+  [ADR-0020](docs/decisions/0020-instruction-source-link-analysis.md).
 - Run the contract's `verification.required` commands, in declared order,
   and report pass/fail/timeout evidence for each (`agent-ready verify`).
   Defaults to a dry run that only prints the plan; nothing is executed
@@ -77,7 +82,7 @@ Concretely, right now Agent-Ready can:
 - It does **not** execute any repository command, **except**
   `agent-ready verify --execute`, which runs exactly the commands declared
   in `verification.required` and nothing else. Every other command
-  (`validate`, `inspect`, `generate`, `check`, and `agent-ready verify`
+  (`validate`, `inspect`, `generate`, `check`, `analyze`, and `agent-ready verify`
   without `--execute`) treats `commands`/`verification` as inert,
   validated data and never invokes a shell. `agent-ready check` never
   reads `commands` or `verification` at all; the only process it ever
@@ -117,6 +122,9 @@ local verification evidence recording
         |
         v
 reusable CI integration (GitHub action)
+        |
+        v
+local instruction-source link analysis
         |
         v
 richer evidence retention, other future phases
@@ -159,6 +167,9 @@ agent-ready check --staged                 # ...vs the Git index
 agent-ready check --against origin/main    # ...vs an explicit ref
 agent-ready check --json
 
+agent-ready analyze                        # check instruction-source Markdown links
+agent-ready analyze --json                 # structured findings and diagnostics
+
 agent-ready verify                         # dry run: print the verification.required plan
 agent-ready verify --execute               # actually run those commands, in order
 agent-ready verify --execute --timeout 60  # override the per-command timeout (seconds)
@@ -194,7 +205,7 @@ instead of hand-copying CLI invocations:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: agent-ready/agent-ready-repo@v0.1.0 # or pin the full release commit SHA
+- uses: agent-ready/agent-ready-repo@v0.2.0 # or pin the full release commit SHA
   with:
     command: verify
     execute: "true"

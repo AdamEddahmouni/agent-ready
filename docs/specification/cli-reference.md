@@ -210,6 +210,66 @@ error[PROTECTED_PATH_MODIFIED]: Protected path was modified: .env.production
 `changedFiles`/`violations`/`base` are omitted when the pipeline failed
 before Git was ever consulted (e.g. an invalid contract).
 
+## `agent-ready analyze`
+
+Runs the same contract pipeline as `validate`, then reads each file declared in
+`instructions.sources` and checks its repository-relative Markdown link
+destinations. It is read-only: it never invokes Git, executes contract commands,
+follows remote links, or rewrites documentation. See
+[ADR-0020](../decisions/0020-instruction-source-link-analysis.md).
+
+```bash
+agent-ready analyze
+agent-ready analyze --json
+agent-ready analyze --config path/to/agent-ready.yaml
+```
+
+| Option            | Description                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| `--json`          | Print structured source counts, findings, and diagnostics.                                             |
+| `--config <path>` | Use this exact contract file instead of discovery; see [discovery.md](discovery.md#explicit---config). |
+
+The bounded scanner recognizes inline links, image destinations, and reference
+definitions. Fenced code, inline code, URI-scheme links, protocol-relative
+links, root-relative URLs, and fragment/query-only destinations are ignored.
+For local links, fragments and queries are removed before resolving the target
+relative to the instruction source. Files and directories are both valid
+targets. Traversal above the repository root is rejected.
+
+**Human output** (success):
+
+```text
+No documentation drift found.
+  instruction sources checked: 2
+  local links checked: 14
+```
+
+**JSON output** (broken link):
+
+```json
+{
+  "ok": false,
+  "contractPath": "/repo/agent-ready.yaml",
+  "repoRoot": "/repo",
+  "sources": [{ "path": "README.md", "linksChecked": 1 }],
+  "linksChecked": 1,
+  "findings": [
+    {
+      "kind": "broken",
+      "sourcePath": "README.md",
+      "destination": "docs/missing.md",
+      "resolvedPath": "docs/missing.md",
+      "line": 8,
+      "column": 12
+    }
+  ],
+  "diagnostics": [{ "code": "DOCUMENTATION_LINK_BROKEN", "severity": "error", "...": "..." }]
+}
+```
+
+When no instruction sources are declared, analysis succeeds with zero source
+and link counts.
+
 ## `agent-ready verify`
 
 Runs the same pipeline as `validate`, then runs the contract's
@@ -319,13 +379,13 @@ category (this is a single local file, not history or a dashboard).
 
 ## Exit codes
 
-| Code | Meaning                                                                                                                                                                                                           |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | Success                                                                                                                                                                                                           |
-| 1    | Validation failed (schema or semantic error), a `generate --write` target exists but is unmanaged, `generate --check` found drift, `check` found a violation, or a `verify --execute` command failed or timed out |
-| 2    | Contract not found or unreadable; the repository is not a Git working tree or Git could not be read (`check`); or a `verify --execute` command could not be spawned at all                                        |
-| 3    | Unsupported contract version                                                                                                                                                                                      |
-| 10   | Internal Agent-Ready failure, including a `generate --write` or `verify --execute --record` write failure (please report as a bug)                                                                                |
+| Code | Meaning                                                                                                                                              |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | Success                                                                                                                                              |
+| 1    | Validation failed (schema or semantic error), generated/protected/documentation drift was found, or a `verify --execute` command failed or timed out |
+| 2    | Contract or analysis input was not readable; Git could not be read (`check`); or a `verify --execute` command could not be spawned                   |
+| 3    | Unsupported contract version                                                                                                                         |
+| 10   | Internal Agent-Ready failure, including a `generate --write` or `verify --execute --record` write failure (please report as a bug)                   |
 
 See [diagnostics.md](diagnostics.md) and
 [ADR-0008](../decisions/0008-diagnostics-and-exit-codes.md) for how a set

@@ -22,6 +22,10 @@ function importUnknown(specifier) {
   return /** @type {Promise<unknown>} */ (import(specifier));
 }
 
+const packageJson = /** @type {{ version: string }} */ (
+  parseJson(await readFile(resolve(root, "package.json"), "utf8"))
+);
+
 const packCommand =
   process.platform === "win32"
     ? {
@@ -73,7 +77,7 @@ const cli = spawnSync(process.execPath, [resolve(root, "dist/cli/index.js"), "--
   cwd: root,
   encoding: "utf8",
 });
-if (cli.status !== 0 || cli.stdout.trim() !== "0.1.0") {
+if (cli.status !== 0 || cli.stdout.trim() !== packageJson.version) {
   throw new Error(`CLI version smoke test failed: ${cli.stderr || cli.stdout}`);
 }
 

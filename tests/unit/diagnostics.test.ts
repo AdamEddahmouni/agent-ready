@@ -39,6 +39,10 @@ describe("diagnostic codes", () => {
       "VERIFICATION_COMMAND_TIMEOUT",
       "VERIFICATION_COMMAND_SPAWN_FAILED",
       "VERIFICATION_RECORD_WRITE_FAILED",
+      "DOCUMENTATION_SOURCE_READ_FAILED",
+      "DOCUMENTATION_LINK_CHECK_FAILED",
+      "DOCUMENTATION_LINK_BROKEN",
+      "DOCUMENTATION_LINK_OUTSIDE_REPOSITORY",
     ];
     for (const code of required) {
       expect(DIAGNOSTIC_CODES).toContain(code);
@@ -220,5 +224,21 @@ describe("resolveExitCode", () => {
       summary: "x",
     };
     expect(resolveExitCode([diagnostic])).toBe(ExitCode.CONTRACT_NOT_FOUND);
+  });
+
+  it("maps documentation I/O failures separately from drift findings", () => {
+    expect(
+      resolveExitCode([
+        { code: "DOCUMENTATION_SOURCE_READ_FAILED", severity: "error", summary: "x" },
+      ]),
+    ).toBe(ExitCode.CONTRACT_NOT_FOUND);
+    expect(
+      resolveExitCode([
+        { code: "DOCUMENTATION_LINK_CHECK_FAILED", severity: "error", summary: "x" },
+      ]),
+    ).toBe(ExitCode.CONTRACT_NOT_FOUND);
+    expect(
+      resolveExitCode([{ code: "DOCUMENTATION_LINK_BROKEN", severity: "error", summary: "x" }]),
+    ).toBe(ExitCode.VALIDATION_FAILED);
   });
 });

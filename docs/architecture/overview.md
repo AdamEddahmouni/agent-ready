@@ -11,6 +11,7 @@ src/
 │       ├── inspect.ts         runInspect(): pipeline -> rendered output. No CLI-framework dependency.
 │       ├── generate.ts        runGenerate(): pipeline -> plan -> optional write -> rendered output.
 │       ├── check.ts           runCheck(): pipeline -> Git diff -> protected-path match -> rendered output.
+│       ├── analyze.ts         runAnalyze(): pipeline -> documentation link analysis -> rendered output.
 │       └── verify.ts          runVerify(): pipeline -> ordered plan -> optional execution -> optional evidence write -> rendered output.
 ├── contract/
 │   ├── discovery.ts           Repository-root + contract-file discovery.
@@ -40,6 +41,9 @@ src/
 │   ├── types.ts                 CommandRunner interface (the only process-execution boundary domain code depends on).
 │   ├── nodeCommandRunner.ts     Real implementation, backed by child_process.spawn; the project's only code path that executes contract-declared `run` strings (see ADR-0014).
 │   └── fakeCommandRunner.ts     Deterministic test double; no real process ever spawned in tests.
+├── analyze/
+│   ├── markdownLinks.ts         Bounded Markdown link scanner; pure and deterministic.
+│   └── analyzeDocumentation.ts  Instruction-source target resolution and diagnostics.
 ├── generate/
 │   ├── types.ts                 GeneratedFile, AdapterRenderer, RendererRegistry, plan/output types.
 │   ├── marker.ts                 The managed-file marker banner and detection.
@@ -63,8 +67,8 @@ cli/  --------------------> contract/pipeline.ts --------------------> contract/
 diagnostics/  <----------------------------------------------------  filesystem/ (via injected FileSystem)
 ```
 
-- `cli/` depends on `contract/`, `generate/`, and `diagnostics/`; nothing
-  in `contract/`, `generate/`, or `diagnostics/` depends on `cli/` or on
+- `cli/` depends on `contract/`, `generate/`, `analyze/`, and `diagnostics/`;
+  nothing in those domain modules depends on `cli/` or on
   `commander`.
 - `contract/` and `generate/` depend on `filesystem/` only through the
   `FileSystem` interface — never on `node:fs` directly
@@ -148,16 +152,17 @@ is the only write path anywhere in the codebase — added specifically for
 `src/cli/index.ts` only: parses arguments via `commander`, constructs the
 `NodeFileSystem`, `NodeGitClient`, and `NodeCommandRunner` boundary
 implementations needed by each command, calls `runValidate`/`runInspect`/
-`runGenerate`/`runCheck`/`runVerify`, writes their returned `stdout`/`stderr`
+`runGenerate`/`runCheck`/`runAnalyze`/`runVerify`, writes their returned `stdout`/`stderr`
 strings, and sets `process.exitCode`. It
 contains no validation or generation logic itself and never calls
 `process.exit()` from inside a command's business logic — every file in
 `commands/` (`validate.ts`, `inspect.ts`, `generate.ts`, `check.ts`,
-`verify.ts`) is a plain, directly-testable async function that returns a
+`analyze.ts`, `verify.ts`) is a plain, directly-testable async function that returns a
 `{ exitCode, stdout, stderr }` value rather than performing I/O itself,
 which is what the integration tests in `tests/integration/cli.test.ts`,
 `tests/integration/generateCli.test.ts`, `tests/integration/checkCli.test.ts`,
-and `tests/integration/verifyCli.test.ts` call directly.
+`tests/integration/analyzeCli.test.ts`, and `tests/integration/verifyCli.test.ts`
+call directly.
 
 ## Explicitly absent (by design, this phase)
 
