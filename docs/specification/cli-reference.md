@@ -12,6 +12,11 @@ verify --execute`, which runs exactly the commands declared in
 `verification.required` (see [`agent-ready verify`](#agent-ready-verify)
 below and [ADR-0014](../decisions/0014-verification-execution.md)).
 
+This reference covers the six commands that exist today. Additional
+commands (`init`, `doctor`, `explain`, `schema`) are proposed, not
+implemented — see
+[docs/implementation-scope-cli-package.md](../implementation-scope-cli-package.md).
+
 ## `agent-ready --help` / `agent-ready --version`
 
 Standard help and version output. The version is read from this

@@ -145,3 +145,8 @@ for a contract using every field above, and
 [examples/minimal/agent-ready.yaml](../../examples/minimal/agent-ready.yaml)
 for the smallest valid contract. [examples/invalid/](../../examples/invalid/)
 contains contracts that intentionally fail, one per common mistake.
+
+Ideas for possible future fields (`agents`, `quality_gates`,
+`architecture`, `handoff`) are sketched, non-normatively, in
+[config-evolution-draft.md](config-evolution-draft.md). None of them
+are valid input against this schema today.

@@ -252,6 +252,21 @@ local verification. See the "open mechanism, paid coordination" principle
 referenced from the project brief and enforced by
 [ADR-0009](docs/decisions/0009-pre-1.0-stability-policy.md).
 
+## CLI/package maturity direction (proposed, not committed)
+
+A candidate next increment scopes new, adoption-focused CLI commands —
+`agent-ready init`, `doctor`, `explain`, `schema` — without changing
+what the contract means. This is direction, not a decision: it requires
+an ADR (and, for `init`, careful sequencing after the read-only
+commands) before any of it is built. See
+[docs/project-standing.md](docs/project-standing.md) for current vs.
+proposed state and
+[docs/implementation-scope-cli-package.md](docs/implementation-scope-cli-package.md)
+for the full scope, including why `agent-ready generate` already covers
+what a command called "sync" would do. This revisits, but does not yet
+override, the `init`/`sync` entry in the non-goals list immediately
+below — that list still reflects current, decided scope.
+
 ## Strict non-goals for the current phase
 
 The following are explicitly **not** implemented right now, by design —
@@ -273,6 +288,16 @@ extensions · a documentation website · GitHub App integration · a
 GitHub Action product · cloud APIs · enterprise features · AI-generated
 configuration · LLM calls · automatic repository modification · automated
 package publication or release.
+
+## Branding and visual design — deliberately deferred
+
+Logos, wordmarks, color palettes, a marketing/documentation website, and
+any visual identity for the future commercial product are explicitly
+deferred until the project reaches a fully public-ready 1.0 release.
+Until then, this remains a plain-text, terminal-first project: no design
+assets, brand guidelines, or website work will be produced, regardless of
+how complete an individual phase is. This is a scope decision, not an
+oversight.
 
 ## Recommended next phase
 

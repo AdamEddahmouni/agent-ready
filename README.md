@@ -259,6 +259,10 @@ and intentionally invalid contracts.
 - [Governance](GOVERNANCE.md)
 - [Changelog](CHANGELOG.md)
 - [Release process](docs/releasing.md)
+- [Project standing (current vs. planned)](docs/project-standing.md)
+- [CLI/package implementation scope (proposed)](docs/implementation-scope-cli-package.md)
+- [Adoption guide](docs/adoption-guide.md)
+- [Evidence and verification model](docs/specification/evidence.md)
 
 ## Project status and roadmap
 
@@ -270,6 +274,26 @@ coordination (dashboards, cross-repository policy, hosted scheduled
 checks, and similar) without ever making the local contract or CLI
 dependent on it — see [ROADMAP.md](ROADMAP.md) for details and explicit
 non-goals for this phase.
+
+## Planned CLI/package direction (proposed, not implemented)
+
+The six commands documented above (`validate`, `inspect`, `generate`,
+`check`, `analyze`, `verify`) exist today. A candidate next increment
+would add adoption-focused commands on top of them:
+
+```bash
+agent-ready init      # NOT YET IMPLEMENTED — proposed
+agent-ready doctor    # NOT YET IMPLEMENTED — proposed
+agent-ready explain   # NOT YET IMPLEMENTED — proposed
+agent-ready schema    # NOT YET IMPLEMENTED — proposed
+```
+
+This is direction under discussion, not a commitment — see
+[docs/project-standing.md](docs/project-standing.md) for exactly what's
+real today and
+[docs/implementation-scope-cli-package.md](docs/implementation-scope-cli-package.md)
+for the full scope, non-goals, and the ADR each command would need
+before it's built.
 
 ## Contributing
 
