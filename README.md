@@ -85,7 +85,8 @@ Concretely, right now Agent-Ready can:
 - It does **not** execute any repository command, **except**
   `agent-ready verify --execute`, which runs exactly the commands declared
   in `verification.required` and nothing else. Every other command
-  (`validate`, `inspect`, `generate`, `check`, `analyze`, and `agent-ready verify`
+  (`validate`, `inspect`, `generate`, `check`, `analyze`, `schema`,
+  `doctor`, and `agent-ready verify`
   without `--execute`) treats `commands`/`verification` as inert,
   validated data and never invokes a shell. `agent-ready check` never
   reads `commands` or `verification` at all; the only process it ever
@@ -177,6 +178,10 @@ agent-ready schema                         # print the bundled contract JSON Sch
 agent-ready schema --json                  # structured JSON envelope (no schema body)
 agent-ready schema --content               # human output with the schema body appended
 agent-ready schema --json --content        # structured JSON with the schema body as a `schema` field
+
+agent-ready doctor                         # inspect host environment fitness vs contract
+agent-ready doctor --json                  # machine-readable per-check envelope
+agent-ready doctor --config path/to/agent-ready.yaml
 
 agent-ready verify                         # dry run: print the verification.required plan
 agent-ready verify --execute               # actually run those commands, in order
@@ -283,10 +288,10 @@ checks, and similar) without ever making the local contract or CLI
 dependent on it — see [ROADMAP.md](ROADMAP.md) for details and explicit
 non-goals for this phase.
 
-## Path A command status (first shipped — ADR-0022)
+## Path A command status (ADR-0022 and ADR-0023 shipped)
 
-The seven commands documented above (`validate`, `inspect`, `generate`,
-`check`, `analyze`, `schema`, `verify`) exist today. Three more
+The eight commands documented above (`validate`, `inspect`, `generate`,
+`check`, `analyze`, `schema`, `doctor`, `verify`) exist today. Two more
 adoption-focused commands remain on Path A's roadmap, sequenced per
 [docs/implementation-scope-cli-package.md](docs/implementation-scope-cli-package.md)
 and
@@ -294,13 +299,15 @@ and
 
 ```bash
 agent-ready schema    # SHIPPED — see ADR-0022
-agent-ready doctor    # NOT YET IMPLEMENTED — sequenced after schema
-agent-ready explain   # NOT YET IMPLEMENTED — sequenced after doctor
+agent-ready doctor    # SHIPPED — see ADR-0023
+agent-ready explain   # NOT YET IMPLEMENTED — sequenced after doctor (ADR-0024 proposal)
 agent-ready init      # NOT YET IMPLEMENTED — sequenced last (the only second writer in the codebase besides `generate --write`)
 ```
 
 `agent-ready schema` is the first Path A command to ship — see
-[ADR-0022](docs/decisions/0022-agent-ready-schema-command.md). See
+[ADR-0022](docs/decisions/0022-agent-ready-schema-command.md).
+`agent-ready doctor` is the second — see
+[ADR-0023](docs/decisions/0023-agent-ready-doctor-command.md). See
 [docs/project-standing.md](docs/project-standing.md) for exactly what's
 real today.
 
