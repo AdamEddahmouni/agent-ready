@@ -148,7 +148,7 @@ describe.each(adapters)("$name adapter adversarial-content handling", ({ render 
       adapters: { agentsMd: { enabled: true } },
     };
     const file = render(normalizeContract(raw));
-    const fenceMatch = /- \*\*build\*\*: (`+) echo `date` \1/.exec(file.content);
+    const fenceMatch = /- \*\*`build`\*\*: (`+) echo `date` \1/.exec(file.content);
     expect(fenceMatch).not.toBeNull();
     expect(fenceMatch?.[1]?.length ?? 0).toBeGreaterThan(1);
   });
