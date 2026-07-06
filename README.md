@@ -288,11 +288,11 @@ checks, and similar) without ever making the local contract or CLI
 dependent on it — see [ROADMAP.md](ROADMAP.md) for details and explicit
 non-goals for this phase.
 
-## Path A command status (ADR-0022 and ADR-0023 shipped)
+## Path A command status (schema, doctor, and explain shipped)
 
-The eight commands documented above (`validate`, `inspect`, `generate`,
-`check`, `analyze`, `schema`, `doctor`, `verify`) exist today. Two more
-adoption-focused commands remain on Path A's roadmap, sequenced per
+The nine commands documented above (`validate`, `inspect`, `generate`,
+`check`, `analyze`, `schema`, `doctor`, `explain`, `verify`) exist today.
+One more adoption-focused command remains on Path A's roadmap, sequenced per
 [docs/implementation-scope-cli-package.md](docs/implementation-scope-cli-package.md)
 and
 [ADR-0021](docs/decisions/0021-cli-package-maturity-direction.md):
@@ -300,14 +300,16 @@ and
 ```bash
 agent-ready schema    # SHIPPED — see ADR-0022
 agent-ready doctor    # SHIPPED — see ADR-0023
-agent-ready explain   # NOT YET IMPLEMENTED — sequenced after doctor (ADR-0024 proposal)
+agent-ready explain   # SHIPPED — see ADR-0024
 agent-ready init      # NOT YET IMPLEMENTED — sequenced last (the only second writer in the codebase besides `generate --write`)
 ```
 
 `agent-ready schema` is the first Path A command to ship — see
 [ADR-0022](docs/decisions/0022-agent-ready-schema-command.md).
 `agent-ready doctor` is the second — see
-[ADR-0023](docs/decisions/0023-agent-ready-doctor-command.md). See
+[ADR-0023](docs/decisions/0023-agent-ready-doctor-command.md).
+`agent-ready explain` is the third — see
+[ADR-0024](docs/decisions/0024-agent-ready-explain-command.md). See
 [docs/project-standing.md](docs/project-standing.md) for exactly what's
 real today.
 
