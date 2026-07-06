@@ -1,336 +1,298 @@
-# Agent-Ready Repository Standard
+<p align="center">
+  <img src="assets/brand/readme-hero-banner.png" alt="Agent-Ready — Define once. Guide every agent. Verify the work." width="100%">
+</p>
 
-**The standard for agent-instruction files. Define once. Guide every agent. Verify the work.**
+<p align="center">
+  <a href="#"><img alt="Agent Ready" src="https://img.shields.io/badge/agent--ready-standard-12BFF3"></a>
+  <a href="#"><img alt="Vendor Neutral" src="https://img.shields.io/badge/vendor--neutral-yes-35D4FF"></a>
+  <a href="#"><img alt="LLM Calls" src="https://img.shields.io/badge/LLM%20calls-0-28D67D"></a>
+  <a href="#"><img alt="Network" src="https://img.shields.io/badge/network-not%20required-7D8D98"></a>
+  <a href="#"><img alt="CLI" src="https://img.shields.io/badge/CLI-deterministic-12BFF3"></a>
+</p>
+
+# Agent-Ready
+
+**The missing contract between repositories and coding agents.**
 
 Agent-Ready is an open, vendor-neutral specification and deterministic CLI
 for describing how AI coding agents should work inside a software repository.
 Like `package.json` for packages, `agent-ready.yaml` is the single,
-schema-validated source of truth: its commands, environment, instructions,
-restrictions, verification requirements, and completion evidence — defined
-once, and validated deterministically. **No API keys. No LLM calls. No
-network access. Zero cost per run.**
+schema-validated source of truth for a repository's commands, environment,
+instructions, restrictions, verification requirements, and completion evidence.
 
-```text
+**Define once. Guide every agent. Verify the work.**
+
+No API keys. No LLM calls. No network access. Zero cost per run.
+
+## Why Agent-Ready Exists
+
+AI coding agents are becoming part of everyday software development, but most
+repositories still don't have a standard way to explain how agents should work.
+
+Instructions are scattered across README files, contributor docs,
+tool-specific rule files, hidden prompts, and repeated chat messages.
+Agents guess which commands to run. Maintainers repeat themselves.
+Verification is inconsistent. There's no proof work was actually done.
+
+Agent-Ready fixes this with one structured contract.
+
+<p align="center">
+  <img src="assets/diagrams/before-after-instructions.png" alt="Before: scattered instructions across README.md, CLAUDE.md, .cursorrules, prompts, and tribal knowledge. After: one agent-ready.yaml contract." width="100%">
+</p>
+
+## The Repository Contract
+
+At the center of an Agent-Ready repository is one file:
+
+```
 agent-ready.yaml
 ```
 
-## What this foundation actually does today
+This file defines how agents should work inside the project. It carries:
 
-This is the **Phase 0/1/2/3/4/5/6/7/8/9/10 + Path A complete
-foundation**: a minimal contract
-core, a local CLI, agent-instruction generation for `AGENTS.md`,
-`CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, and
-`GEMINI.md`, protected-path enforcement against real Git changes, local
-execution of a contract's declared verification commands, local
-recording of that execution's evidence, and a reusable GitHub composite
-action for adopting all of the above in another repository's CI, plus local
-documentation-link drift analysis for declared instruction sources, plus
-a read-only introspection command that prints the bundled contract
-JSON Schema, plus a starter-contract scaffold command (`agent-ready init`).
-Concretely, right now Agent-Ready can:
+- **Project metadata** — name, description
+- **Environment** — runtime versions, package manager
+- **Commands** — lint, test, build, typecheck, and custom commands
+- **Verification** — ordered pipeline of commands that must pass before work is complete
+- **Paths** — protected files (never modify), generated files (never hand-edit), ignored paths
+- **Instructions** — hand-authored Markdown content and links to documentation
+- **Adapters** — which agent instruction files to generate (AGENTS.md, CLAUDE.md, .cursorrules, Copilot, Gemini)
 
-- Discover a repository's `agent-ready.yaml` (see
-  [docs/specification/discovery.md](docs/specification/discovery.md)).
-- Parse it as YAML safely (rejecting duplicate keys, oversized files, and
-  never evaluating custom tags — see
-  [docs/security/threat-model.md](docs/security/threat-model.md)).
-- Validate it against a public JSON Schema
-  ([schemas/v1/agent-ready.schema.json](schemas/v1/agent-ready.schema.json)),
-  rejecting unknown fields.
-- Perform semantic validation beyond what JSON Schema can express:
-  command-reference resolution, path-traversal and category-conflict
-  checks, semver validation, and instruction-source existence.
-- Normalize the validated contract into a deterministic, strongly-typed
-  form and print it (`agent-ready inspect`).
-- Generate `AGENTS.md`, `CLAUDE.md`, `.cursorrules`,
-  `.github/copilot-instructions.md`, and `GEMINI.md` from the enabled
-  `agentsMd`/`claude`/`cursor`/`copilot`/`gemini` adapters
-  (`agent-ready generate`), with an opt-in `--write`, a `--check` mode for
-  CI drift detection, and a managed-file marker so a re-run never silently
-  overwrites a file you wrote by hand. Contract-supplied free text is
-  escaped before it reaches generated Markdown, so it can never corrupt
-  the rendered file's structure — see
-  [ADR-0017](docs/decisions/0017-adapter-output-markdown-escaping.md).
-- Report every failure as a structured, stable diagnostic with a code,
-  severity, field, and remediation — in both human-readable and `--json`
-  form.
-- Check whether any file matching the contract's `paths.protected`
-  patterns was actually changed in Git — working tree, staged, or
-  relative to an explicit ref (`agent-ready check`). This is the first
-  command that requires a Git working tree and the `git` executable.
-- Analyze declared `instructions.sources` for broken repository-relative
-  Markdown links (`agent-ready analyze`) without following remote links or
-  rewriting documentation; see
-  [ADR-0020](docs/decisions/0020-instruction-source-link-analysis.md).
-- Run the contract's `verification.required` commands, in declared order,
-  and report pass/fail/timeout evidence for each (`agent-ready verify`).
-  Defaults to a dry run that only prints the plan; nothing is executed
-  unless `--execute` is passed. This is the **only** Agent-Ready command
-  that executes contract-declared content — see
-  [ADR-0014](docs/decisions/0014-verification-execution.md).
-- Record that evidence to a local JSON file
-  (`agent-ready verify --execute --record`), so a CI run or agent session
-  leaves durable proof of what it verified and what happened — see
-  [ADR-0015](docs/decisions/0015-verification-evidence-recording.md).
-- Run any of the above from another repository's CI via a reusable
-  GitHub composite action (`action.yml`), which builds Agent-Ready from
-  this repository's own source and requires no npm publish — see
-  [docs/specification/ci-integration.md](docs/specification/ci-integration.md)
-  and [ADR-0016](docs/decisions/0016-reusable-ci-action.md).
-- Test downstream renderer compatibility against a versioned, byte-exact,
-  offline corpus shipped with the package — see
-  [adapter output compatibility](docs/specification/adapter-output-compatibility.md)
-  and [ADR-0018](docs/decisions/0018-versioned-adapter-output-compatibility.md).
+<p align="center">
+  <img src="assets/diagrams/contract-flow.png" alt="Repository → agent-ready.yaml → Agent-Ready CLI → validation → generate adapters → enforce paths → execute verification → record evidence." width="100%">
+</p>
 
-**What it deliberately does _not_ do yet:**
+### A concrete example
 
-- It does **not** execute any repository command, **except**
-  `agent-ready verify --execute`, which runs exactly the commands declared
-  in `verification.required` and nothing else. Every other command
-  (`validate`, `inspect`, `generate`, `check`, `analyze`, `schema`,
-  `doctor`, `explain`, and `agent-ready verify`
-  without `--execute`) treats `commands`/`verification` as inert,
-  validated data and never invokes a shell. `agent-ready check` never
-  reads `commands` or `verification` at all; the only process it ever
-  spawns is `git`, with Agent-Ready-hardcoded arguments.
-- It does **not** include, require, or phone home to any hosted service.
-  Everything above runs locally, in your terminal or CI runner.
-- It is **pre-1.0** and follows the compatibility policy in
-  [ADR-0009](docs/decisions/0009-pre-1.0-stability-policy.md).
+```yaml
+version: 1
 
-## Why
+project:
+  name: my-project
+  description: A well-defined Agent-Ready repository.
 
-AI coding agents are only as dependable as the repository environment they
-operate in. Plain-language instruction files (`AGENTS.md`, `CLAUDE.md`,
-and similar) are valuable, but on their own they cannot prove that a
-command still exists, that a test actually passed, or that a protected
-path was respected. Agent-Ready's long-term goal is to turn that guidance
-into an executable, verifiable contract:
+environment:
+  runtimes:
+    node: ">=20 <23"
+  packageManager:
+    name: pnpm
+    version: "10"
 
-```text
-agent-ready.yaml
-        |
-        v
-validation and normalization
-        |
-        v
-AGENTS.md / CLAUDE.md / .cursorrules /
-.github/copilot-instructions.md / GEMINI.md generation
-        |
-        v
-protected-path enforcement against Git changes
-        |
-        v
-local verification execution
-        |
-        v
-local verification evidence recording
-        |
-        v
-reusable CI integration (GitHub action)
-        |
-        v
-local instruction-source link analysis
-        |
-        v
-richer evidence retention, other future phases
+commands:
+  lint:
+    run: pnpm lint
+  typecheck:
+    run: pnpm typecheck
+  test:
+    run: pnpm test
+  build:
+    run: pnpm build
+    description: Compiles the project into dist/.
+
+verification:
+  required:
+    - lint
+    - typecheck
+    - test
+    - build
+
+paths:
+  protected:
+    - ".env*"
+  generated:
+    - "dist/**"
+  ignored:
+    - "node_modules/**"
+
+instructions:
+  content: |
+    ## Conventions
+
+    - Use `const` over `let` wherever possible.
+    - Prefer explicit return types on exported functions.
+
+    ## Architecture
+
+    This project follows a modular structure. Each feature lives in
+    its own directory under `src/` with its own tests and types.
+
+  sources:
+    - README.md
+    - docs/architecture.md
+
+adapters:
+  agentsMd:
+    enabled: true
+  claude:
+    enabled: true
+  cursor:
+    enabled: true
+  copilot:
+    enabled: true
+  gemini:
+    enabled: true
 ```
 
-Agent-Ready does not compete with `AGENTS.md`, `CLAUDE.md`, Cursor rules,
-Copilot instructions, or Gemini instructions. The intent is for those to
-be **generated outputs** of one structured source of truth, not for
-Agent-Ready to replace them — all five are.
+<p align="center">
+  <img src="assets/cards/yaml-example-card.png" alt="Example agent-ready.yaml configuration." width="100%">
+</p>
 
-### Why a deterministic contract beats LLM-generated docs
+## Deterministic by Design
 
-LLM-based tools can produce useful explanations, but they can't enforce
-what your repository actually needs from agents. A deterministic contract
-(`agent-ready.yaml`) solves three problems auto-generated docs can't:
+Agent-Ready validation does not depend on an AI model. The CLI validates
+`agent-ready.yaml` locally against a strict JSON Schema. It never calls an
+LLM, never requires API keys, never sends code to a server, and never needs
+network access. The same contract produces the same result every time.
 
-- **It's verifiable.** Every `agent-ready validate` produces the same
-  result — byte-identical, diffable, CI-checkable. LLM output varies every
-  run and can't be machine-validated.
-- **It enforces, not just describes.** A contract declares protected paths
-  and actually checks them against Git changes. It declares verification
-  commands and actually runs them. Documentation tells agents what to do;
-  Agent-Ready proves they did it.
-- **It costs nothing to run.** Zero API keys. Zero network calls. Zero
-  per-run charges. Your contract is a YAML file, not an LLM subscription.
+<p align="center">
+  <img src="assets/cards/cli-validation-card.png" alt="Agent-Ready validate output showing schema valid and status ready." width="100%">
+</p>
+
+The CLI ships **ten real commands** — not documentation placeholders:
+
+| Command | What it does |
+|---|---|
+| `validate` | Discover, parse, and validate the contract |
+| `inspect` | Print the fully normalized contract |
+| `generate` | Generate AGENTS.md, CLAUDE.md, .cursorrules, Copilot, and Gemini instruction files |
+| `check` | Enforce protected paths against real Git changes |
+| `analyze` | Check instruction-source Markdown links for breakage |
+| `schema` | Print the bundled contract JSON Schema |
+| `doctor` | Inspect the host environment against contract requirements |
+| `explain` | Print extended plain-language explanations of diagnostic codes |
+| `init` | Scaffold a starter `agent-ready.yaml` from repository inspection |
+| `verify` | Execute the contract's verification pipeline and record evidence |
+
+Every command supports `--json` for CI and tooling. See the
+[CLI reference](docs/specification/cli-reference.md) for flags, exit codes,
+and output shapes.
+
+## What "Done" Should Mean
+
+Agent-Ready's verification pipeline runs the contract's declared commands in
+order and records pass/fail/timeout evidence for each. With `--record`, it
+writes a JSON evidence file to the repo root — durable proof of what was
+verified and what happened. No more vague "done."
+
+<p align="center">
+  <img src="assets/cards/completion-evidence-card.png" alt="Verification evidence: commands run, files changed, tests passed, assumptions listed, limitations documented." width="100%">
+</p>
+
+## Vendor-Neutral
+
+Agent-Ready belongs to the repository, not the agent vendor. It generates
+instruction files for all major coding agents from one contract:
+
+**AGENTS.md** · **CLAUDE.md** · **.cursorrules** · **Copilot instructions** · **Gemini instructions**
+
+One repository contract. Any agent. Write the instructions once.
+
+<p align="center">
+  <img src="assets/cards/vendor-neutral-strip.png" alt="One repository contract across AGENTS.md, CLAUDE.md, .cursorrules, Copilot, and Gemini." width="100%">
+</p>
 
 ## Installation
 
 ```bash
+git clone https://github.com/AdamEddahmouni/agent-ready-repo.git
+cd agent-ready-repo
 pnpm install
 pnpm build
 ```
 
-Node.js `>=20.0.0` and pnpm are required (see
-[ADR-0001](docs/decisions/0001-runtime-and-distribution.md)). Requires
-network access to install dependencies from the npm registry.
+Requires Node.js `>=20.0.0` and pnpm.
 
-## Usage
+## Quick start
 
 ```bash
-agent-ready validate                       # discover + validate the contract in the current repo
-agent-ready validate --json                # machine-readable diagnostics
-agent-ready validate --config path/to/agent-ready.yaml
+# Scaffold a starter contract from your repo
+agent-ready init
 
-agent-ready inspect                        # print the normalized contract
-agent-ready inspect --json
+# Review it, then write it
+agent-ready init --write
 
-agent-ready generate                       # dry run: show what would be generated
-agent-ready generate --write               # write the enabled adapters' output files
-agent-ready generate --write --force       # also overwrite hand-authored files
-agent-ready generate --check               # CI mode: exit non-zero if output is stale
-agent-ready generate --json
+# Validate the contract
+agent-ready validate
 
-agent-ready check                          # protected-path violations vs the working tree
-agent-ready check --staged                 # ...vs the Git index
-agent-ready check --against origin/main    # ...vs an explicit ref
-agent-ready check --json
+# Check your environment
+agent-ready doctor
 
-agent-ready analyze                        # check instruction-source Markdown links
-agent-ready analyze --json                 # structured findings and diagnostics
+# Generate agent instruction files
+agent-ready generate --write
 
-agent-ready schema                         # print the bundled contract JSON Schema metadata
-agent-ready schema --json                  # structured JSON envelope (no schema body)
-agent-ready schema --content               # human output with the schema body appended
-agent-ready schema --json --content        # structured JSON with the schema body as a `schema` field
-
-agent-ready doctor                         # inspect host environment fitness vs contract
-agent-ready doctor --json                  # machine-readable per-check envelope
-agent-ready doctor --config path/to/agent-ready.yaml
-
-agent-ready explain --code PROTECTED_PATH_MODIFIED  # print an extended explanation of a diagnostic code
-agent-ready explain --code PACKAGE_MANAGER_UNAVAILABLE --json
-agent-ready explain --code CONTRACT_VERSION_UNSUPPORTED --config path/to/agent-ready.yaml
-
-agent-ready init                         # scaffold a starter agent-ready.yaml from repo inspection
-agent-ready init --write                  # write it to disk (refuses to overwrite existing)
-agent-ready init --json                   # machine-readable detection summary and contract
-
-agent-ready verify                         # dry run: print the verification.required plan
-agent-ready verify --execute               # actually run those commands, in order
-agent-ready verify --execute --timeout 60  # override the per-command timeout (seconds)
-agent-ready verify --execute --record      # also write a JSON evidence file to the repo root
-agent-ready verify --json
-
-agent-ready --help
-agent-ready --version
+# Run verification
+agent-ready verify --execute
 ```
 
-None of the above writes to your repository — except `agent-ready
-generate --write`, which writes only the adapter-hardcoded files it plans
-to generate (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`,
-`.github/copilot-instructions.md`, `GEMINI.md`), and refuses to overwrite
-an existing file that doesn't carry its own managed-file marker unless
-`--force` is also passed; `agent-ready init --write`, which writes the
-starter contract (`agent-ready.yaml`) and refuses if it already exists;
-and `agent-ready verify --execute --record`,
-which writes a single JSON evidence file (`agent-ready-verify-result.json`)
-to the repository root, overwritten on every run (see
-[ADR-0015](docs/decisions/0015-verification-evidence-recording.md)). None
-of the above executes a command declared in the contract — except
-`agent-ready verify --execute`, which runs exactly the commands declared
-in `verification.required`, as real shell commands, and nothing else (see
-[ADR-0014](docs/decisions/0014-verification-execution.md)). `agent-ready
-check` is the one command that requires a Git working tree and the `git`
-executable on `PATH`; it only ever invokes `git` with Agent-Ready-hardcoded
-arguments, never anything contract-supplied.
+## Specification Goals
 
-## CI integration
+**Repository-Owned** — Agent instructions live in the repository, not in
+private chats, hidden prompts, or vendor-specific config files.
+
+**Vendor-Neutral** — The standard describes a repository contract without
+depending on a specific model, editor, agent, or provider.
+
+**Deterministic** — Validation is repeatable and never requires LLM calls,
+API keys, network access, or paid services.
+
+**Human-Reviewable** — Rules are readable by maintainers, contributors,
+and reviewers.
+
+**Agent-Usable** — Instructions are structured enough for coding agents
+to consume reliably.
+
+**Verification-First** — Agents should not claim completion without
+reporting what they ran, what passed, and what changed.
+
+## Project Status
+
+Agent-Ready is **pre-1.0** (v0.3.0). The core contract schema and CLI are
+stable enough for daily use. Path A (the adoption funnel: `schema` →
+`doctor` → `explain` → `init`) is complete. All ten commands ship and
+run today.
+
+493 tests pass across 36 test files on every CI run, exercising the full
+pipeline across Ubuntu, Windows, and macOS.
+
+<p align="center">
+  <img src="assets/diagrams/spec-lifecycle.png" alt="Specification lifecycle: Draft → Experimental → Stable → Versioned." width="100%">
+</p>
+
+## CI Integration
 
 Adopt the same commands in another repository's CI via the reusable
-GitHub composite action this repository publishes at `action.yml`,
-instead of hand-copying CLI invocations:
+GitHub composite action:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: agent-ready/agent-ready-repo@v0.2.0 # or pin the full release commit SHA
+- uses: AdamEddahmouni/agent-ready-repo@v0.3.0
   with:
     command: verify
     execute: "true"
 ```
 
 See [docs/specification/ci-integration.md](docs/specification/ci-integration.md)
-for the full input reference and [ADR-0016](docs/decisions/0016-reusable-ci-action.md)
-for the design rationale.
-
-## A minimal contract
-
-```yaml
-version: 1
-
-project:
-  name: example-project
-  description: Example application
-
-commands:
-  lint:
-    run: pnpm lint
-  test:
-    run: pnpm test
-
-verification:
-  required:
-    - lint
-    - test
-```
-
-See [docs/specification/contract-reference.md](docs/specification/contract-reference.md)
-for every supported field, and [examples/](examples/) for complete, valid,
-and intentionally invalid contracts.
+for the full reference.
 
 ## Documentation
 
 - [Specification overview](docs/specification/overview.md)
-- [Minimal contract reference](docs/specification/contract-reference.md)
+- [Contract reference](docs/specification/contract-reference.md)
 - [CLI reference](docs/specification/cli-reference.md)
-- [Diagnostic and error-code reference](docs/specification/diagnostics.md)
-- [Repository and contract discovery](docs/specification/discovery.md)
-- [CI integration (GitHub composite action)](docs/specification/ci-integration.md)
-- [Adapter output compatibility](docs/specification/adapter-output-compatibility.md)
+- [Diagnostic codes](docs/specification/diagnostics.md)
+- [CI integration](docs/specification/ci-integration.md)
 - [Path and glob semantics](docs/specification/paths-and-globs.md)
-- [Schema versioning policy](docs/specification/schema-versioning.md)
-- [Public API stability](docs/specification/api-stability.md)
 - [Architecture overview](docs/architecture/overview.md)
-- [Threat model](docs/security/threat-model.md)
 - [Architecture Decision Records](docs/decisions/README.md)
+- [Project standing](docs/project-standing.md)
 - [Roadmap](ROADMAP.md)
-- [Governance](GOVERNANCE.md)
-- [Changelog](CHANGELOG.md)
-- [Release process](docs/releasing.md)
-- [Project standing (current vs. planned)](docs/project-standing.md)
-- [CLI/package implementation scope (proposed)](docs/implementation-scope-cli-package.md)
 - [Adoption guide](docs/adoption-guide.md)
-- [Evidence and verification model](docs/specification/evidence.md)
-
-## Project status and roadmap
-
-Agent-Ready follows an open-core strategy: the specification, JSON
-Schema, CLI, validation, normalization, local inspection, and local
-verification are and will remain part of this open-source project. A
-future _optional_ commercial product may add organization-wide
-coordination (dashboards, cross-repository policy, hosted scheduled
-checks, and similar) without ever making the local contract or CLI
-dependent on it — see [ROADMAP.md](ROADMAP.md) for details and explicit
-non-goals for this phase.
-
-## Path A command status (complete)
-
-All ten commands documented above exist today. Path A is complete:
-
-```bash
-agent-ready schema    # SHIPPED — see ADR-0022
-agent-ready doctor    # SHIPPED — see ADR-0023
-agent-ready explain   # SHIPPED — see ADR-0024
-agent-ready init      # SHIPPED — see ADR-0025
-```
+- [Threat model](docs/security/threat-model.md)
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Security issues should be
-reported per [SECURITY.md](SECURITY.md), not as public GitHub issues.
+reported per [SECURITY.md](SECURITY.md).
 
 ## License
 
