@@ -139,6 +139,12 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "content": {
+          "description": "Hand-authored Markdown content rendered inline in every generated agent instruction file. Use for architecture overviews, coding conventions, design rationale, or any guidance that should always ship with the repository.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000
         }
       }
     },

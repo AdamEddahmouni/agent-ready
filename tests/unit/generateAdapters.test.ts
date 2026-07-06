@@ -81,6 +81,25 @@ const envRaw: RawContract = {
   adapters: { agentsMd: { enabled: true } },
 };
 
+const contentOnlyRaw: RawContract = {
+  version: 1,
+  project: { name: "content-example" },
+  instructions: {
+    content: "This project follows **modular architecture**.\n\nAll new features must include:\n- Unit tests\n- Type annotations\n- A CHANGELOG entry",
+  },
+  adapters: { agentsMd: { enabled: true } },
+};
+
+const contentAndSourcesRaw: RawContract = {
+  version: 1,
+  project: { name: "content-and-sources" },
+  instructions: {
+    content: "## Conventions\n\n- Use tabs for indentation\n- Prefer `const` over `let`",
+    sources: ["README.md", "CONTRIBUTING.md"],
+  },
+  adapters: { agentsMd: { enabled: true } },
+};
+
 describe.each([
   { name: "agentsMd", render: renderAgentsMd, relativePath: "AGENTS.md" },
   { name: "claude", render: renderClaude, relativePath: "CLAUDE.md" },
@@ -193,5 +212,32 @@ describe.each([
     const file = render(contract);
     expect(file.content).toContain("## Further Context");
     expect(file.content).not.toContain("## Further instructions");
+  });
+
+  it("renders instructions.content inline in Further Context", () => {
+    const contract = normalizeContract(contentOnlyRaw);
+    const file = render(contract);
+    expect(file.content).toContain("## Further Context");
+    expect(file.content).toContain("This project follows **modular architecture**.");
+    expect(file.content).toContain("- Unit tests");
+    // Content is rendered inline; sources list is absent since none declared.
+    expect(file.content).not.toContain("See these files for detailed project documentation");
+  });
+
+  it("renders both content and sources in Further Context", () => {
+    const contract = normalizeContract(contentAndSourcesRaw);
+    const file = render(contract);
+    expect(file.content).toContain("## Further Context");
+    expect(file.content).toContain("## Conventions");
+    expect(file.content).toContain("Prefer `const` over `let`");
+    expect(file.content).toContain("[README.md](README.md)");
+    expect(file.content).toContain("[CONTRIBUTING.md](CONTRIBUTING.md)");
+  });
+
+  it("renders sources without content exactly as before", () => {
+    const contract = normalizeContract(fullRaw);
+    const file = render(contract);
+    expect(file.content).toContain("## Further Context");
+    expect(file.content).toContain("(none declared)");
   });
 });

@@ -58,6 +58,7 @@ export function normalizeContract(raw: RawContract): NormalizedContract {
     },
     instructions: {
       sources: normalizePatternList(raw.instructions?.sources, { allowGlob: false, sort: false }),
+      ...(raw.instructions?.content !== undefined && { content: raw.instructions.content }),
     },
     adapters: ADAPTER_NAMES.filter((name) => raw.adapters?.[name] !== undefined)
       .map((name) => ({ name, enabled: raw.adapters?.[name]?.enabled ?? false }))

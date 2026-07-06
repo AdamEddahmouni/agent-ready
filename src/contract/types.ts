@@ -43,6 +43,7 @@ export interface RawPaths {
 
 export interface RawInstructions {
   readonly sources?: readonly string[];
+  readonly content?: string;
 }
 
 export interface RawAdapterDeclaration {
@@ -118,6 +119,7 @@ export interface NormalizedContract {
   readonly paths: NormalizedPaths;
   readonly instructions: {
     readonly sources: readonly string[];
+    readonly content?: string;
   };
   readonly adapters: readonly NormalizedAdapter[];
 }

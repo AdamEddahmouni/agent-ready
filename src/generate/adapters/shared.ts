@@ -139,10 +139,14 @@ export function renderContractSections(contract: NormalizedContract): string {
   }
 
   // ── Further context ────────────────────────────────────────────────
+  const hasContent = contract.instructions.content !== undefined;
+  const hasSources = contract.instructions.sources.length > 0;
+
   lines.push("", "## Further Context");
-  if (contract.instructions.sources.length === 0) {
-    lines.push("", "(none declared)");
-  } else {
+  if (hasContent) {
+    lines.push("", contract.instructions.content);
+  }
+  if (hasSources) {
     lines.push(
       "",
       "See these files for detailed project documentation. If you need deeper",
@@ -151,6 +155,9 @@ export function renderContractSections(contract: NormalizedContract): string {
     for (const source of contract.instructions.sources) {
       lines.push(`- ${renderMarkdownLink(source)}`);
     }
+  }
+  if (!hasContent && !hasSources) {
+    lines.push("", "(none declared)");
   }
 
   // ── Before committing checklist ────────────────────────────────────
