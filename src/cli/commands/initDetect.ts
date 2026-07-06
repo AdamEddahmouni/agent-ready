@@ -19,7 +19,8 @@ export interface InitDetection {
   /** Detected package manager (from package.json packageManager or lock files). */
   readonly packageManager?: { readonly name: "npm" | "pnpm" | "yarn"; readonly version: string };
   /** Source of the package manager detection. */
-  readonly packageManagerSource?: "package.json" | "pnpm-lock.yaml" | "yarn.lock" | "package-lock.json";
+  readonly packageManagerSource?:
+    "package.json" | "pnpm-lock.yaml" | "yarn.lock" | "package-lock.json";
   /** Well-known scripts detected in package.json, ready for commands block. */
   readonly detectedScripts: Readonly<Record<string, string>>;
   /** Script keys from package.json that were skipped (not in the well-known set). */
@@ -73,8 +74,8 @@ export async function detectAll(fs: FileSystem, repoRoot: string): Promise<InitD
     ...projectName,
     ...(pkg?.["description"] !== undefined &&
       typeof pkg["description"] === "string" &&
-      (pkg["description"]).length >= 1 &&
-      (pkg["description"]).length <= 500 && { projectDescription: pkg["description"] }),
+      pkg["description"].length >= 1 &&
+      pkg["description"].length <= 500 && { projectDescription: pkg["description"] }),
     ...(nodeRange.range !== undefined && {
       nodeRange: nodeRange.range,
       nodeRangeSource: nodeRange.source,
@@ -120,7 +121,11 @@ const PROJECT_NAME_PATTERN = /^\S(?:.*\S)?$/;
 function detectProjectName(
   pkg: PackageJson | undefined,
   repoRoot: string,
-): { projectName: string; projectNameSource: "package.json" | "directory"; projectNameSanitized: boolean } {
+): {
+  projectName: string;
+  projectNameSource: "package.json" | "directory";
+  projectNameSanitized: boolean;
+} {
   // Try package.json "name" first.
   if (pkg !== undefined && typeof pkg["name"] === "string" && pkg["name"].length > 0) {
     let name: string = pkg["name"];
@@ -133,7 +138,11 @@ function detectProjectName(
       return { projectName: name, projectNameSource: "package.json", projectNameSanitized: false };
     }
     const sanitized = sanitizeProjectName(name);
-    return { projectName: sanitized, projectNameSource: "package.json", projectNameSanitized: true };
+    return {
+      projectName: sanitized,
+      projectNameSource: "package.json",
+      projectNameSanitized: true,
+    };
   }
 
   // Fall back to directory name.
@@ -150,12 +159,10 @@ function isValidProjectName(name: string): boolean {
 }
 
 function sanitizeProjectName(name: string): string {
-  return name
-    .replace(/\s+/g, "-")
-    .slice(0, 100)
-    .replace(/^[-]+/, "")
-    .replace(/[-]+$/, "")
-    || "my-project";
+  return (
+    name.replace(/\s+/g, "-").slice(0, 100).replace(/^[-]+/, "").replace(/[-]+$/, "") ||
+    "my-project"
+  );
 }
 
 // ── Node runtime ───────────────────────────────────────────────────────────
@@ -264,7 +271,9 @@ function detectPackageManager(
   return undefined;
 }
 
-function parsePackageManagerField(raw: string): { name: "npm" | "pnpm" | "yarn"; version: string } | undefined {
+function parsePackageManagerField(
+  raw: string,
+): { name: "npm" | "pnpm" | "yarn"; version: string } | undefined {
   const match = /^(npm|pnpm|yarn)@(.+)$/.exec(raw);
   if (match === null) return undefined;
   const name = match[1] as "npm" | "pnpm" | "yarn";
@@ -281,7 +290,12 @@ async function detectPackageManagerFromLockFiles(
   fs: FileSystem,
   repoRoot: string,
 ): Promise<PackageManagerResult | undefined> {
-  const checks: { file: string; name: "npm" | "pnpm" | "yarn"; version: string; source: PackageManagerResult["source"] }[] = [
+  const checks: {
+    file: string;
+    name: "npm" | "pnpm" | "yarn";
+    version: string;
+    source: PackageManagerResult["source"];
+  }[] = [
     { file: "pnpm-lock.yaml", name: "pnpm", version: "10", source: "pnpm-lock.yaml" },
     { file: "yarn.lock", name: "yarn", version: "1", source: "yarn.lock" },
     { file: "package-lock.json", name: "npm", version: "10", source: "package-lock.json" },
@@ -452,7 +466,10 @@ function hasUnsupportedGlobSyntax(pattern: string): boolean {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-async function readSingleLineFile(fs: FileSystem, absolutePath: string): Promise<string | undefined> {
+async function readSingleLineFile(
+  fs: FileSystem,
+  absolutePath: string,
+): Promise<string | undefined> {
   try {
     const stat = await fs.stat(absolutePath);
     if (!stat?.isFile) return undefined;

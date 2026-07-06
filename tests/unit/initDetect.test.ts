@@ -103,10 +103,7 @@ describe("detectAll — project description", () => {
 describe("detectAll — node range", () => {
   it("detects from package.json engines.node", async () => {
     const fsys = fs();
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "test", engines: { node: ">=20" } }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "test", engines: { node: ">=20" } }));
     const result = await detectAll(fsys, "/repo");
     expect(result.nodeRange).toBe(">=20");
     expect(result.nodeRangeSource).toBe("engines.node");
@@ -114,10 +111,7 @@ describe("detectAll — node range", () => {
 
   it("ignores engines.node when value is '*' (wildcard)", async () => {
     const fsys = fs();
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "test", engines: { node: "*" } }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "test", engines: { node: "*" } }));
     const result = await detectAll(fsys, "/repo");
     expect(result.nodeRange).toBeUndefined();
     expect(result.nodeRangeSource).toBeUndefined();
@@ -350,10 +344,7 @@ describe("detectAll — scripts", () => {
 
   it("skips script keys with empty string values", async () => {
     const fsys = fs();
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "test", scripts: { lint: "" } }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "test", scripts: { lint: "" } }));
     const result = await detectAll(fsys, "/repo");
     expect(result.detectedScripts).toEqual({});
     expect(result.skippedScripts).toEqual([]);
@@ -389,10 +380,7 @@ describe("detectAll — verification scripts", () => {
 
   it("returns empty when scripts field is not an object", async () => {
     const fsys = fs();
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "test", scripts: "not-an-object" }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "test", scripts: "not-an-object" }));
     const result = await detectAll(fsys, "/repo");
     expect(result.verificationScripts).toEqual([]);
   });

@@ -46,13 +46,11 @@ install && pnpm build` and every command above is real.
 
 ## What does not exist yet
 
-- **`agent-ready init` now exists** as the fourth and final Path A command,
-  so adoption no longer requires hand-authoring a first `agent-ready.yaml`
-  from scratch — see [ADR-0025](decisions/0025-agent-ready-init-command.md).
 - **`agent-ready init` is shipped** as the fourth and final Path A command per
   [ADR-0025](decisions/0025-agent-ready-init-command.md). Path A is now complete:
   `schema` → `doctor` → `explain` → `init`, all four shipped behind their
-own ADRs. See
+  own ADRs. Adoption no longer requires hand-authoring a first
+  `agent-ready.yaml` from scratch. See
   [docs/implementation-scope-cli-package.md](implementation-scope-cli-package.md)
   for the final status.
 - **No richer, structured "handoff evidence"** (summary, assumptions,

@@ -21,6 +21,7 @@ scope right now.
 ## Development setup
 
 ```bash
+corepack enable   # enables pnpm
 pnpm install --frozen-lockfile
 pnpm build
 pnpm test
@@ -73,8 +74,7 @@ Guidelines:
   one.
 - Describe _why_ in the PR description, not just _what_ — link the issue
   it addresses.
-- Update `CHANGELOG.md` (once the project has one — see `ROADMAP.md`) for
-  any user-visible change.
+- Update `CHANGELOG.md` for any user-visible change.
 
 ## Reporting bugs
 

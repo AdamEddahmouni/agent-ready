@@ -3,11 +3,11 @@
 </p>
 
 <p align="center">
-  <a href="#"><img alt="Agent Ready" src="https://img.shields.io/badge/agent--ready-standard-12BFF3"></a>
-  <a href="#"><img alt="Vendor Neutral" src="https://img.shields.io/badge/vendor--neutral-yes-35D4FF"></a>
-  <a href="#"><img alt="LLM Calls" src="https://img.shields.io/badge/LLM%20calls-0-28D67D"></a>
-  <a href="#"><img alt="Network" src="https://img.shields.io/badge/network-not%20required-7D8D98"></a>
-  <a href="#"><img alt="CLI" src="https://img.shields.io/badge/CLI-deterministic-12BFF3"></a>
+  <img alt="Agent Ready" src="https://img.shields.io/badge/agent--ready-standard-12BFF3">
+  <img alt="Vendor Neutral" src="https://img.shields.io/badge/vendor--neutral-yes-35D4FF">
+  <img alt="LLM Calls" src="https://img.shields.io/badge/LLM%20calls-0-28D67D">
+  <img alt="Network" src="https://img.shields.io/badge/network-not%20required-7D8D98">
+  <img alt="CLI" src="https://img.shields.io/badge/CLI-deterministic-12BFF3">
 </p>
 
 <p align="center">
@@ -158,18 +158,18 @@ network access. The same contract produces the same result every time.
 
 The CLI ships **ten real commands** — not documentation placeholders:
 
-| Command | What it does |
-|---|---|
-| `validate` | Discover, parse, and validate the contract |
-| `inspect` | Print the fully normalized contract |
+| Command    | What it does                                                                       |
+| ---------- | ---------------------------------------------------------------------------------- |
+| `validate` | Discover, parse, and validate the contract                                         |
+| `inspect`  | Print the fully normalized contract                                                |
 | `generate` | Generate AGENTS.md, CLAUDE.md, .cursorrules, Copilot, and Gemini instruction files |
-| `check` | Enforce protected paths against real Git changes |
-| `analyze` | Check instruction-source Markdown links for breakage |
-| `schema` | Print the bundled contract JSON Schema |
-| `doctor` | Inspect the host environment against contract requirements |
-| `explain` | Print extended plain-language explanations of diagnostic codes |
-| `init` | Scaffold a starter `agent-ready.yaml` from repository inspection |
-| `verify` | Execute the contract's verification pipeline and record evidence |
+| `check`    | Enforce protected paths against real Git changes                                   |
+| `analyze`  | Check instruction-source Markdown links for breakage                               |
+| `schema`   | Print the bundled contract JSON Schema                                             |
+| `doctor`   | Inspect the host environment against contract requirements                         |
+| `explain`  | Print extended plain-language explanations of diagnostic codes                     |
+| `init`     | Scaffold a starter `agent-ready.yaml` from repository inspection                   |
+| `verify`   | Execute the contract's verification pipeline and record evidence                   |
 
 Every command supports `--json` for CI and tooling. See the
 [CLI reference](docs/specification/cli-reference.md) for flags, exit codes,
@@ -202,13 +202,24 @@ One repository contract. Any agent. Write the instructions once.
 ## Installation
 
 ```bash
+npm install agent-ready
+# or
+pnpm add agent-ready
+```
+
+Requires Node.js `>=20.0.0`.
+
+### Development Setup
+
+To work on Agent-Ready itself:
+
+```bash
 git clone https://github.com/AdamEddahmouni/agent-ready.git
 cd agent-ready
+corepack enable   # enables pnpm
 pnpm install
 pnpm build
 ```
-
-Requires Node.js `>=20.0.0` and pnpm.
 
 ## Quick start
 
@@ -301,6 +312,15 @@ for the full reference.
 - [Roadmap to 1.0](ROADMAP-TO-1.0.md) — forward release plan from v0.4.0 to v1.0.0
 - [Adoption guide](docs/adoption-guide.md)
 - [Threat model](docs/security/threat-model.md)
+
+## Dogfooding
+
+Agent-Ready validates itself. This repository's own
+[`agent-ready.yaml`](agent-ready.yaml) passes `agent-ready validate`,
+and the same CLI commands described above run in CI against this
+repository's own contract on every push and pull request. If you want to
+see what a fully configured Agent-Ready repository looks like, you're
+looking at one.
 
 ## Contributing
 

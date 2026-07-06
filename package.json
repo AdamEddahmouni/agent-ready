@@ -33,7 +33,7 @@
   },
   "packageManager": "pnpm@10.0.0",
   "bin": {
-    "agent-ready": "./dist/cli/index.js"
+    "agent-ready": "dist/cli/index.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

@@ -199,9 +199,7 @@ function generateYaml(detection: InitDetection): string {
     lines.push(`#   - Skipped scripts: ${detection.skippedScripts.join(", ")}`);
   }
   if (detection.verificationScripts.length > 0) {
-    lines.push(
-      `#   - verification.required: ${detection.verificationScripts.join(" → ")}`,
-    );
+    lines.push(`#   - verification.required: ${detection.verificationScripts.join(" → ")}`);
   }
   if (detection.docSources.length > 0) {
     lines.push(`#   - instructions.sources: existing ${detection.docSources.join(", ")}`);

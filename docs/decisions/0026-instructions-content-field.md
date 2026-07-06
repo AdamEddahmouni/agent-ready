@@ -28,7 +28,7 @@ open additional files to absorb the guidance.
 
 Auto-documentation tools (LLM-based, probabilistic, per-run cost)
 fill this gap by scanning the repository and generating narrative
-documentation. But they cannot produce the *exact, maintainer-authored*
+documentation. But they cannot produce the _exact, maintainer-authored_
 guidance that the maintainer wants to assert as the single source of
 truth. A deterministic, zero-cost path from the contract to the
 instruction files was missing.
@@ -74,7 +74,7 @@ instruction files was missing.
   - _10,000_: generous without being unbounded; covers the vast
     majority of hand-authored narrative sections. If a project needs
     more, the content should live in a separate file referenced by
-    `instructions.sources` — the contract is for *essential* guidance,
+    `instructions.sources` — the contract is for _essential_ guidance,
     not an encyclopedia.
   - **Selected: 10,000 characters**, enforced by JSON Schema
     `maxLength`.
@@ -96,7 +96,7 @@ instruction files was missing.
 - **Should `escapeMarkdownText` be applied to content?**
   - _Yes_: protects against Markdown-significant characters in the
     user's input.
-  - _No_: the content is *authored* as Markdown — applying escaping
+  - _No_: the content is _authored_ as Markdown — applying escaping
     would corrupt intentional formatting (headings, bold, code spans).
   - **Selected: no escaping.** The content is treated as raw Markdown
     and rendered as-is. The maintainer is responsible for well-formed

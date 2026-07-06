@@ -362,10 +362,10 @@ agent-ready init --json       # machine-readable detection summary
 agent-ready init --json --write   # structured output for write mode
 ```
 
-| Option      | Description                                                                                                  |
-| ----------- | ------------------------------------------------------------------------------------------------------------ |
-| `--write`   | Write `agent-ready.yaml` to the detected repo root. Refuses if the file already exists, unconditionally.     |
-| `--json`    | Print results as machine-readable JSON instead of human-readable text.                                       |
+| Option    | Description                                                                                              |
+| --------- | -------------------------------------------------------------------------------------------------------- |
+| `--write` | Write `agent-ready.yaml` to the detected repo root. Refuses if the file already exists, unconditionally. |
+| `--json`  | Print results as machine-readable JSON instead of human-readable text.                                   |
 
 This command has no `--config` flag — it always writes to the canonical
 `agent-ready.yaml` at the detected repo root. The dry-run path lets you
@@ -595,10 +595,10 @@ agent-ready explain --code PROTECTED_PATH_MODIFIED --json
 agent-ready explain --code CONTRACT_VERSION_UNSUPPORTED --config path/to/agent-ready.yaml
 ```
 
-| Option            | Description                                                                                                          |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `--code <CODE>`   | (required) The diagnostic code to explain (e.g. `PACKAGE_MANAGER_UNAVAILABLE`).                                      |
-| `--json`          | Print results as machine-readable JSON.                                                                              |
+| Option            | Description                                                                                                           |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `--code <CODE>`   | (required) The diagnostic code to explain (e.g. `PACKAGE_MANAGER_UNAVAILABLE`).                                       |
+| `--json`          | Print results as machine-readable JSON.                                                                               |
 | `--config <path>` | Load this contract for field-specific "Your contract" context. If omitted, prints a generic explanation for the code. |
 
 **Human output** (no `--config`):

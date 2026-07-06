@@ -23,8 +23,7 @@ export function renderContractSections(contract: NormalizedContract): string {
 
   // ── Environment ────────────────────────────────────────────────────
   const hasEnv =
-    contract.environment.runtimes.length > 0 ||
-    contract.environment.packageManager !== undefined;
+    contract.environment.runtimes.length > 0 || contract.environment.packageManager !== undefined;
 
   if (hasEnv) {
     lines.push("", "## Environment");
@@ -63,10 +62,11 @@ export function renderContractSections(contract: NormalizedContract): string {
       lines.push("", `### ${label}`);
       for (const cmd of cmds) {
         const description =
-          cmd.description !== undefined
-            ? ` — ${escapeMarkdownText(cmd.description)}`
-            : "";
-        lines.push("", `- **\`${escapeMarkdownText(cmd.name)}\`**: ${wrapCodeSpan(cmd.run)}${description}`);
+          cmd.description !== undefined ? ` — ${escapeMarkdownText(cmd.description)}` : "";
+        lines.push(
+          "",
+          `- **\`${escapeMarkdownText(cmd.name)}\`**: ${wrapCodeSpan(cmd.run)}${description}`,
+        );
       }
     }
   } else {
@@ -87,9 +87,7 @@ export function renderContractSections(contract: NormalizedContract): string {
       const name = contract.verification.required[i] ?? "";
       const cmd = contract.commands.find((c) => c.name === name);
       const desc =
-        cmd?.description !== undefined
-          ? ` — ${escapeMarkdownText(cmd.description)}`
-          : "";
+        cmd?.description !== undefined ? ` — ${escapeMarkdownText(cmd.description)}` : "";
       lines.push("", `${String(i + 1)}. **\`${escapeMarkdownText(name)}\`**${desc}`);
     }
 
@@ -163,10 +161,7 @@ export function renderContractSections(contract: NormalizedContract): string {
   // ── Before committing checklist ────────────────────────────────────
   if (contract.verification.required.length > 0) {
     lines.push("", "## Before Submitting Work");
-    lines.push(
-      "",
-      "After making changes, confirm everything still passes:",
-    );
+    lines.push("", "After making changes, confirm everything still passes:");
     for (const name of contract.verification.required) {
       const cmd = contract.commands.find((c) => c.name === name);
       lines.push(`- Run ${wrapCodeSpan(cmd?.run ?? name)}`);
@@ -198,7 +193,13 @@ const COMMAND_CATEGORIES: Readonly<Record<string, string>> = {
 function groupCommands(
   commands: readonly NormalizedCommand[],
 ): readonly [string, readonly NormalizedCommand[]][] {
-  const categoryOrder = ["Build & Typecheck", "Code Quality", "Testing", "CI / Automation", "Other Commands"];
+  const categoryOrder = [
+    "Build & Typecheck",
+    "Code Quality",
+    "Testing",
+    "CI / Automation",
+    "Other Commands",
+  ];
   const map = new Map<string, NormalizedCommand[]>();
 
   for (const cmd of commands) {

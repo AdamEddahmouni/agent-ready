@@ -12,10 +12,7 @@ function fs(): InMemoryFileSystem {
 describe("init — adversarial: pathological package.json", () => {
   it("handles package.json with a project name containing YAML-significant characters", async () => {
     const fsys = fs();
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "has:colon" }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "has:colon" }));
     const outcome = await runInit(fsys, { json: false, write: false });
     // The generated YAML should quote the name to avoid ambiguous YAML.
     expect(outcome.stdout).toContain('name: "has:colon"');
@@ -24,20 +21,14 @@ describe("init — adversarial: pathological package.json", () => {
 
   it("handles a project name that is a YAML boolean literal", async () => {
     const fsys = fs();
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "true" }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "true" }));
     const outcome = await runInit(fsys, { json: false, write: false });
     expect(outcome.stdout).toContain('name: "true"');
   });
 
   it("handles a project name starting with a digit", async () => {
     const fsys = fs();
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "123-project" }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "123-project" }));
     const outcome = await runInit(fsys, { json: false, write: false });
     expect(outcome.stdout).toContain('name: "123-project"');
   });
@@ -58,10 +49,7 @@ describe("init — adversarial: pathological package.json", () => {
 
   it("handles package.json with null scripts field", async () => {
     const fsys = fs();
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "test", scripts: null }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "test", scripts: null }));
     const outcome = await runInit(fsys, { json: false, write: false });
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
     expect(outcome.stdout).not.toContain("commands:");
@@ -69,10 +57,7 @@ describe("init — adversarial: pathological package.json", () => {
 
   it("handles package.json with scripts as an array (not object)", async () => {
     const fsys = fs();
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "test", scripts: ["lint", "test"] }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "test", scripts: ["lint", "test"] }));
     // Should not crash — scripts detection gracefully handles non-object.
     const outcome = await runInit(fsys, { json: false, write: false });
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
@@ -80,10 +65,7 @@ describe("init — adversarial: pathological package.json", () => {
 
   it("handles package.json with engines as a string instead of object", async () => {
     const fsys = fs();
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "test", engines: ">=20" }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "test", engines: ">=20" }));
     const outcome = await runInit(fsys, { json: false, write: false });
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
     expect(outcome.stdout).not.toContain("environment:");
@@ -92,10 +74,7 @@ describe("init — adversarial: pathological package.json", () => {
   it("handles a very long project description near 500 chars", async () => {
     const fsys = fs();
     const longDesc = "A".repeat(500);
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "test", description: longDesc }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "test", description: longDesc }));
     const outcome = await runInit(fsys, { json: false, write: false });
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
     // The long description should appear (possibly quoted).
@@ -210,10 +189,7 @@ describe("init — adversarial: broken/missing inputs", () => {
   it("handles .gitignore with only comments and blank lines", async () => {
     const fsys = fs();
     fsys.addFile("/repo/package.json", JSON.stringify({ name: "test" }));
-    fsys.addFile(
-      "/repo/.gitignore",
-      "# All commented\n# Nothing useful\n\n",
-    );
+    fsys.addFile("/repo/.gitignore", "# All commented\n# Nothing useful\n\n");
     const outcome = await runInit(fsys, { json: false, write: false });
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
     expect(outcome.stdout).not.toContain("paths:");
@@ -262,10 +238,7 @@ describe("init — adversarial: .gitignore edge cases", () => {
   it("handles .gitignore with brace expansion patterns", async () => {
     const fsys = fs();
     fsys.addFile("/repo/package.json", JSON.stringify({ name: "test" }));
-    fsys.addFile(
-      "/repo/.gitignore",
-      "node_modules/\n*.{js,ts}\n",
-    );
+    fsys.addFile("/repo/.gitignore", "node_modules/\n*.{js,ts}\n");
     const outcome = await runInit(fsys, { json: false, write: false });
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
     // Brace patterns should be included since braces are balanced.
@@ -275,10 +248,7 @@ describe("init — adversarial: .gitignore edge cases", () => {
   it("handles .gitignore with extglob patterns", async () => {
     const fsys = fs();
     fsys.addFile("/repo/package.json", JSON.stringify({ name: "test" }));
-    fsys.addFile(
-      "/repo/.gitignore",
-      "node_modules/\n@(dist|build)\n+(cache)\n",
-    );
+    fsys.addFile("/repo/.gitignore", "node_modules/\n@(dist|build)\n+(cache)\n");
     const outcome = await runInit(fsys, { json: false, write: false });
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
     // Extglob patterns should be skipped.
@@ -300,20 +270,14 @@ describe("init — adversarial: .gitignore edge cases", () => {
 describe("init — adversarial: YAML generation safety", () => {
   it("quotes a project name containing a hash", async () => {
     const fsys = fs();
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "c#project" }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "c#project" }));
     const outcome = await runInit(fsys, { json: false, write: false });
     expect(outcome.stdout).toContain('name: "c#project"');
   });
 
   it("quotes a project name containing ampersand", async () => {
     const fsys = fs();
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "build&test" }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "build&test" }));
     const outcome = await runInit(fsys, { json: false, write: false });
     expect(outcome.stdout).toContain('name: "build&test"');
   });

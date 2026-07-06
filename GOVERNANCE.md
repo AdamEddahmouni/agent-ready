@@ -67,8 +67,8 @@ that the process is expected to formalize further, and roughly when.
 
 New maintainers may be added by existing maintainer consensus, based on
 sustained, high-quality contribution and demonstrated judgment consistent
-with this document and the project's core principles (see the top-level
-project brief referenced in `ROADMAP.md`). There is no fixed contribution
+with this document and the project's
+[Specification Goals](README.md#specification-goals). There is no fixed contribution
 count or tenure requirement at this stage; this will be formalized as the
 contributor base grows.
 
@@ -89,8 +89,7 @@ requires a corresponding reference-implementation change (schema,
 validation logic, tests, and documentation) in the same pull request —
 Agent-Ready does not accept "spec-only" changes that leave the reference
 implementation out of sync, since the reference implementation is what
-keeps the specification honest (see the "evidence over claims" principle
-referenced in `ROADMAP.md`).
+keeps the specification honest.
 
 ## Security governance
 

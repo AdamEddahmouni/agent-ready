@@ -106,7 +106,7 @@ probes, and no new abstraction boundary.
 - **New diagnostic codes?** No. `explain` is read-only documentation
   rendering. It produces no diagnostics of its own — only user-facing
   explanation text. The only failure mode is an unknown code (`--code
-  bogus`), which is a usage error (exit 1), not an internal invariant.
+bogus`), which is a usage error (exit 1), not an internal invariant.
 
 - **Should `explain` update `action.yml`?** No, following the
   `schema`/`doctor` precedent: the composite-action extension is a
@@ -301,7 +301,7 @@ probes, and no new abstraction boundary.
 - **Tests**:
   - **Unit** — `tests/unit/explain.test.ts`. Exercises:
     - every flag combination (`--code`/`--code --json`/`--code
-      --config`/`--code --json --config`).
+--config`/`--code --json --config`).
     - every diagnostic code has a registry entry (structural invariant
       test).
     - unrecognized `--code` → exit 1, human error message.
@@ -345,7 +345,7 @@ probes, and no new abstraction boundary.
 
 - If a `--pipe` or `--from-json <path>` input mode becomes warranted
   by usage evidence (e.g. users want `agent-ready validate --json |
-  agent-ready explain` without retyping a diagnostic code), add it
+agent-ready explain` without retyping a diagnostic code), add it
   behind a separate flag — the `--code` default stays unchanged.
 - If the `ExplanationRegistry` grows large enough that an inline
   TypeScript map is unwieldy (200+ entries), consider extracting it to

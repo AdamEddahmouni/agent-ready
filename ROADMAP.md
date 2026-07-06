@@ -210,8 +210,10 @@ why.
   diagnostics and non-zero exit status; JSON output includes per-source counts
   and ordered findings.
 - No schema change, Git invocation, command execution, network access, LLM call,
-  or automatic documentation rewrite. See
-  [ADR-0020](docs/decisions/0020-instruction-source-link-analysis.md).## Long-term open-source direction (post-Path-A)
+  or automatic documentation rewrite.See
+  [ADR-0020](docs/decisions/0020-instruction-source-link-analysis.md).
+
+## Long-term open-source direction (post-Path-A)
 
 Path A is complete with the shipment of `agent-ready init` (ADR-0025),
 the fourth and final adoption-focused command

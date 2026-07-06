@@ -7,10 +7,7 @@ import { EXPLANATION_REGISTRY } from "../../src/cli/commands/explainRegistry.js"
 
 function minimalFs(): InMemoryFileSystem {
   const fs = new InMemoryFileSystem("/repo");
-  fs.addFile(
-    "/repo/agent-ready.yaml",
-    "version: 1\nproject:\n  name: test\n",
-  );
+  fs.addFile("/repo/agent-ready.yaml", "version: 1\nproject:\n  name: test\n");
   return fs;
 }
 

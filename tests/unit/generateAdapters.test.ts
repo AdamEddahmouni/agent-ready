@@ -85,7 +85,8 @@ const contentOnlyRaw: RawContract = {
   version: 1,
   project: { name: "content-example" },
   instructions: {
-    content: "This project follows **modular architecture**.\n\nAll new features must include:\n- Unit tests\n- Type annotations\n- A CHANGELOG entry",
+    content:
+      "This project follows **modular architecture**.\n\nAll new features must include:\n- Unit tests\n- Type annotations\n- A CHANGELOG entry",
   },
   adapters: { agentsMd: { enabled: true } },
 };

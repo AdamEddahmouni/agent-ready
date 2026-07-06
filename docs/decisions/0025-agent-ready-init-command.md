@@ -99,12 +99,12 @@ maintainer reviews and adjusts.
     [ROADMAP.md](../../ROADMAP.md), and the contract schema doesn't
     have framework-specific fields to populate anyway.
   - **Selected: `package.json` + lock files + `.nvmrc`/`.node-version`
-    + documentation files + `.gitignore`.** The detection surface is
-    deliberately narrowed to artifacts the contract schema already
-    has fields for: `project.name`/`description`, `environment.*`,
-    `commands`, `verification.required`, `paths.*`,
-    `instructions.sources`. Every detected value maps to an existing
-    schema field — no new field is smuggled in.
+    - documentation files + `.gitignore`.** The detection surface is
+      deliberately narrowed to artifacts the contract schema already
+      has fields for: `project.name`/`description`, `environment.*`,
+      `commands`, `verification.required`, `paths.*`,
+      `instructions.sources`. Every detected value maps to an existing
+      schema field — no new field is smuggled in.
 
 - **Should `init` validate its own output before writing?**
   - _Never validate_: faster, but risks writing an invalid contract
@@ -143,7 +143,7 @@ maintainer reviews and adjusts.
 - **Output shape: plain YAML vs. annotated YAML with detection
   comments**:
   - _Plain YAML_: minimal, clean, identical to what the user would
-    hand-write. But the user has no visibility into *why* `init` made
+    hand-write. But the user has no visibility into _why_ `init` made
     each choice.
   - _Annotated YAML_: the generated file begins with a YAML comment
     block summarizing what `init` detected and why each field was
@@ -267,7 +267,7 @@ maintainer reviews and adjusts.
      `format`, `check`, `test-e2e`, `ci`. Each becomes a
      `commands` entry with the script's value as `run`. The
      detection-summary comment lists every script key that was
-     *skipped* (not in the well-known set) so the user can add them
+     _skipped_ (not in the well-known set) so the user can add them
      manually.
 
   6. **Verification**: scripts whose keys are in the subset
@@ -292,7 +292,7 @@ maintainer reviews and adjusts.
      that are already in the schema's supported glob subset (no
      extglobs, no negation beyond leading `!`). The detection-
      summary comment lists every `.gitignore` pattern that was
-     *skipped* (unsupported syntax) so the user can add them
+     _skipped_ (unsupported syntax) so the user can add them
      manually. If `.env*` or `.env` appears in `.gitignore`,
      suggests `paths.protected: [".env*"]` — this is the single
      most common protected-path use case.
@@ -528,8 +528,8 @@ maintainer reviews and adjusts.
 - **One new diagnostic code** (additive per
   [ADR-0009](0009-pre-1.0-stability-policy.md)):
 
-  | Code                   | Severity | Meaning                                                                 |
-  | ---------------------- | -------- | ----------------------------------------------------------------------- |
+  | Code                   | Severity | Meaning                                                                           |
+  | ---------------------- | -------- | --------------------------------------------------------------------------------- |
   | `INIT_CONTRACT_EXISTS` | error    | `agent-ready.yaml` already exists at the repo root; `init` will not overwrite it. |
 
   `INIT_WRITE_FAILED` is not a new diagnostic code — it reuses the
@@ -607,7 +607,7 @@ maintainer reviews and adjusts.
   hand-copying an example.
 
 - `init` is the second writer in the codebase (after `generate
-  --write`) and the first to write a file the user is expected to
+--write`) and the first to write a file the user is expected to
   hand-edit afterward. Its write-boundary design is deliberately
   stricter than `generate --write`'s: no `--force`, no managed-file
   marker, no overwrite under any circumstance. The contract is
@@ -673,5 +673,5 @@ maintainer reviews and adjusts.
   repository), that is a distinct command surface (`init --template`
   or a separate `agent-ready clone` command), not an evolution of
   `init`'s current repository-inspection model. The current `init`
-  inspects only the *current* repository; template-based scaffolding
+  inspects only the _current_ repository; template-based scaffolding
   is a different user story.

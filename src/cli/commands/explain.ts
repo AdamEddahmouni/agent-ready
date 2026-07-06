@@ -33,7 +33,8 @@ export async function runExplain(
 ): Promise<CliOutcome> {
   // Validate the --code value.
   if (!isDiagnosticCode(args.code)) {
-    const msg = `agent-ready explain: unknown diagnostic code '${args.code}'.\n\n` +
+    const msg =
+      `agent-ready explain: unknown diagnostic code '${args.code}'.\n\n` +
       "Run `agent-ready explain --code <CODE>` with one of the recognized codes.\n" +
       "Use `agent-ready --help` or see docs/specification/diagnostics.md for the full list.";
     return { exitCode: ExitCode.VALIDATION_FAILED, stdout: "", stderr: msg + "\n" };
@@ -54,7 +55,13 @@ export async function runExplain(
 
   // Optional contract loading.
   type ContractCtx =
-    | { loaded: true; contractPath: string; repoRoot: string; contract: Record<string, unknown>; diagnostics: readonly DiagnosticJson[] }
+    | {
+        loaded: true;
+        contractPath: string;
+        repoRoot: string;
+        contract: Record<string, unknown>;
+        diagnostics: readonly DiagnosticJson[];
+      }
     | { loaded: false; diagnostics: readonly DiagnosticJson[] }
     | undefined;
 
@@ -86,7 +93,13 @@ export async function runExplain(
 }
 
 type ContractCtx =
-  | { loaded: true; contractPath: string; repoRoot: string; contract: Record<string, unknown>; diagnostics: readonly DiagnosticJson[] }
+  | {
+      loaded: true;
+      contractPath: string;
+      repoRoot: string;
+      contract: Record<string, unknown>;
+      diagnostics: readonly DiagnosticJson[];
+    }
   | { loaded: false; diagnostics: readonly DiagnosticJson[] }
   | undefined;
 
@@ -122,15 +135,11 @@ function renderJson(
   }
 
   if (contractResult !== undefined) {
-    body["contractPath"] =
-      contractResult.loaded ? contractResult.contractPath : args.config;
+    body["contractPath"] = contractResult.loaded ? contractResult.contractPath : args.config;
     if (contractResult.loaded) {
       body["repoRoot"] = contractResult.repoRoot;
       if (explanation.fields !== undefined && explanation.fields.length > 0) {
-        body["contractFields"] = resolveContractFields(
-          contractResult.contract,
-          explanation.fields,
-        );
+        body["contractFields"] = resolveContractFields(contractResult.contract, explanation.fields);
       }
     }
     body["diagnostics"] = contractResult.diagnostics;
@@ -138,9 +147,10 @@ function renderJson(
     body["diagnostics"] = [];
   }
 
-  const exitCode = contractResult !== undefined && !contractResult.loaded
-    ? resolveExitCodeForContractFailure(contractResult.diagnostics)
-    : ExitCode.SUCCESS;
+  const exitCode =
+    contractResult !== undefined && !contractResult.loaded
+      ? resolveExitCodeForContractFailure(contractResult.diagnostics)
+      : ExitCode.SUCCESS;
 
   return { exitCode, stdout: JSON.stringify(body, null, 2) + "\n", stderr: "" };
 }
@@ -170,10 +180,7 @@ function renderHuman(
 
   // Append "Your contract" section when --config given and loaded.
   if (contractResult?.loaded) {
-    lines.push(
-      "",
-      `Your contract (${contractResult.contractPath}):`,
-    );
+    lines.push("", `Your contract (${contractResult.contractPath}):`);
     if (explanation.fields !== undefined && explanation.fields.length > 0) {
       for (const field of explanation.fields) {
         const value = resolvePointerFromContract(contractResult.contract, field);
@@ -199,7 +206,7 @@ function renderHuman(
   // When contract load failed, output explanation to stdout + diagnostics to stderr.
   if (contractResult !== undefined && !contractResult.loaded) {
     const diagText = renderDiagnosticsHuman(
-      (contractResult.diagnostics as unknown as { code: string }[]) as never,
+      contractResult.diagnostics as unknown as { code: string }[] as never,
     );
     stderr = diagText.length > 0 ? diagText + "\n" : "";
   }
@@ -221,9 +228,11 @@ function formatValue(value: unknown): string {
 }
 
 function codeToSeverity(code: DiagnosticCode): "error" | "warning" {
-  if (code === "ADAPTER_NOT_YET_IMPLEMENTED" ||
-      code === "VERIFICATION_NOT_DECLARED" ||
-      code === "RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED") {
+  if (
+    code === "ADAPTER_NOT_YET_IMPLEMENTED" ||
+    code === "VERIFICATION_NOT_DECLARED" ||
+    code === "RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED"
+  ) {
     return "warning";
   }
   return "error";
@@ -252,10 +261,7 @@ function resolveContractFields(
  * nesting (e.g. "/version", "/environment/runtimes", "/paths/protected").
  * Returns undefined when the pointer path doesn't resolve.
  */
-function resolvePointerFromContract(
-  contract: Record<string, unknown>,
-  pointer: string,
-): unknown {
+function resolvePointerFromContract(contract: Record<string, unknown>, pointer: string): unknown {
   const segments = pointer.split("/").filter((s) => s.length > 0);
   let current: Record<string, unknown> = contract;
   for (const seg of segments) {
@@ -271,9 +277,7 @@ function resolvePointerFromContract(
   return current;
 }
 
-function resolveExitCodeForContractFailure(
-  diagnostics: readonly DiagnosticJson[],
-): ExitCode {
+function resolveExitCodeForContractFailure(diagnostics: readonly DiagnosticJson[]): ExitCode {
   // resolveExitCode expects Diagnostic[], but DiagnosticJson has the
   // same severity field shape, so the filter works correctly.
   return resolveExitCode(diagnostics as unknown as never);

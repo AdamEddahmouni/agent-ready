@@ -33,11 +33,7 @@ describe("agent-ready init (CLI composition)", () => {
       ".gitignore": "node_modules/\ndist/\n.env\n",
       "README.md": "# Test Project",
     });
-    const outcome = await runInit(
-      new NodeFileSystem(),
-      { json: false, write: false },
-      root,
-    );
+    const outcome = await runInit(new NodeFileSystem(), { json: false, write: false }, root);
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
     expect(outcome.stdout).toContain("agent-ready init - repoRoot:");
     expect(outcome.stdout).toContain("project name: test-project");
@@ -61,11 +57,7 @@ describe("agent-ready init (CLI composition)", () => {
         },
       }),
     });
-    const outcome = await runInit(
-      new NodeFileSystem(),
-      { json: false, write: true },
-      root,
-    );
+    const outcome = await runInit(new NodeFileSystem(), { json: false, write: true }, root);
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
     expect(outcome.stdout).toContain("Wrote agent-ready.yaml");
 
@@ -82,11 +74,7 @@ describe("agent-ready init (CLI composition)", () => {
       "package.json": JSON.stringify({ name: "existing-project" }),
       "agent-ready.yaml": "version: 1\nproject:\n  name: hand-authored\n",
     });
-    const outcome = await runInit(
-      new NodeFileSystem(),
-      { json: false, write: true },
-      root,
-    );
+    const outcome = await runInit(new NodeFileSystem(), { json: false, write: true }, root);
     expect(outcome.exitCode).toBe(ExitCode.VALIDATION_FAILED);
     expect(outcome.stderr).toContain("already exists");
 
@@ -100,11 +88,7 @@ describe("agent-ready init (CLI composition)", () => {
       "package.json": JSON.stringify({ name: "existing-project" }),
       "agent-ready.yaml": "version: 1\nproject:\n  name: hand-authored\n",
     });
-    const outcome = await runInit(
-      new NodeFileSystem(),
-      { json: false, write: false },
-      root,
-    );
+    const outcome = await runInit(new NodeFileSystem(), { json: false, write: false }, root);
     expect(outcome.exitCode).toBe(ExitCode.VALIDATION_FAILED);
     expect(outcome.stderr).toContain("already exists");
   });
@@ -116,11 +100,7 @@ describe("agent-ready init (CLI composition)", () => {
         scripts: { lint: "eslint ." },
       }),
     });
-    const outcome = await runInit(
-      new NodeFileSystem(),
-      { json: true, write: false },
-      root,
-    );
+    const outcome = await runInit(new NodeFileSystem(), { json: true, write: false }, root);
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
     const body = JSON.parse(outcome.stdout) as Record<string, unknown>;
     expect(body["ok"]).toBe(true);
@@ -140,11 +120,7 @@ describe("agent-ready init (CLI composition)", () => {
     const { root } = await repo({
       "package.json": JSON.stringify({ name: "json-write-test" }),
     });
-    const outcome = await runInit(
-      new NodeFileSystem(),
-      { json: true, write: true },
-      root,
-    );
+    const outcome = await runInit(new NodeFileSystem(), { json: true, write: true }, root);
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
     const body = JSON.parse(outcome.stdout) as Record<string, unknown>;
     expect(body["ok"]).toBe(true);
@@ -163,11 +139,7 @@ describe("agent-ready init (CLI composition)", () => {
       "package.json": JSON.stringify({ name: "existing-project" }),
       "agent-ready.yaml": "version: 1\nproject:\n  name: hand-authored\n",
     });
-    const outcome = await runInit(
-      new NodeFileSystem(),
-      { json: true, write: true },
-      root,
-    );
+    const outcome = await runInit(new NodeFileSystem(), { json: true, write: true }, root);
     expect(outcome.exitCode).toBe(ExitCode.VALIDATION_FAILED);
     const body = JSON.parse(outcome.stdout) as Record<string, unknown>;
     expect(body["ok"]).toBe(false);
@@ -182,11 +154,7 @@ describe("agent-ready init (CLI composition)", () => {
       "package.json": JSON.stringify({ name: "paths-test" }),
       ".gitignore": "node_modules/\ndist/\n.env\n",
     });
-    const outcome = await runInit(
-      new NodeFileSystem(),
-      { json: false, write: false },
-      root,
-    );
+    const outcome = await runInit(new NodeFileSystem(), { json: false, write: false }, root);
     expect(outcome.stdout).toContain("protected:");
     expect(outcome.stdout).toContain('".env*"');
     expect(outcome.stdout).toContain("ignored:");
@@ -198,11 +166,7 @@ describe("agent-ready init (CLI composition)", () => {
     const { root } = await repo({
       "README.md": "# My Project",
     });
-    const outcome = await runInit(
-      new NodeFileSystem(),
-      { json: false, write: false },
-      root,
-    );
+    const outcome = await runInit(new NodeFileSystem(), { json: false, write: false }, root);
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
     expect(outcome.stdout).toContain("version: 1");
     // Should still contain the directory-based project name.
@@ -218,11 +182,7 @@ describe("agent-ready init (CLI composition)", () => {
         packageManager: "pnpm@10.5.0",
       }),
     });
-    const outcome = await runInit(
-      new NodeFileSystem(),
-      { json: false, write: false },
-      root,
-    );
+    const outcome = await runInit(new NodeFileSystem(), { json: false, write: false }, root);
     // Should have an environment block.
     expect(outcome.stdout).toContain("environment:");
     expect(outcome.stdout).toContain("node:");
@@ -241,11 +201,7 @@ describe("agent-ready init (CLI composition)", () => {
         scripts: { lint: "eslint .", test: "vitest" },
       }),
     });
-    const outcome = await runInit(
-      new NodeFileSystem(),
-      { json: false, write: false },
-      root,
-    );
+    const outcome = await runInit(new NodeFileSystem(), { json: false, write: false }, root);
     // The YAML output should have comment lines starting with "#".
     const yamlSection = outcome.stdout.substring(outcome.stdout.indexOf("--- proposed"));
     expect(yamlSection).toContain("# Generated by agent-ready init");

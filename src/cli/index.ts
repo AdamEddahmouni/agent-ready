@@ -184,7 +184,10 @@ program
       "Read-only; never modifies the repository, never executes commands.\n" +
       "See docs/decisions/0024-agent-ready-explain-command.md.",
   )
-  .requiredOption("--code <CODE>", "The diagnostic code to explain (e.g. PACKAGE_MANAGER_UNAVAILABLE).")
+  .requiredOption(
+    "--code <CODE>",
+    "The diagnostic code to explain (e.g. PACKAGE_MANAGER_UNAVAILABLE).",
+  )
   .option("--json", "Print results as machine-readable JSON.", false)
   .option("--config <path>", "Explicit path to the contract file for field-specific context.")
   .action(async (opts: { json: boolean; code: string; config?: string }) => {

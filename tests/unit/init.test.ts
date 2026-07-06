@@ -212,10 +212,7 @@ describe("runInit — write", () => {
 
   it("JSON output for write reports expected keys", async () => {
     const fsys = fs();
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "my-project" }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "my-project" }));
     const outcome = await runInit(fsys, { json: true, write: true });
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
     const body = JSON.parse(outcome.stdout) as Record<string, unknown>;
@@ -368,10 +365,7 @@ describe("runInit — enrichment", () => {
 
   it("prefers engines.node over .nvmrc when both are present", async () => {
     const fsys = fs();
-    fsys.addFile(
-      "/repo/package.json",
-      JSON.stringify({ name: "test", engines: { node: ">=22" } }),
-    );
+    fsys.addFile("/repo/package.json", JSON.stringify({ name: "test", engines: { node: ">=22" } }));
     fsys.addFile("/repo/.nvmrc", "20");
     const outcome = await runInit(fsys, { json: false, write: false });
     expect(outcome.stdout).toContain('node: ">=22"');

@@ -52,9 +52,10 @@ officially representing the community in public spaces.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may
-be reported to the maintainers via the process described in
-[SECURITY.md](SECURITY.md) (the private-reporting channel described
-there is also appropriate for conduct reports). All complaints will be
+be reported to the maintainers through the private reporting channel
+described in [SECURITY.md](SECURITY.md). While that document focuses on
+security vulnerabilities, the same private channel is the appropriate
+place for code of conduct reports as well. All complaints will be
 reviewed and investigated promptly and fairly.
 
 ## Attribution
