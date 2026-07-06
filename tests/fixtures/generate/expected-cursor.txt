@@ -10,36 +10,86 @@ Demonstrates every field supported by the Phase 1 contract schema.
 
 ## Environment
 
-- Runtime `node`: `>=20 <23`
+This project targets the following runtime environment. Run `agent-ready doctor`
+to verify your local setup matches these declarations.
 
-- Package manager: `pnpm@10`
+- **node**: `>=20 <23`
+
+- **Package manager**: `pnpm@10`
 
 ## Commands
 
-- **build**: `pnpm build` — Compiles the project into dist/.
+Every command listed below is validated by `agent-ready validate`. If a
+command is modified or removed, the contract must be updated — the CLI
+will catch drift.
 
-- **install**: `pnpm install --frozen-lockfile`
+### Build & Typecheck
 
-- **lint**: `pnpm lint`
+- **`build`**: `pnpm build` — Compiles the project into dist/.
 
-- **test**: `pnpm test`
+- **`typecheck`**: `pnpm typecheck`
 
-- **typecheck**: `pnpm typecheck`
+### Code Quality
+
+- **`lint`**: `pnpm lint`
+
+### Testing
+
+- **`test`**: `pnpm test`
+
+### Other Commands
+
+- **`install`**: `pnpm install --frozen-lockfile`
 
 ## Verification
 
-Required before considering work complete: `lint`, `typecheck`, `test`, `build`.
+Before considering any task complete, run these commands **in this order**.
+If any step fails, fix it before continuing. This order is declared in
+the contract and enforced by `agent-ready verify --execute`.
 
-## Paths
+1. **`lint`**
 
-- Protected: `.env*`
+2. **`typecheck`**
 
-- Generated: `src/generated/**`
+3. **`test`**
 
-- Ignored: `dist/**`, `node_modules/**`
+4. **`build`** — Compiles the project into dist/.
 
-## Further instructions
+Run verification with: `agent-ready verify --execute`
 
-See the following files for more detail:
+## Path Rules
+
+These rules are **enforced** by `agent-ready check`. Violating them
+will fail CI. Patterns use the glob syntax documented in
+[path and glob semantics](docs/specification/paths-and-globs.md).
+
+### Protected (DO NOT modify without explicit approval)
+
+These files must never be changed by an AI coding agent:
+- `.env*`
+
+### Generated (produced by build, do not hand-edit)
+
+These files are build artifacts. Never edit them directly:
+- `src/generated/**`
+
+### Ignored (do not include in agent output or consideration)
+
+These paths are out of scope for agent operations:
+- `dist/**`
+- `node_modules/**`
+
+## Further Context
+
+See these files for detailed project documentation. If you need deeper
+context about architecture, conventions, or design rationale, start here:
 - [README.md](README.md)
 - [docs/architecture.md](docs/architecture.md)
+
+## Before Submitting Work
+
+After making changes, confirm everything still passes:
+- Run `pnpm lint`
+- Run `pnpm typecheck`
+- Run `pnpm test`
+- Run `pnpm build`

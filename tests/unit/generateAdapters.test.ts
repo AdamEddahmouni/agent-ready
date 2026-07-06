@@ -60,7 +60,10 @@ describe.each([
     expect(file.content).toContain("example");
     expect(file.content).toContain("(none declared)");
     expect(file.content).toContain("(none required)");
-    expect(file.content).toContain("(none)");
+    // Empty sections (Environment, Path Rules) are omitted entirely
+    // when no data is declared, keeping output lean.
+    expect(file.content).not.toContain("## Environment");
+    expect(file.content).not.toContain("## Path Rules");
   });
 
   it("renders every declared section for a fully populated contract", () => {
