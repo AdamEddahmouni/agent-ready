@@ -14,6 +14,7 @@ import { runAnalyze } from "./commands/analyze.js";
 import { runSchema } from "./commands/schema.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runExplain } from "./commands/explain.js";
+import { runInit } from "./commands/init.js";
 
 interface PackageJson {
   readonly version: string;
@@ -29,9 +30,9 @@ program
   .name("agent-ready")
   .description(
     "Validate, inspect, generate, check, analyze, schema, doctor, explain,\n" +
-      "verify, and inspect the bundled contract JSON Schema. This CLI never modifies the repository\n" +
-      "unless `generate --write` is used, and never executes repository\n" +
-      "commands unless `verify --execute` is used.",
+      "init, verify, and inspect the bundled contract JSON Schema. This CLI never modifies the repository\n" +
+      "unless `generate --write`, `init --write`, or `verify --execute` is used.\n" +
+      "Never executes repository commands unless `verify --execute` is used.",
   )
   .version(pkg.version);
 
@@ -189,6 +190,24 @@ program
   .action(async (opts: { json: boolean; code: string; config?: string }) => {
     const fs = new NodeFileSystem();
     const outcome = await runExplain(fs, opts);
+    if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
+    if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
+    process.exitCode = outcome.exitCode;
+  });
+
+program
+  .command("init")
+  .description(
+    "Scaffold a starter agent-ready.yaml from repository inspection.\n" +
+      "Defaults to a dry run (prints the generated contract to stdout);\n" +
+      "nothing is written unless --write is passed. Never overwrites an\n" +
+      "existing contract file. See ADR-0025.",
+  )
+  .option("--write", "Write agent-ready.yaml to the repository root.", false)
+  .option("--json", "Print results as machine-readable JSON.", false)
+  .action(async (opts: { write: boolean; json: boolean }) => {
+    const fs = new NodeFileSystem();
+    const outcome = await runInit(fs, opts);
     if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
     if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
     process.exitCode = outcome.exitCode;

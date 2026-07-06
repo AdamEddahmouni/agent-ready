@@ -369,6 +369,17 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> =
       },
     ],
 
+    // ── init ──────────────────────────────────────────────────────────────
+    [
+      "INIT_CONTRACT_EXISTS",
+      {
+        what: "`agent-ready init` was asked to scaffold a starter agent-ready.yaml but one already exists at the repository root. `init` never overwrites an existing contract file.",
+        why: "The contract is the repository's source of truth for agent-ready configuration — it is hand-authored and version-controlled. Unlike generated adapter output, a lost contract cannot be reproduced from source.",
+        fix: "1. If you want a fresh starter contract, delete or rename the existing file: mv agent-ready.yaml agent-ready.yaml.bak\\n2. Re-run `agent-ready init --write`.\\n3. Review the generated contract and merge back any customizations from your backup.",
+        fields: ["/"],
+      },
+    ],
+
     // ── doctor ────────────────────────────────────────────────────────────
     [
       "RUNTIME_VERSION_MISMATCH",

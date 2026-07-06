@@ -1,13 +1,13 @@
 # Implementation scope: CLI/package maturity
 
-**Status: committed — ADR-0021 accepted, three of four commands shipped.**
+**Status: committed — ADR-0021 accepted, all four commands shipped.**
 This document scoped the CLI/package maturity direction selected by
-[ADR-0021](decisions/0021-cli-package-maturity-direction.md). The first
-three commands — `agent-ready schema` ([ADR-0022](decisions/0022-agent-ready-schema-command.md)),
+[ADR-0021](decisions/0021-cli-package-maturity-direction.md). All four
+commands — `agent-ready schema` ([ADR-0022](decisions/0022-agent-ready-schema-command.md)),
 `agent-ready doctor` ([ADR-0023](decisions/0023-agent-ready-doctor-command.md)),
-and `agent-ready explain` ([ADR-0024](decisions/0024-agent-ready-explain-command.md))
-— are implemented and shipped. The remaining command (`init`) requires
-its own ADR before implementation. See
+`agent-ready explain` ([ADR-0024](decisions/0024-agent-ready-explain-command.md)),
+and `agent-ready init` ([ADR-0025](decisions/0025-agent-ready-init-command.md))
+— are implemented and shipped. Path A is complete. See
 [docs/project-standing.md](project-standing.md) for current state and
 [ROADMAP.md](../ROADMAP.md) for committed phase history.
 
@@ -86,7 +86,7 @@ generate` already does what a tool called "sync" would do (compile a
 
 | Command               | Status               | Purpose                                                                                                                                                                                                                                                       |
 | --------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agent-ready init`    | proposed, no ADR yet | Scaffold a starter `agent-ready.yaml` from repository inspection. Never overwrites an existing contract file.                                                                                                                                                 |
+| `agent-ready init`    | shipped (ADR-0025)   | Scaffold a starter `agent-ready.yaml` from repository inspection. Never overwrites an existing contract file.                                                                                                                                                 |
 | `agent-ready doctor`  | shipped (ADR-0023)   | Report whether the local environment (Node/runtime versions, package manager, `git`) satisfies the contract's `environment` block and the requirements of each existing command. Read-only.                                                                   |
 | `agent-ready explain` | shipped (ADR-0024)   | Given a diagnostic code (or the output of a previous run), print an extended, plain-language explanation and the relevant contract field. Read-only.                                                                                                          |
 | `agent-ready schema`  | shipped (ADR-0022)   | Print the bundled JSON Schema (and its version) that `validate`/`inspect`/etc. validate against, for tooling that wants it without a source checkout. Read-only, no network access — it prints the same file already at `schemas/v1/agent-ready.schema.json`. |
@@ -174,8 +174,9 @@ the existing commands:
 2. **`agent-ready schema`** — ✅ shipped ([ADR-0022](decisions/0022-agent-ready-schema-command.md))
 3. **`agent-ready doctor`** — ✅ shipped ([ADR-0023](decisions/0023-agent-ready-doctor-command.md))
 4. **`agent-ready explain`** — ✅ shipped ([ADR-0024](decisions/0024-agent-ready-explain-command.md))
-5. **`agent-ready init`** — proposed, requires its own ADR; highest risk
-   (the only writer after `generate --write`), sequenced last
+5. **`agent-ready init`** — ✅ shipped ([ADR-0025](decisions/0025-agent-ready-init-command.md)); highest risk
+   (the only second writer after `generate --write`), sequenced last.
+   Path A is now complete.
 
 ## Testing strategy
 

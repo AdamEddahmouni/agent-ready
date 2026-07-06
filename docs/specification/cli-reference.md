@@ -3,7 +3,11 @@
 The `agent-ready` CLI never modifies the repository it inspects — except
 `agent-ready generate --write`, which writes only the adapter-hardcoded
 files it plans to generate (see [`agent-ready generate`](#agent-ready-generate)
-below), and `agent-ready verify --execute --record`, which writes a single
+below); `agent-ready init --write`, which writes a starter
+`agent-ready.yaml` and refuses if one already exists (see
+[`agent-ready init`](#agent-ready-init) below and
+[ADR-0025](../decisions/0025-agent-ready-init-command.md)); and
+`agent-ready verify --execute --record`, which writes a single
 JSON evidence file to the repository root (see
 [`agent-ready verify`](#agent-ready-verify) below and
 [ADR-0015](../decisions/0015-verification-evidence-recording.md)) — and
@@ -12,16 +16,11 @@ verify --execute`, which runs exactly the commands declared in
 `verification.required` (see [`agent-ready verify`](#agent-ready-verify)
 below and [ADR-0014](../decisions/0014-verification-execution.md)).
 
-This reference covers the nine commands that exist today. One additional
-command (`init`) is proposed, not implemented — see
-[docs/implementation-scope-cli-package.md](../implementation-scope-cli-package.md).
-`agent-ready schema` is the first Path A ship per
-[ADR-0021](../decisions/0021-cli-package-maturity-direction.md) and
-[ADR-0022](../decisions/0022-agent-ready-schema-command.md);
-`agent-ready doctor` is the second, per
-[ADR-0023](../decisions/0023-agent-ready-doctor-command.md);
-`agent-ready explain` is the third, per
-[ADR-0024](../decisions/0024-agent-ready-explain-command.md).
+This reference covers the ten commands that exist today. Path A is
+complete: `agent-ready schema` ([ADR-0022](../decisions/0022-agent-ready-schema-command.md)),
+`agent-ready doctor` ([ADR-0023](../decisions/0023-agent-ready-doctor-command.md)),
+`agent-ready explain` ([ADR-0024](../decisions/0024-agent-ready-explain-command.md)),
+and `agent-ready init` ([ADR-0025](../decisions/0025-agent-ready-init-command.md)).
 
 ## `agent-ready --help` / `agent-ready --version`
 
@@ -343,6 +342,121 @@ object), `ok` is `false`, the run's exit code reflects
 `INTERNAL_INVARIANT_VIOLATION`. The bundled schema is shipped next to
 the installed CLI and should always parse cleanly; this is treated as
 an Agent-Ready-installation bug rather than a user-correctable error.
+
+## `agent-ready init`
+
+Scaffolds a starter `agent-ready.yaml` from repository inspection —
+detecting the project name, runtime constraints, package manager,
+well-known scripts, documentation files, `.gitignore` patterns, and
+more — and prints it to stdout (dry run) or writes it to disk
+(`--write`). **Never overwrites an existing contract file.** Always
+validates the generated YAML through the full contract pipeline before
+writing. Read-only unless `--write` is passed; never executes
+contract-declared commands, never invokes Git. See
+[ADR-0025](../decisions/0025-agent-ready-init-command.md).
+
+```bash
+agent-ready init              # dry run: inspect the repo and print proposed YAML
+agent-ready init --write      # write agent-ready.yaml to the repo root
+agent-ready init --json       # machine-readable detection summary
+agent-ready init --json --write   # structured output for write mode
+```
+
+| Option      | Description                                                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------------------------ |
+| `--write`   | Write `agent-ready.yaml` to the detected repo root. Refuses if the file already exists, unconditionally.     |
+| `--json`    | Print results as machine-readable JSON instead of human-readable text.                                       |
+
+This command has no `--config` flag — it always writes to the canonical
+`agent-ready.yaml` at the detected repo root. The dry-run path lets you
+pipe to an arbitrary location: `agent-ready init > /tmp/agent-ready.yaml`.
+
+**Detection heuristics** (each degrades gracefully when its source is
+missing):
+
+- **Project name**: from `package.json` `"name"` (stripped of scope
+  prefix), falling back to the directory name. Sanitized if it violates
+  the schema pattern.
+- **Project description**: from `package.json` `"description"`, if
+  within 1–500 characters.
+- **Node runtime**: from `package.json` `engines.node` (non-`"*"`),
+  falling back to `.nvmrc` or `.node-version` (`.nvmrc` preferred).
+  Single-part versions become next-major ranges (e.g. `"20"` →
+  `">=20 <21"`).
+- **Package manager**: from `package.json` `"packageManager"`
+  (e.g. `"pnpm@10.0.0"`), falling back to the lock file present
+  (`pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn,
+  `package-lock.json` → npm).
+- **Scripts**: well-known keys from `package.json` `"scripts"` only:
+  `lint`, `test`, `build`, `typecheck`, `format`, `check`, `test-e2e`,
+  `ci`. Skipped keys are listed in the detection summary.
+- **Verification**: `lint`, `typecheck`, `test`, `build` in
+  `package.json` script order.
+- **Documentation sources**: `README.md`, `CONTRIBUTING.md`, and
+  common `.md` files under `docs/`.
+- **Paths**: supported `.gitignore` patterns (extglobs and negations
+  excluded). If `.env` or `.env*` appears, `paths.protected: [".env*"]`
+  is suggested.
+- **Adapters**: all five enabled by default.
+
+The generated YAML begins with a YAML comment header explaining every
+detection decision.
+
+**Human output** (dry run):
+
+```text
+agent-ready init - repoRoot: /path/to/my-project
+
+Detected:
+  project name: my-project (from package.json)
+  package manager: pnpm (from package.json)
+  scripts: lint, test (2 included; 1 skipped: dev)
+  adapters: all 5 enabled (...)
+
+--- proposed agent-ready.yaml ----------------------------------------
+# Generated by agent-ready init on ...
+# Review each section before your first agent-ready validate.
+...
+
+---
+Validation: would pass agent-ready validate.
+Run `agent-ready init --write` to create this file at
+  /path/to/my-project/agent-ready.yaml
+```
+
+**Exit codes**: `0` on dry run (always) or successful `--write`; `1`
+if a contract already exists (`INIT_CONTRACT_EXISTS`) or the generated
+contract failed validation during `--write`; `10` on write failure.
+
+**JSON output** (`--json`, dry run):
+
+```json
+{
+  "ok": true,
+  "repoRoot": "/path/to/my-project",
+  "mode": "dry-run",
+  "detection": {
+    "projectName": "my-project",
+    "projectNameSource": "package.json",
+    "packageManager": { "name": "pnpm", "version": "10.0.0" },
+    "packageManagerSource": "package.json",
+    "scriptsIncluded": ["lint", "test"],
+    "scriptsSkipped": ["dev"],
+    "verificationScripts": ["lint", "test"],
+    "docSources": [],
+    "ignoredPatterns": [],
+    "hasEnvInGitignore": false
+  },
+  "contract": "<generated YAML string>",
+  "validationPassed": true,
+  "diagnostics": []
+}
+```
+
+With `--write`, `mode` is `"write"` and the output adds `contractPath`.
+When the contract already exists, `ok` is `false`, `mode` reflects the
+invocation (dry-run or write), and `diagnostics` contains
+`INIT_CONTRACT_EXISTS`.
 
 ## `agent-ready doctor`
 

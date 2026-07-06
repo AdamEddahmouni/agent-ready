@@ -211,12 +211,13 @@ why.
   and ordered findings.
 - No schema change, Git invocation, command execution, network access, LLM call,
   or automatic documentation rewrite. See
-  [ADR-0020](docs/decisions/0020-instruction-source-link-analysis.md).
+  [ADR-0020](docs/decisions/0020-instruction-source-link-analysis.md).## Long-term open-source direction (post-Path-A)
 
-## Long-term open-source direction
-
-The following remain **open-source, local-first roadmap categories** —
-not yet implemented, and not committed to any specific phase or date:
+Path A is complete with the shipment of `agent-ready init` (ADR-0025),
+the fourth and final adoption-focused command
+(`schema` → `doctor` → `explain` → `init`). The following remain
+open-source, local-first roadmap categories — not yet implemented, and
+not committed to any specific phase or date:
 
 - Broader architecture-dependency analysis beyond Phase 10's instruction-source
   link check.
@@ -254,29 +255,17 @@ referenced from the project brief and enforced by
 
 ## CLI/package maturity direction (selected — ADR-0021)
 
-Path A is the next increment: four adoption-focused CLI commands —
-`agent-ready init`, `doctor`, `explain`, `schema` — additive, no
-contract-semantic change. Decision recorded in
-[ADR-0021](docs/decisions/0021-cli-package-maturity-direction.md);
-see also
-[docs/implementation-scope-cli-package.md](docs/implementation-scope-cli-package.md)
-for the full scope, including why `agent-ready generate` already covers
-what a command called "sync" would do. First command to ship:
-`agent-ready schema` (read-only, lowest risk);the remaining three are sequenced as the proposal recommends — `doctor` → `explain` → `init`,
-each behind its own ADR.
-
-This supersedes, but does not itself override, the `init`/`sync` entry
-in the strict non-goals list immediately below — that list still
-reflects current, decided scope; a future ADR for `init` specifically
-will need to revisit it on its own merits.
+`agent-ready init` was the fourth and final Path A command
+and has shipped per ADR-0025. Path A is complete:
+`schema` → `doctor` → `explain` → `init`, all four shipped behind
+their own ADRs per ADR-0021's sequencing.
 
 ## Strict non-goals for the current phase
 
 The following are explicitly **not** implemented right now, by design —
 not oversights:
 
-`agent-ready init`/`audit`/`sync`/`score` subcommands ·
-command or shell execution outside `agent-ready verify --execute` ·
+`agent-ready audit`/`sync`/`score` subcommands ·
 per-command timeout/environment/working-directory declarations ·
 capturing or persisting a command's actual stdout/stderr as evidence
 (only structured status is persisted, via `verify --execute --record`) ·
@@ -310,11 +299,14 @@ enumerated — broader architecture-dependency analysis, task/context
 packets, and framework-specific examples. Those three remain valid
 future directions behind their own ADRs.
 
-The first Path A deliverable — `agent-ready schema` — has shipped (see
-[ADR-0022](docs/decisions/0022-agent-ready-schema-command.md)). The
-remaining three Path A commands (`doctor`, `explain`, `init`) stay
-sequenced behind their own ADRs per
-[ADR-0021](docs/decisions/0021-cli-package-maturity-direction.md)'s
-post-`schema` order (`doctor` → `explain` → `init`); the per-command ADR
-discipline established through Phase 10 remains the project's
-preference over bundling.
+## Recommended next phase
+
+Path A is now complete: `schema` → `doctor` → `explain` → `init`, all
+four shipped behind their own ADRs per
+[ADR-0021](docs/decisions/0021-cli-package-maturity-direction.md).
+
+The three Phase 11 candidates enumerated in
+[ADR-0019](docs/decisions/0019-phase-10-direction.md) remain valid
+future directions behind their own ADRs: broader architecture-dependency
+analysis, task/context packets, and framework-specific examples. No
+specific next phase has been selected yet.

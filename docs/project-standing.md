@@ -15,9 +15,9 @@ TypeScript package, not just a specification document:
   ([schemas/v1/agent-ready.schema.json](../schemas/v1/agent-ready.schema.json))
   and a full field reference
   ([docs/specification/contract-reference.md](specification/contract-reference.md)).
-- A working CLI (`agent-ready`, package bin) with nine real commands:
+- A working CLI (`agent-ready`, package bin) with ten real commands:
   `validate`, `inspect`, `generate`, `check`, `analyze`, `schema`,
-  `doctor`, `explain`, `verify` — see
+  `doctor`, `explain`, `init`, `verify` — see
   [docs/specification/cli-reference.md](specification/cli-reference.md)
   for exact behavior, flags, exit codes, and JSON output shapes.
 - Five implemented adapters that generate agent-instruction files from
@@ -46,18 +46,15 @@ install && pnpm build` and every command above is real.
 
 ## What does not exist yet
 
-- **No `agent-ready init` command.** Adopting Agent-Ready today means
-  hand-authoring the first `agent-ready.yaml` (with the examples in
-  [examples/](../examples/) as a starting point), not scaffolding one
-  with a CLI command.
-- **`agent-ready schema` is shipped** as the first Path A command per
-  [ADR-0022](decisions/0022-agent-ready-schema-command.md). `agent-ready
-doctor` is the second per [ADR-0023](decisions/0023-agent-ready-doctor-command.md),
-  and `agent-ready explain` is the third per
-  [ADR-0024](decisions/0024-agent-ready-explain-command.md). Only
-  `agent-ready init` remains behind its own ADR per
-  [ADR-0021](decisions/0021-cli-package-maturity-direction.md) and
-  [docs/implementation-scope-cli-package.md](implementation-scope-cli-package.md).
+- **`agent-ready init` now exists** as the fourth and final Path A command,
+  so adoption no longer requires hand-authoring a first `agent-ready.yaml`
+  from scratch — see [ADR-0025](decisions/0025-agent-ready-init-command.md).
+- **`agent-ready init` is shipped** as the fourth and final Path A command per
+  [ADR-0025](decisions/0025-agent-ready-init-command.md). Path A is now complete:
+  `schema` → `doctor` → `explain` → `init`, all four shipped behind their
+own ADRs. See
+  [docs/implementation-scope-cli-package.md](implementation-scope-cli-package.md)
+  for the final status.
 - **No richer, structured "handoff evidence"** (summary, assumptions,
   known issues, risks) beyond the command-level pass/fail/timeout
   evidence `verify --execute --record` already writes today. See

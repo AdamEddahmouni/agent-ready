@@ -1,12 +1,14 @@
 # Agent-Ready Repository Standard
 
-**Define once. Guide every agent. Verify the work.**
+**The standard for agent-instruction files. Define once. Guide every agent. Verify the work.**
 
-Agent-Ready is an open, vendor-neutral specification and CLI for
-describing how AI coding agents should work inside a software repository:
-its commands, environment, instructions, restrictions, verification
-requirements, and completion evidence — defined once, in one canonical
-file, and validated deterministically.
+Agent-Ready is an open, vendor-neutral specification and deterministic CLI
+for describing how AI coding agents should work inside a software repository.
+Like `package.json` for packages, `agent-ready.yaml` is the single,
+schema-validated source of truth: its commands, environment, instructions,
+restrictions, verification requirements, and completion evidence — defined
+once, and validated deterministically. **No API keys. No LLM calls. No
+network access. Zero cost per run.**
 
 ```text
 agent-ready.yaml
@@ -14,7 +16,7 @@ agent-ready.yaml
 
 ## What this foundation actually does today
 
-This is the **Phase 0/1/2/3/4/5/6/7/8/9/10 + Path A first-ship
+This is the **Phase 0/1/2/3/4/5/6/7/8/9/10 + Path A complete
 foundation**: a minimal contract
 core, a local CLI, agent-instruction generation for `AGENTS.md`,
 `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, and
@@ -24,7 +26,7 @@ recording of that execution's evidence, and a reusable GitHub composite
 action for adopting all of the above in another repository's CI, plus local
 documentation-link drift analysis for declared instruction sources, plus
 a read-only introspection command that prints the bundled contract
-JSON Schema.
+JSON Schema, plus a starter-contract scaffold command (`agent-ready init`).
 Concretely, right now Agent-Ready can:
 
 - Discover a repository's `agent-ready.yaml` (see
@@ -139,6 +141,22 @@ Copilot instructions, or Gemini instructions. The intent is for those to
 be **generated outputs** of one structured source of truth, not for
 Agent-Ready to replace them — all five are.
 
+### Why a deterministic contract beats LLM-generated docs
+
+LLM-based tools can produce useful explanations, but they can't enforce
+what your repository actually needs from agents. A deterministic contract
+(`agent-ready.yaml`) solves three problems auto-generated docs can't:
+
+- **It's verifiable.** Every `agent-ready validate` produces the same
+  result — byte-identical, diffable, CI-checkable. LLM output varies every
+  run and can't be machine-validated.
+- **It enforces, not just describes.** A contract declares protected paths
+  and actually checks them against Git changes. It declares verification
+  commands and actually runs them. Documentation tells agents what to do;
+  Agent-Ready proves they did it.
+- **It costs nothing to run.** Zero API keys. Zero network calls. Zero
+  per-run charges. Your contract is a YAML file, not an LLM subscription.
+
 ## Installation
 
 ```bash
@@ -187,6 +205,10 @@ agent-ready explain --code PROTECTED_PATH_MODIFIED  # print an extended explanat
 agent-ready explain --code PACKAGE_MANAGER_UNAVAILABLE --json
 agent-ready explain --code CONTRACT_VERSION_UNSUPPORTED --config path/to/agent-ready.yaml
 
+agent-ready init                         # scaffold a starter agent-ready.yaml from repo inspection
+agent-ready init --write                  # write it to disk (refuses to overwrite existing)
+agent-ready init --json                   # machine-readable detection summary and contract
+
 agent-ready verify                         # dry run: print the verification.required plan
 agent-ready verify --execute               # actually run those commands, in order
 agent-ready verify --execute --timeout 60  # override the per-command timeout (seconds)
@@ -202,7 +224,9 @@ generate --write`, which writes only the adapter-hardcoded files it plans
 to generate (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`,
 `.github/copilot-instructions.md`, `GEMINI.md`), and refuses to overwrite
 an existing file that doesn't carry its own managed-file marker unless
-`--force` is also passed, and `agent-ready verify --execute --record`,
+`--force` is also passed; `agent-ready init --write`, which writes the
+starter contract (`agent-ready.yaml`) and refuses if it already exists;
+and `agent-ready verify --execute --record`,
 which writes a single JSON evidence file (`agent-ready-verify-result.json`)
 to the repository root, overwritten on every run (see
 [ADR-0015](docs/decisions/0015-verification-evidence-recording.md)). None
@@ -292,30 +316,16 @@ checks, and similar) without ever making the local contract or CLI
 dependent on it — see [ROADMAP.md](ROADMAP.md) for details and explicit
 non-goals for this phase.
 
-## Path A command status (schema, doctor, and explain shipped)
+## Path A command status (complete)
 
-The nine commands documented above (`validate`, `inspect`, `generate`,
-`check`, `analyze`, `schema`, `doctor`, `explain`, `verify`) exist today.
-One more adoption-focused command remains on Path A's roadmap, sequenced per
-[docs/implementation-scope-cli-package.md](docs/implementation-scope-cli-package.md)
-and
-[ADR-0021](docs/decisions/0021-cli-package-maturity-direction.md):
+All ten commands documented above exist today. Path A is complete:
 
 ```bash
 agent-ready schema    # SHIPPED — see ADR-0022
 agent-ready doctor    # SHIPPED — see ADR-0023
 agent-ready explain   # SHIPPED — see ADR-0024
-agent-ready init      # NOT YET IMPLEMENTED — sequenced last (the only second writer in the codebase besides `generate --write`)
+agent-ready init      # SHIPPED — see ADR-0025
 ```
-
-`agent-ready schema` is the first Path A command to ship — see
-[ADR-0022](docs/decisions/0022-agent-ready-schema-command.md).
-`agent-ready doctor` is the second — see
-[ADR-0023](docs/decisions/0023-agent-ready-doctor-command.md).
-`agent-ready explain` is the third — see
-[ADR-0024](docs/decisions/0024-agent-ready-explain-command.md). See
-[docs/project-standing.md](docs/project-standing.md) for exactly what's
-real today.
 
 ## Contributing
 
