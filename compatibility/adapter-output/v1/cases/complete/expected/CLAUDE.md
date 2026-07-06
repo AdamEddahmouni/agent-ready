@@ -81,6 +81,20 @@ These paths are out of scope for agent operations:
 
 ## Further Context
 
+## Conventions
+
+- Use `const` over `let` wherever possible.
+- Prefer explicit return types on exported functions.
+- Format with `prettier`, lint with `eslint`.
+
+## Architecture
+
+This project follows a modular structure. Each feature lives in
+its own directory under `src/` with its own tests and types.
+Shared utilities live in `src/shared/`. Never import across
+feature boundaries except through the shared layer.
+
+
 See these files for detailed project documentation. If you need deeper
 context about architecture, conventions, or design rationale, start here:
 - [README.md](README.md)
