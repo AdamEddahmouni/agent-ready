@@ -4,9 +4,15 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    # GitHub Actions are pinned to commit SHAs, so version-tag bumps are
+    # informational only. Keep the limit low and review manually.
+    open-pull-requests-limit: 2
