@@ -64,7 +64,6 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
         cache: pnpm
-        cache-dependency-path: ${{ github.action_path }}/pnpm-lock.yaml
 
     - name: Install Agent-Ready dependencies
       shell: bash
