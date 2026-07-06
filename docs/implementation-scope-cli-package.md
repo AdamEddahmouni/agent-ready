@@ -1,24 +1,23 @@
 # Implementation scope: CLI/package maturity
 
-**Status: proposed direction, not committed to a phase or release.** This
-document scopes a candidate next increment of the CLI/package — it does
-not change anything that exists today. See
-[docs/project-standing.md](project-standing.md) for what is already real,
+**Status: committed — ADR-0021 accepted, `schema` and `doctor` shipped.**
+This document scoped the CLI/package maturity direction selected by
+[ADR-0021](decisions/0021-cli-package-maturity-direction.md). The first
+two commands — `agent-ready schema` ([ADR-0022](decisions/0022-agent-ready-schema-command.md))
+and `agent-ready doctor` ([ADR-0023](decisions/0023-agent-ready-doctor-command.md))
+— are implemented and shipped. The remaining two (`explain`, `init`)
+remain proposed, each requiring its own ADR before implementation.
+See [docs/project-standing.md](project-standing.md) for current state
 and [ROADMAP.md](../ROADMAP.md) for committed phase history.
-
-Everything described below as "planned" requires the same process
-already established for consequential changes: an ADR, and — for
-anything touching `schemas/v1/agent-ready.schema.json` — explicit
-maintainer sign-off per [GOVERNANCE.md](../GOVERNANCE.md).
 
 ## Purpose
 
 Reduce the friction of adopting Agent-Ready in a new repository, without
 changing what the contract means or reopening non-goals already decided
 (arbitrary command execution, hosted state, telemetry). The contract
-format and its six existing commands (`validate`, `inspect`, `generate`,
-`check`, `analyze`, `verify`) are the stable foundation this scope builds
-on top of, not something it replaces.
+format and its existing commands (`validate`, `inspect`, `generate`,
+`check`, `analyze`, `schema`, `doctor`, `verify`) are the stable
+foundation this scope builds on top of, not something it replaces.
 
 ## Goals
 
@@ -48,7 +47,7 @@ on top of, not something it replaces.
   reviewed set until there is a concrete second-party adapter to justify
   the abstraction (see
   [docs/architecture/overview.md](architecture/overview.md#explicitly-absent-by-design-this-phase)).
-- Renaming or removing any of the six existing commands. `agent-ready
+- Renaming or removing any of the existing commands. `agent-ready
 generate` already does what a tool called "sync" would do (compile a
   contract into adapter output, with dry-run/`--check`/`--write`
   semantics) — this scope does not introduce a competing `sync` command
@@ -154,7 +153,7 @@ document.
 ## Safety model
 
 Every new command follows the same rules already load-bearing across
-the existing six:
+the existing commands:
 
 - Read-only by default; a command that writes (`init`) refuses to
   overwrite existing content without an explicit override flag.
@@ -168,30 +167,14 @@ the existing six:
   human output explicitly uncovered by any compatibility guarantee (see
   [docs/specification/api-stability.md](specification/api-stability.md)).
 
-## Implementation phases (proposed, unscheduled)
+## Implementation phases
 
-1. **Scope decision via ADR** — a single ADR choosing which of
-   `init`/`doctor`/`explain`/`schema` to build first, given
-   [ROADMAP.md](../ROADMAP.md)'s existing "recommended next phase" note
-   that a focused ADR should pick between architecture-dependency
-   analysis, task/context packets, and framework-specific examples —
-   this scope is one more candidate to weigh against those, not an
-   automatic next phase.
-2. **`agent-ready schema`** — lowest risk: no writes, no environment
-   inspection, just prints an already-bundled file. Reasonable first
-   build if this direction is chosen.
-3. **`agent-ready doctor`** — read-only environment inspection reusing
-   the existing `environment.runtimes`/`packageManager` fields and the
-   `GitClient` abstraction already built for `check`.
-4. **`agent-ready explain`** — reuses the existing diagnostic-code
-   registry; primarily a documentation/rendering exercise, not new
-   validation logic.
-5. **`agent-ready init`** — highest risk of the four: it is the only
-   one that writes, and the only one that requires deciding how much to
-   infer from an existing repository (detected `package.json` scripts,
-   detected package manager) versus prompting the user. Should follow
-   last, once the safety pattern from `generate --write` has a second
-   proof point in `doctor`/`explain`/`schema`.
+1. **Scope decision via ADR** — ✅ done ([ADR-0021](decisions/0021-cli-package-maturity-direction.md))
+2. **`agent-ready schema`** — ✅ shipped ([ADR-0022](decisions/0022-agent-ready-schema-command.md))
+3. **`agent-ready doctor`** — ✅ shipped ([ADR-0023](decisions/0023-agent-ready-doctor-command.md))
+4. **`agent-ready explain`** — proposed, requires its own ADR
+5. **`agent-ready init`** — proposed, requires its own ADR; highest risk
+   (the only writer after `generate --write`), sequenced last
 
 ## Testing strategy
 
@@ -217,7 +200,7 @@ A command in this scope is ready to build once, and only once, it has:
 
 - An accepted ADR.
 - A `docs/specification/cli-reference.md` section written in the same
-  format as the six existing commands (status, purpose, flags, examples,
+  format as the existing commands (status, purpose, flags, examples,
   exit codes, safety notes).
 - A test plan covering both success and failure paths.
 - No new required contract field, or — if one is genuinely needed — a
