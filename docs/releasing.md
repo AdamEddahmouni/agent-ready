@@ -17,6 +17,13 @@ Release steps:
    and `npm publish --provenance --access public`.
 
 The composite action and npm package are reproducible from the same tagged
-commit. Publishing requires an `NPM_TOKEN` secret configured in the repository
-settings. Use an **Automation** token type (not a user-bound publish token) so
-2FA does not block CI publishes.
+commit. Publishing uses npm Trusted Publishing (OIDC) — no tokens or
+secrets needed. For initial setup, link the GitHub repository to npm:
+
+1. Log in to [npmjs.com](https://www.npmjs.com) and go to the
+   `agent-ready` package.
+2. **Settings** → **Trusted Publishing** → **Add Trusted Publisher**.
+3. Choose **GitHub Actions**, enter:
+   - Repository: `AdamEddahmouni/agent-ready-repo` (update if moved)
+   - Workflow: `publish.yml`
+4. Click **Create Trust**.
