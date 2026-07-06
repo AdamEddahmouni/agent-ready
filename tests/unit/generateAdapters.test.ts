@@ -31,6 +31,56 @@ const fullRaw: RawContract = {
   adapters: { agentsMd: { enabled: true }, claude: { enabled: true } },
 };
 
+const groupingRaw: RawContract = {
+  version: 1,
+  project: { name: "grouping-example" },
+  commands: {
+    build: { run: "tsc" },
+    typecheck: { run: "tsc --noEmit" },
+    lint: { run: "eslint ." },
+    format: { run: "prettier --check ." },
+    test: { run: "vitest" },
+    "test-e2e": { run: "playwright test" },
+    ci: { run: "pnpm ci" },
+    custom: { run: "node custom.js" },
+  },
+  verification: { required: ["lint", "test", "build"] },
+  adapters: { agentsMd: { enabled: true } },
+};
+
+const verificationRaw: RawContract = {
+  version: 1,
+  project: { name: "verify-example" },
+  commands: {
+    lint: { run: "eslint ." },
+    test: { run: "vitest", description: "Run all tests" },
+    build: { run: "tsc" },
+  },
+  verification: { required: ["lint", "test", "build"] },
+  adapters: { agentsMd: { enabled: true } },
+};
+
+const pathsRaw: RawContract = {
+  version: 1,
+  project: { name: "paths-example" },
+  paths: {
+    protected: [".env*", "config/**"],
+    generated: ["dist/**", "coverage/**"],
+    ignored: ["node_modules/**"],
+  },
+  adapters: { agentsMd: { enabled: true } },
+};
+
+const envRaw: RawContract = {
+  version: 1,
+  project: { name: "env-example" },
+  environment: {
+    runtimes: { node: ">=20 <23" },
+    packageManager: { name: "pnpm", version: "10" },
+  },
+  adapters: { agentsMd: { enabled: true } },
+};
+
 describe.each([
   { name: "agentsMd", render: renderAgentsMd, relativePath: "AGENTS.md" },
   { name: "claude", render: renderClaude, relativePath: "CLAUDE.md" },
@@ -86,5 +136,62 @@ describe.each([
   it("is deterministic across repeated renders", () => {
     const contract = normalizeContract(fullRaw);
     expect(render(contract).content).toBe(render(contract).content);
+  });
+
+  it("groups commands into well-known categories", () => {
+    const contract = normalizeContract(groupingRaw);
+    const file = render(contract);
+    expect(file.content).toContain("### Build & Typecheck");
+    expect(file.content).toContain("### Code Quality");
+    expect(file.content).toContain("### Testing");
+    expect(file.content).toContain("### CI / Automation");
+    expect(file.content).toContain("### Other Commands");
+  });
+
+  it("renders verification as a numbered pipeline", () => {
+    const contract = normalizeContract(verificationRaw);
+    const file = render(contract);
+    expect(file.content).toContain("1. **`lint`**");
+    expect(file.content).toContain("2. **`test`** — Run all tests");
+    expect(file.content).toContain("3. **`build`**");
+    expect(file.content).toContain("Run verification with: `agent-ready verify --execute`");
+  });
+
+  it("renders Before Submitting Work checklist when verification is required", () => {
+    const contract = normalizeContract(verificationRaw);
+    const file = render(contract);
+    expect(file.content).toContain("## Before Submitting Work");
+    expect(file.content).toContain("- Run `eslint .`");
+    expect(file.content).toContain("- Run `vitest`");
+    expect(file.content).toContain("- Run `tsc`");
+  });
+
+  it("omits Before Submitting Work when no verification is required", () => {
+    const contract = normalizeContract(minimalRaw);
+    const file = render(contract);
+    expect(file.content).not.toContain("## Before Submitting Work");
+  });
+
+  it("renders Path Rules with explanatory sub-sections", () => {
+    const contract = normalizeContract(pathsRaw);
+    const file = render(contract);
+    expect(file.content).toContain("### Protected (DO NOT modify without explicit approval)");
+    expect(file.content).toContain("### Generated (produced by build, do not hand-edit)");
+    expect(file.content).toContain("### Ignored (do not include in agent output or consideration)");
+  });
+
+  it("renders Environment section when runtime data is present", () => {
+    const contract = normalizeContract(envRaw);
+    const file = render(contract);
+    expect(file.content).toContain("## Environment");
+    expect(file.content).toContain("**node**: `>=20 <23`");
+    expect(file.content).toContain("**Package manager**: `pnpm@10`");
+  });
+
+  it("uses Further Context heading instead of Further instructions", () => {
+    const contract = normalizeContract(minimalRaw);
+    const file = render(contract);
+    expect(file.content).toContain("## Further Context");
+    expect(file.content).not.toContain("## Further instructions");
   });
 });
