@@ -13,6 +13,7 @@ import { runVerify, VERIFICATION_RECORD_FILENAME } from "./commands/verify.js";
 import { runAnalyze } from "./commands/analyze.js";
 import { runSchema } from "./commands/schema.js";
 import { runDoctor } from "./commands/doctor.js";
+import { runExplain } from "./commands/explain.js";
 
 interface PackageJson {
   readonly version: string;
@@ -27,8 +28,8 @@ const program = new Command();
 program
   .name("agent-ready")
   .description(
-    "Validate, inspect, generate, check, analyze, doctor, verify, and inspect the\n" +
-      "bundled contract JSON Schema. This CLI never modifies the repository\n" +
+    "Validate, inspect, generate, check, analyze, schema, doctor, explain,\n" +
+      "verify, and inspect the bundled contract JSON Schema. This CLI never modifies the repository\n" +
       "unless `generate --write` is used, and never executes repository\n" +
       "commands unless `verify --execute` is used.",
   )
@@ -169,6 +170,25 @@ program
     const git = new NodeGitClient();
     const binary = new NodeBinaryClient();
     const outcome = await runDoctor(fs, git, binary, opts);
+    if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
+    if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
+    process.exitCode = outcome.exitCode;
+  });
+
+program
+  .command("explain")
+  .description(
+    "Print an extended, plain-language explanation of a diagnostic code.\n" +
+      "Optionally loads a contract via --config for field-specific context.\n" +
+      "Read-only; never modifies the repository, never executes commands.\n" +
+      "See docs/decisions/0024-agent-ready-explain-command.md.",
+  )
+  .requiredOption("--code <CODE>", "The diagnostic code to explain (e.g. PACKAGE_MANAGER_UNAVAILABLE).")
+  .option("--json", "Print results as machine-readable JSON.", false)
+  .option("--config <path>", "Explicit path to the contract file for field-specific context.")
+  .action(async (opts: { json: boolean; code: string; config?: string }) => {
+    const fs = new NodeFileSystem();
+    const outcome = await runExplain(fs, opts);
     if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
     if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
     process.exitCode = outcome.exitCode;

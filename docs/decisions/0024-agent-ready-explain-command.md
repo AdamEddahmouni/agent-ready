@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed (draft — not yet accepted or implemented).
+Accepted and implemented.
 
 ## Context
 

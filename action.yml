@@ -1,6 +1,6 @@
 name: "Agent-Ready"
 description: >-
-  Validate, inspect, generate, check, analyze, schema, doctor, and verify a
+  Validate, inspect, generate, check, analyze, schema, doctor, explain, and verify a
   repository's agent-ready.yaml contract, using this repository's own
   CLI built from source. See docs/specification/ci-integration.md.
 author: "Agent-Ready"
@@ -9,7 +9,7 @@ inputs:
   command:
     description: >-
       The agent-ready subcommand to run: validate, inspect, generate,
-      check, analyze, schema, doctor, or verify.
+      check, analyze, schema, doctor, explain, or verify.
     required: true
   config:
     description: "Explicit path to the contract file (agent-ready.yaml)."
@@ -101,7 +101,7 @@ runs:
         # the two cannot drift. Keep in sync with the `command`
         # input's prose description above; widen both when a new
         # subcommand ships per ADR-0021's ordered Path A rollout.
-        readonly accepted_subcommands='validate|inspect|generate|check|analyze|schema|doctor|verify'
+        readonly accepted_subcommands='validate|inspect|generate|check|analyze|schema|doctor|explain|verify'
 
         case "$INPUT_COMMAND" in
           $accepted_subcommands) ;;
