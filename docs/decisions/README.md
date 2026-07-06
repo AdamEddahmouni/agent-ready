@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-This directory records consequential technical decisions made through Phase 10
+This directory records consequential technical decisions made through Phase 10 and Path A
 of Agent-Ready, in lightweight MADR-style format
 (context, alternatives, decision, consequences, reconsideration trigger).
 
@@ -33,4 +33,5 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0020](0020-instruction-source-link-analysis.md)              | Instruction-source link analysis                                |
 | [0021](0021-cli-package-maturity-direction.md)                | CLI/package maturity direction (Path A) and first command       |
 | [0022](0022-agent-ready-schema-command.md)                    | `agent-ready schema` command (first Path A ship)                |
-| [0023](0023-agent-ready-doctor-command.md)                    | `agent-ready doctor` command (second Path A ship) — design only |
+| [0023](0023-agent-ready-doctor-command.md)                    | `agent-ready doctor` command (second Path A ship)              |
+| [0024](0024-agent-ready-explain-command.md)                  | `agent-ready explain` command (third Path A ship) — proposal   |
