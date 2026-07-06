@@ -1,13 +1,22 @@
 {
   "name": "agent-ready",
   "version": "0.3.0",
-  "description": "An open, vendor-neutral specification and CLI for defining, generating, and verifying the instructions, constraints, commands, and evidence AI coding agents need to work safely in a repository.",
+  "description": "The standard for agent-instruction files. Define commands, paths, and verification once in agent-ready.yaml — validate, enforce, generate AGENTS.md/CLAUDE.md/.cursorrules, and verify the work. Zero API keys, zero cost.",
   "keywords": [
     "agent-ready",
     "ai-agents",
     "specification",
     "cli",
-    "repository-contract"
+    "repository-contract",
+    "agents-md",
+    "claude-md",
+    "cursorrules",
+    "copilot-instructions",
+    "gemini-md",
+    "contract",
+    "verification",
+    "yaml",
+    "developer-tools"
   ],
   "homepage": "https://github.com/agent-ready/agent-ready-repo#readme",
   "bugs": {
