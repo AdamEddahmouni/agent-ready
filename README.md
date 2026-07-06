@@ -202,8 +202,8 @@ One repository contract. Any agent. Write the instructions once.
 ## Installation
 
 ```bash
-git clone https://github.com/AdamEddahmouni/agent-ready-repo.git
-cd agent-ready-repo
+git clone https://github.com/AdamEddahmouni/agent-ready.git
+cd agent-ready
 pnpm install
 pnpm build
 ```
@@ -273,7 +273,7 @@ GitHub composite action:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: AdamEddahmouni/agent-ready-repo@v0.3.0
+- uses: AdamEddahmouni/agent-ready@v0.3.0
   with:
     command: verify
     execute: "true"

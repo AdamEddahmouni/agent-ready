@@ -24,6 +24,6 @@ secrets needed. For initial setup, link the GitHub repository to npm:
    `agent-ready` package.
 2. **Settings** → **Trusted Publishing** → **Add Trusted Publisher**.
 3. Choose **GitHub Actions**, enter:
-   - Repository: `AdamEddahmouni/agent-ready-repo` (update if moved)
+   - Repository: `AdamEddahmouni/agent-ready`
    - Workflow: `publish.yml`
 4. Click **Create Trust**.

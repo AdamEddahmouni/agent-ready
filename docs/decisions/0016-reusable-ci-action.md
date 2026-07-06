@@ -65,7 +65,7 @@ npm registry involved.
 - **Interpolating `${{ inputs.* }}` directly inside the composite step's
   `run:` script body**: rejected as a matter of general GitHub Actions
   hygiene, not because caller-supplied inputs are adversarial here (a
-  workflow author who writes `uses: agent-ready/agent-ready-repo@<ref>`
+  workflow author who writes `uses: AdamEddahmouni/agent-ready@<ref>`
   already trusts this action's code to run in their CI, same as any other
   third-party action). Passing inputs through `env:` and referencing them
   as `$INPUT_*` shell variables instead avoids the well-known
@@ -107,7 +107,7 @@ build`, both run with `working-directory: ${{ github.action_path }}` (the
 ## Consequences
 
 - A downstream repository can adopt Agent-Ready's CLI in its own CI with
-  `uses: agent-ready/agent-ready-repo@<ref>` plus a `with: { command:
+  `uses: AdamEddahmouni/agent-ready@<ref>` plus a `with: { command:
 ... }` block, instead of hand-copying `node dist/cli/index.js ...`
   invocations — see the new
   [docs/specification/ci-integration.md](../specification/ci-integration.md).

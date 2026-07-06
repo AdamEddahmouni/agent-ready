@@ -212,7 +212,7 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> =
       {
         what: "An unexpected internal error occurred — the Agent-Ready installation itself appears broken, or an invariant the code assumes always holds was violated.",
         why: "This is always a bug in Agent-Ready, not a problem with your contract.",
-        fix: "1. Reinstall Agent-Ready:\n     pnpm add -D agent-ready@latest\n2. If the error persists, please report it as a bug at github.com/agent-ready/agent-ready-repo/issues. Include the full error output and the agent-ready.yaml that triggered it.",
+        fix: "1. Reinstall Agent-Ready:\n     pnpm add -D agent-ready@latest\n2. If the error persists, please report it as a bug at github.com/AdamEddahmouni/agent-ready/issues. Include the full error output and the agent-ready.yaml that triggered it.",
       },
     ],
 

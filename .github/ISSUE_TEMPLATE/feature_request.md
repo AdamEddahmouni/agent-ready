@@ -8,7 +8,7 @@ body:
     attributes:
       value: |
         Thanks for the feature request! Please check
-        [ROADMAP.md](https://github.com/AdamEddahmouni/agent-ready-repo/blob/main/ROADMAP.md)
+        [ROADMAP.md](https://github.com/AdamEddahmouni/agent-ready/blob/main/ROADMAP.md)
         first — items listed under "Strict non-goals" are intentionally out
         of scope for the current phase.
   - type: textarea

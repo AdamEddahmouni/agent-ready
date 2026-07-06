@@ -24,7 +24,7 @@ itself in place.
 Prefer an immutable full commit SHA when your supply-chain policy requires it:
 
 ```yaml
-uses: agent-ready/agent-ready-repo@<commit-sha>
+uses: AdamEddahmouni/agent-ready@<commit-sha>
 ```
 
 For readable version pinning, use the corresponding release tag, such as
@@ -48,33 +48,33 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Validate contract
-        uses: agent-ready/agent-ready-repo@v0.2.0
+        uses: AdamEddahmouni/agent-ready@v0.3.0
         with:
           command: validate
 
       - name: Check generated files are up to date
-        uses: agent-ready/agent-ready-repo@v0.2.0
+        uses: AdamEddahmouni/agent-ready@v0.3.0
         with:
           command: generate
           check: "true"
 
       - name: Check protected paths
-        uses: agent-ready/agent-ready-repo@v0.2.0
+        uses: AdamEddahmouni/agent-ready@v0.3.0
         with:
           command: check
 
       - name: Check documentation links
-        uses: agent-ready/agent-ready-repo@v0.2.0
+        uses: AdamEddahmouni/agent-ready@v0.3.0
         with:
           command: analyze
 
       - name: Print the bundled contract JSON Schema
-        uses: agent-ready/agent-ready-repo@v0.2.0
+        uses: AdamEddahmouni/agent-ready@v0.3.0
         with:
           command: schema
 
       - name: Run verification
-        uses: agent-ready/agent-ready-repo@v0.2.0
+        uses: AdamEddahmouni/agent-ready@v0.3.0
         with:
           command: verify
           execute: "true"
