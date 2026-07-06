@@ -86,7 +86,7 @@ Concretely, right now Agent-Ready can:
   `agent-ready verify --execute`, which runs exactly the commands declared
   in `verification.required` and nothing else. Every other command
   (`validate`, `inspect`, `generate`, `check`, `analyze`, `schema`,
-  `doctor`, and `agent-ready verify`
+  `doctor`, `explain`, and `agent-ready verify`
   without `--execute`) treats `commands`/`verification` as inert,
   validated data and never invokes a shell. `agent-ready check` never
   reads `commands` or `verification` at all; the only process it ever
@@ -182,6 +182,10 @@ agent-ready schema --json --content        # structured JSON with the schema bod
 agent-ready doctor                         # inspect host environment fitness vs contract
 agent-ready doctor --json                  # machine-readable per-check envelope
 agent-ready doctor --config path/to/agent-ready.yaml
+
+agent-ready explain --code PROTECTED_PATH_MODIFIED  # print an extended explanation of a diagnostic code
+agent-ready explain --code PACKAGE_MANAGER_UNAVAILABLE --json
+agent-ready explain --code CONTRACT_VERSION_UNSUPPORTED --config path/to/agent-ready.yaml
 
 agent-ready verify                         # dry run: print the verification.required plan
 agent-ready verify --execute               # actually run those commands, in order

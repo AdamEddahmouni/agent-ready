@@ -94,6 +94,7 @@ The required `command:` input below accepts exactly one of:
 - `analyze`
 - `schema`
 - `doctor`
+- `explain`
 - `verify`
 
 This list is the source of truth shared with `action.yml`'s
@@ -121,10 +122,10 @@ Path A note further down in this section.
 
 A step's exit code is exactly the CLI's exit code (see
 [cli-reference.md](cli-reference.md#exit-codes)) — a failing
-`validate`/`check`/`analyze`/`schema`/`verify` fails the job with no extra
+`validate`/`check`/`analyze`/`schema`/`doctor`/`explain`/`verify` fails the job with no extra
 wiring. The action never captures or parses the CLI's stdout/stderr; it
 flows straight to the job log exactly as if you had run the command
-yourself. As the remaining Path A commands (`explain`, `init`) ship
+yourself. As the remaining Path A command (`init`) ships
 per [ADR-0021](../decisions/0021-cli-package-maturity-direction.md), this
 action's accepted `command` values are widened in the same PR that adds
 each command, so the composite action supports every shipped CLI

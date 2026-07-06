@@ -1,14 +1,15 @@
 # Implementation scope: CLI/package maturity
 
-**Status: committed — ADR-0021 accepted, `schema` and `doctor` shipped.**
+**Status: committed — ADR-0021 accepted, three of four commands shipped.**
 This document scoped the CLI/package maturity direction selected by
 [ADR-0021](decisions/0021-cli-package-maturity-direction.md). The first
-two commands — `agent-ready schema` ([ADR-0022](decisions/0022-agent-ready-schema-command.md))
-and `agent-ready doctor` ([ADR-0023](decisions/0023-agent-ready-doctor-command.md))
-— are implemented and shipped. The remaining two (`explain`, `init`)
-remain proposed, each requiring its own ADR before implementation.
-See [docs/project-standing.md](project-standing.md) for current state
-and [ROADMAP.md](../ROADMAP.md) for committed phase history.
+three commands — `agent-ready schema` ([ADR-0022](decisions/0022-agent-ready-schema-command.md)),
+`agent-ready doctor` ([ADR-0023](decisions/0023-agent-ready-doctor-command.md)),
+and `agent-ready explain` ([ADR-0024](decisions/0024-agent-ready-explain-command.md))
+— are implemented and shipped. The remaining command (`init`) requires
+its own ADR before implementation. See
+[docs/project-standing.md](project-standing.md) for current state and
+[ROADMAP.md](../ROADMAP.md) for committed phase history.
 
 ## Purpose
 
@@ -16,7 +17,7 @@ Reduce the friction of adopting Agent-Ready in a new repository, without
 changing what the contract means or reopening non-goals already decided
 (arbitrary command execution, hosted state, telemetry). The contract
 format and its existing commands (`validate`, `inspect`, `generate`,
-`check`, `analyze`, `schema`, `doctor`, `verify`) are the stable
+`check`, `analyze`, `schema`, `doctor`, `explain`, `verify`) are the stable
 foundation this scope builds on top of, not something it replaces.
 
 ## Goals
@@ -172,7 +173,7 @@ the existing commands:
 1. **Scope decision via ADR** — ✅ done ([ADR-0021](decisions/0021-cli-package-maturity-direction.md))
 2. **`agent-ready schema`** — ✅ shipped ([ADR-0022](decisions/0022-agent-ready-schema-command.md))
 3. **`agent-ready doctor`** — ✅ shipped ([ADR-0023](decisions/0023-agent-ready-doctor-command.md))
-4. **`agent-ready explain`** — proposed, requires its own ADR
+4. **`agent-ready explain`** — ✅ shipped ([ADR-0024](decisions/0024-agent-ready-explain-command.md))
 5. **`agent-ready init`** — proposed, requires its own ADR; highest risk
    (the only writer after `generate --write`), sequenced last
 
