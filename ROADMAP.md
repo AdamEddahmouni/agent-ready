@@ -295,6 +295,13 @@ Path A is now complete: `schema` → `doctor` → `explain` → `init`, all
 four shipped behind their own ADRs per
 [ADR-0021](docs/decisions/0021-cli-package-maturity-direction.md).
 
+The forward release plan from v0.4.0 through v1.0.0 is documented in
+[ROADMAP-TO-1.0.md](ROADMAP-TO-1.0.md) — five milestones, seven
+releases, and 19 planned ADRs covering npm publication, richer contract
+fields, architecture-dependency analysis, ecosystem extensibility,
+stabilization, and the 1.0.0 release. That document supersedes the
+"Long-term open-source direction" section above for planning purposes.
+
 The three Phase 11 candidates enumerated in
 [ADR-0019](docs/decisions/0019-phase-10-direction.md) remain valid
 future directions behind their own ADRs: broader architecture-dependency

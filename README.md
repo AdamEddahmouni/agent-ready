@@ -297,7 +297,8 @@ for the full reference.
 - [Architecture overview](docs/architecture/overview.md)
 - [Architecture Decision Records](docs/decisions/README.md)
 - [Project standing](docs/project-standing.md)
-- [Roadmap](ROADMAP.md)
+- [Roadmap](ROADMAP.md) — completed phase history and current non-goals
+- [Roadmap to 1.0](ROADMAP-TO-1.0.md) — forward release plan from v0.4.0 to v1.0.0
 - [Adoption guide](docs/adoption-guide.md)
 - [Threat model](docs/security/threat-model.md)
 
