@@ -3,7 +3,7 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
-## Unreleased
+## 0.3.0 - 2026-07-06
 
 ### Added
 
@@ -55,6 +55,25 @@ All notable changes to Agent-Ready are documented here. The project follows
   package-manager absent / version mismatch / probe throw, Git missing
   with `paths.protected` empty vs declared (warn vs fail), `git --version`
   unexpected throw surfaces as `GIT_UNAVAILABLE` and exit 10.
+- `agent-ready explain`, a read-only CLI command that prints extended
+  human-readable explanations for Agent-Ready diagnostic codes (`--code`),
+  with structured `what` / `why` / `fix` / `related` fields, optional
+  contract-field context (`--config`), and machine-readable JSON output
+  (`--json`). Requires no contract or repository without `--config`; uses
+  the same `loadContract` pipeline as `validate`/`doctor` when `--config`
+  is given. See
+  [ADR-0024](docs/decisions/0024-agent-ready-explain-command.md).
+- [`src/cli/commands/explainRegistry.ts`](src/cli/commands/explainRegistry.ts)
+  with extended explanations for all 40 diagnostic codes, each carrying
+  `what` / `why` / `fix` / `fields` / `related` properties. Includes a
+  registry-invariant test ensuring every `DiagnosticCode` has an entry.
+- Vitest unit ([`tests/unit/explain.test.ts`](tests/unit/explain.test.ts))
+  and integration
+  ([`tests/integration/explainCli.test.ts`](tests/integration/explainCli.test.ts))
+  suites exercising the ADR-0024 acceptance criteria: recognized-code
+  human/JSON output, unknown-code exit 1, contract-field context when
+  `--config` loads successfully, missing-field '(not declared)' note,
+  contract-load failure short-circuits.
 - Vitest integration test
   [`tests/integration/actionSubcommands.test.ts`](tests/integration/actionSubcommands.test.ts)
   asserting that every CLI subcommand wired in
@@ -67,10 +86,10 @@ All notable changes to Agent-Ready are documented here. The project follows
 ### Changed
 
 - Widened the composite action's [`action.yml`](action.yml) `command`
-  input to accept `schema`, fulfilling the follow-up ADR-0022 deferred.
-  The action's typed inputs (`command:` / `config:` / `json:` / …) stay
-  data-driven — no shell-quoting or string interpolation into the bash
-  step. The
+  input to accept `schema`, `doctor`, and `explain`, fulfilling the
+  follow-up ADR requirements. The action's typed inputs (`command:` /
+  `config:` / `json:` / …) stay data-driven — no shell-quoting or
+  string interpolation into the bash step. The
   [`ci-integration.md`](docs/specification/ci-integration.md) reference
   mirrors the accepted list and adds a `command: schema` example; the
   [`.github/workflows/ci.yml`](.github/workflows/ci.yml) `dogfood-action`
@@ -78,9 +97,9 @@ All notable changes to Agent-Ready are documented here. The project follows
   `config:` intentionally empty for that one entry
   (`agent-ready schema` does not accept `--config` —
   [ADR-0022](docs/decisions/0022-agent-ready-schema-command.md)).
-  Future Path A commands (`doctor`, `explain`, `init`) will widen this
-  action's `command` input in the same PR that adds each command, so the
-  composite action supports every shipped CLI subcommand without lag.
+  Future Path A commands (`init`) will widen this action's `command`
+  input in the same PR that adds the command, so the composite action
+  supports every shipped CLI subcommand without lag.
 - New [`action-fail-fast`](.github/workflows/ci.yml) CI smoke job
   asserts `action.yml`'s bash `case` block rejects an unknown
   subcommand (`command: bogus`) with exit 3 and a `::error::`
@@ -101,13 +120,15 @@ All notable changes to Agent-Ready are documented here. The project follows
   is `agent-ready schema` (read-only, no contract-schema changes, no
   new diagnostic codes).
 - Drafted [ADR-0023](docs/decisions/0023-agent-ready-doctor-command.md)
-  — the per-command design for `agent-ready doctor` (second Path A
-  ship). Sequenced `doctor` → `explain` → `init` from ADR-0021. Doctor
-  is the first Path A command that is contract-loading (it compares
-  detected tooling against declared `environment.runtimes`/`environment.packageManager`
-  and required-`paths.protected` git). Five new diagnostic codes and
-  one new `GitClient.getBinaryInfo(root)` method (ADR-0013 invariants
-  intact) are scoped for the implementation PR that follows.
+  and [ADR-0024](docs/decisions/0024-agent-ready-explain-command.md)
+  — per-command designs for `agent-ready doctor` (second Path A ship)
+  and `agent-ready explain` (third Path A ship). Sequenced `doctor` →
+  `explain` → `init` from ADR-0021. Doctor is the first contract-loading
+  Path A command (compares detected tooling against declared
+  `environment.runtimes`/`environment.packageManager` and
+  required-`paths.protected` git); explain is the first documentation/
+  rendering-only command (no new diagnostic codes, no new abstractions).
+  Both ADRs were accepted and implemented in this release.
 
 ## 0.2.0 - 2026-07-03
 

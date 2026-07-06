@@ -1,6 +1,6 @@
 {
   "name": "agent-ready",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "An open, vendor-neutral specification and CLI for defining, generating, and verifying the instructions, constraints, commands, and evidence AI coding agents need to work safely in a repository.",
   "keywords": [
     "agent-ready",
