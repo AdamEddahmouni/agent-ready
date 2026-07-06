@@ -12,14 +12,16 @@ verify --execute`, which runs exactly the commands declared in
 `verification.required` (see [`agent-ready verify`](#agent-ready-verify)
 below and [ADR-0014](../decisions/0014-verification-execution.md)).
 
-This reference covers the eight commands that exist today. Additional
-commands (`init`, `explain`) are proposed, not implemented — see
+This reference covers the nine commands that exist today. One additional
+command (`init`) is proposed, not implemented — see
 [docs/implementation-scope-cli-package.md](../implementation-scope-cli-package.md).
 `agent-ready schema` is the first Path A ship per
 [ADR-0021](../decisions/0021-cli-package-maturity-direction.md) and
 [ADR-0022](../decisions/0022-agent-ready-schema-command.md);
 `agent-ready doctor` is the second, per
-[ADR-0023](../decisions/0023-agent-ready-doctor-command.md).
+[ADR-0023](../decisions/0023-agent-ready-doctor-command.md);
+`agent-ready explain` is the third, per
+[ADR-0024](../decisions/0024-agent-ready-explain-command.md).
 
 ## `agent-ready --help` / `agent-ready --version`
 
@@ -461,6 +463,130 @@ Five additive diagnostic codes per
 [`RUNTIME_VERSION_MISMATCH`, `RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED`,
 `PACKAGE_MANAGER_UNAVAILABLE`, `PACKAGE_MANAGER_VERSION_MISMATCH`,
 `GIT_REQUIRED_BUT_UNAVAILABLE`](diagnostics.md).
+
+## `agent-ready explain`
+
+Prints an extended, plain-language explanation of a diagnostic code —
+what it means, why Agent-Ready checks for it, how to fix it, and which
+contract fields it relates to. Takes the existing one-line
+`remediation` text every diagnostic already carries and expands it into
+a structured tutorial. Optionally loads a contract via `--config` for
+field-specific "Your contract" context. Read-only: never modifies the
+repository, never executes commands, never invokes Git. See
+[ADR-0024](../decisions/0024-agent-ready-explain-command.md).
+
+```bash
+agent-ready explain --code PACKAGE_MANAGER_UNAVAILABLE
+agent-ready explain --code PROTECTED_PATH_MODIFIED --json
+agent-ready explain --code CONTRACT_VERSION_UNSUPPORTED --config path/to/agent-ready.yaml
+```
+
+| Option            | Description                                                                                                          |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `--code <CODE>`   | (required) The diagnostic code to explain (e.g. `PACKAGE_MANAGER_UNAVAILABLE`).                                      |
+| `--json`          | Print results as machine-readable JSON.                                                                              |
+| `--config <path>` | Load this contract for field-specific "Your contract" context. If omitted, prints a generic explanation for the code. |
+
+**Human output** (no `--config`):
+
+```text
+agent-ready explain CONTRACT_NOT_FOUND
+
+What it means:
+  Agent-Ready could not find an agent-ready.yaml file in the current
+  directory or any ancestor directory.
+
+Why it happens:
+  Agent-Ready needs a contract file to know which commands, paths,
+  and environment constraints to validate against.
+
+How to fix it:
+  1. Create an agent-ready.yaml file at the root of your repository.
+  2. Or, pass it explicitly:
+       agent-ready validate --config path/to/agent-ready.yaml
+
+Related codes:
+  CONTRACT_READ_FAILED
+```
+
+**Human output** (with `--config`): appends a "Your contract" section
+showing the relevant field values from the loaded contract:
+
+```text
+agent-ready explain PACKAGE_MANAGER_UNAVAILABLE
+
+What it means:
+  ...
+
+Why it happens:
+  ...
+
+How to fix it:
+  ...
+
+Related codes:
+  PACKAGE_MANAGER_VERSION_MISMATCH, PACKAGE_MANAGER_INVALID
+
+Your contract (/path/to/agent-ready.yaml):
+  /environment/packageManager = {"name":"pnpm","version":"10"}
+```
+
+When the code has no contract-field relationship (e.g. `YAML_PARSE_FAILED`),
+the "Your contract" section is omitted even when `--config` is given.
+When a declared field is absent from the loaded contract, it is listed
+with `(not declared)`.
+
+**JSON output** (`--json`, no `--config`):
+
+```json
+{
+  "ok": true,
+  "code": "PACKAGE_MANAGER_UNAVAILABLE",
+  "severity": "error",
+  "what": "The contract declares a package manager that is not installed or not on your PATH.",
+  "why": "Agent-Ready checks so verification commands have a known executable available.",
+  "fix": "1. Install the declared package manager.\n2. Verify it is on your PATH.\n3. Or update agent-ready.yaml.\n4. Re-run agent-ready doctor.",
+  "related": ["PACKAGE_MANAGER_VERSION_MISMATCH", "PACKAGE_MANAGER_INVALID"],
+  "diagnostics": []
+}
+```
+
+With `--config` and a valid contract load, the JSON envelope adds
+`contractPath`, `repoRoot`, and a `contractFields` array:
+
+```json
+{
+  "ok": true,
+  "code": "GIT_REQUIRED_BUT_UNAVAILABLE",
+  "severity": "error",
+  "what": "...",
+  "why": "...",
+  "fix": "...",
+  "related": ["GIT_UNAVAILABLE"],
+  "contractPath": "/path/to/agent-ready.yaml",
+  "repoRoot": "/path",
+  "contractFields": [
+    {
+      "field": "/paths/protected",
+      "value": [".env*"]
+    }
+  ],
+  "diagnostics": []
+}
+```
+
+When `--config` is given but the contract fails to load, `ok` is
+`false` and `diagnostics` contains the load errors — but the explanation
+for the code itself is still included, because an invalid contract
+doesn't make the diagnostic-code definition any less valid.
+
+Recognized codes are validated against the same `isDiagnosticCode()`
+function the rest of the CLI uses. An unrecognized `--code` value is a
+usage error (exit 1, plain stderr message, not a `Diagnostic`).
+
+Exit codes: `0` on success, `1` on unrecognized code or contract
+validation failure, `2` when `--config` is given but the contract is
+not found.
 
 ## `agent-ready verify`
 
