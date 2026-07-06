@@ -60,6 +60,8 @@ jobs:
           node dist/cli/index.js --version
           node dist/cli/index.js validate --help
           node dist/cli/index.js inspect --help
+          node dist/cli/index.js generate --help
+          node dist/cli/index.js check --help
           node dist/cli/index.js analyze --help
           node dist/cli/index.js schema --help
           node dist/cli/index.js doctor --help
