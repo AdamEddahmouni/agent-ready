@@ -174,7 +174,7 @@ describe("agent-ready init (CLI composition)", () => {
     expect(body["mode"]).toBe("write");
     expect(body["contractPath"]).toBe(joinPath(root, "agent-ready.yaml"));
     const diags = body["diagnostics"] as { code: string }[];
-    expect(diags[0]?.["code"]).toBe("INIT_CONTRACT_EXISTS");
+    expect(diags[0]?.code).toBe("INIT_CONTRACT_EXISTS");
   });
 
   it("generates a contract that includes detected .gitignore patterns", async () => {

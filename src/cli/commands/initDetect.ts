@@ -71,11 +71,10 @@ export async function detectAll(fs: FileSystem, repoRoot: string): Promise<InitD
 
   return {
     ...projectName,
-    ...(pkg !== undefined &&
-      pkg["description"] !== undefined &&
+    ...(pkg?.["description"] !== undefined &&
       typeof pkg["description"] === "string" &&
-      (pkg["description"] as string).length >= 1 &&
-      (pkg["description"] as string).length <= 500 && { projectDescription: pkg["description"] }),
+      (pkg["description"]).length >= 1 &&
+      (pkg["description"]).length <= 500 && { projectDescription: pkg["description"] }),
     ...(nodeRange.range !== undefined && {
       nodeRange: nodeRange.range,
       nodeRangeSource: nodeRange.source,
@@ -104,7 +103,7 @@ async function readPackageJson(fs: FileSystem, repoRoot: string): Promise<Packag
   if (!stat?.isFile) return undefined;
   try {
     const raw = await fs.readTextFile(pkgPath);
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
     if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
       return parsed as PackageJson;
     }
@@ -168,8 +167,8 @@ interface NodeRangeResult {
 
 function detectNodeRange(
   pkg: PackageJson | undefined,
-  fs: FileSystem,
-  repoRoot: string,
+  _fs: FileSystem,
+  _repoRoot: string,
 ): NodeRangeResult {
   // 1. Try package.json engines.node
   if (pkg !== undefined) {
@@ -282,7 +281,7 @@ async function detectPackageManagerFromLockFiles(
   fs: FileSystem,
   repoRoot: string,
 ): Promise<PackageManagerResult | undefined> {
-  const checks: Array<{ file: string; name: "npm" | "pnpm" | "yarn"; version: string; source: PackageManagerResult["source"] }> = [
+  const checks: { file: string; name: "npm" | "pnpm" | "yarn"; version: string; source: PackageManagerResult["source"] }[] = [
     { file: "pnpm-lock.yaml", name: "pnpm", version: "10", source: "pnpm-lock.yaml" },
     { file: "yarn.lock", name: "yarn", version: "1", source: "yarn.lock" },
     { file: "package-lock.json", name: "npm", version: "10", source: "package-lock.json" },
@@ -459,7 +458,8 @@ async function readSingleLineFile(fs: FileSystem, absolutePath: string): Promise
     if (!stat?.isFile) return undefined;
     const raw = await fs.readTextFile(absolutePath);
     const firstLine = raw.split(/\r?\n/)[0];
-    return firstLine?.trim() || undefined;
+    const trimmed = firstLine?.trim();
+    return trimmed === "" ? undefined : trimmed;
   } catch {
     return undefined;
   }

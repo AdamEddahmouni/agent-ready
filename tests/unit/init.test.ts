@@ -260,7 +260,7 @@ describe("runInit — write", () => {
     expect(body["repoRoot"]).toBe("/repo");
     expect(body["contractPath"]).toBe("/repo/agent-ready.yaml");
     const diags = body["diagnostics"] as { code: string }[];
-    expect(diags[0]?.["code"]).toBe("INIT_CONTRACT_EXISTS");
+    expect(diags[0]?.code).toBe("INIT_CONTRACT_EXISTS");
   });
 
   it("JSON output for contract-exists case has expected shape", async () => {

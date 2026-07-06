@@ -334,7 +334,7 @@ describe("init — adversarial: YAML generation safety", () => {
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
     // Should contain a non-empty name.
     expect(outcome.stdout).toContain("name:");
-    expect(outcome.stdout).not.toMatch(/name: \"\"\n/);
+    expect(outcome.stdout).not.toMatch(/name: ""\n/);
   });
 
   it("handles a description containing double quotes", async () => {

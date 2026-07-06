@@ -197,7 +197,7 @@ const COMMAND_CATEGORIES: Readonly<Record<string, string>> = {
  */
 function groupCommands(
   commands: readonly NormalizedCommand[],
-): ReadonlyArray<[string, readonly NormalizedCommand[]]> {
+): readonly [string, readonly NormalizedCommand[]][] {
   const categoryOrder = ["Build & Typecheck", "Code Quality", "Testing", "CI / Automation", "Other Commands"];
   const map = new Map<string, NormalizedCommand[]>();
 
@@ -211,7 +211,7 @@ function groupCommands(
     }
   }
 
-  const result: Array<[string, readonly NormalizedCommand[]]> = [];
+  const result: [string, readonly NormalizedCommand[]][] = [];
   for (const cat of categoryOrder) {
     const list = map.get(cat);
     if (list !== undefined && list.length > 0) {

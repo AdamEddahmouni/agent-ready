@@ -28,6 +28,10 @@ instructions, restrictions, verification requirements, and completion evidence.
 
 No API keys. No LLM calls. No network access. Zero cost per run.
 
+<p align="center">
+  <img src="assets/cards/private-local-card.png" alt="Agent-Ready runs entirely locally — no API keys, no network, no LLM calls." width="100%">
+</p>
+
 ## Why Agent-Ready Exists
 
 AI coding agents are becoming part of everyday software development, but most
@@ -274,6 +278,10 @@ GitHub composite action:
     command: verify
     execute: "true"
 ```
+
+<p align="center">
+  <img src="assets/cards/ci-validation-card.png" alt="CI integration: agent-ready verify --execute in a GitHub Actions workflow." width="100%">
+</p>
 
 See [docs/specification/ci-integration.md](docs/specification/ci-integration.md)
 for the full reference.
