@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/readme-hero-banner.png" alt="Agent-Ready — Define once. Guide every agent. Verify the work." width="100%">
+  <img src="assets/brand/agent-ready-logo-lockup.png" alt="Agent-Ready" width="480">
 </p>
 
 <p align="center">
@@ -10,7 +10,11 @@
   <a href="#"><img alt="CLI" src="https://img.shields.io/badge/CLI-deterministic-12BFF3"></a>
 </p>
 
-# Agent-Ready
+<p align="center">
+  <img src="assets/brand/README-hero-banner.png" alt="Agent-Ready — Define once. Guide every agent. Verify the work." width="100%">
+</p>
+
+# <img src="assets/brand/agent-ready-icon.png" alt="" width="32" height="32" align="middle"> Agent-Ready
 
 **The missing contract between repositories and coding agents.**
 
@@ -255,7 +259,7 @@ run today.
 pipeline across Ubuntu, Windows, and macOS.
 
 <p align="center">
-  <img src="assets/diagrams/spec-lifecycle.png" alt="Specification lifecycle: Draft → Experimental → Stable → Versioned." width="100%">
+  <img src="assets/cards/spec-lifecycle.png" alt="Specification lifecycle: Draft → Experimental → Stable → Versioned." width="100%">
 </p>
 
 ## CI Integration

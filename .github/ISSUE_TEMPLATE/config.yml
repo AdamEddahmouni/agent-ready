@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/AdamEddahmouni/agent-ready-repo/tree/main/docs
+    about: Browse the specification, contract reference, CLI reference, and ADRs before opening an issue.
+  - name: Security report
+    url: https://github.com/AdamEddahmouni/agent-ready-repo/blob/main/SECURITY.md
+    about: Found a security vulnerability? Do NOT open a public issue — follow the private reporting process in SECURITY.md.

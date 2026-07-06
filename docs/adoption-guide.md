@@ -2,8 +2,9 @@
 
 Agent-Ready's CLI already exists (see
 [docs/project-standing.md](project-standing.md)), so adoption today does
-not require waiting for a future tool — but there is no `agent-ready
-init` yet, so the first contract in a repository is still hand-authored.
+not require waiting for a future tool. The `agent-ready init` command can
+scaffold a starter contract from your repository, or you can hand-author
+one — both paths are real today.
 
 ## Current adoption flow (real today)
 
@@ -11,14 +12,16 @@ init` yet, so the first contract in a repository is still hand-authored.
    repository (there is no published npm package yet — see
    [docs/specification/api-stability.md](specification/api-stability.md)
    and the installation note in [README.md](../README.md)).
-2. Read [docs/specification/contract-reference.md](specification/contract-reference.md)
-   and copy the smallest fit from [examples/](../examples/) —
+2. Scaffold a starter contract with `agent-ready init` (review the
+   output, then `agent-ready init --write` to write it), or hand-author
+   one using [docs/specification/contract-reference.md](specification/contract-reference.md)
+   and the examples in [examples/](../examples/) —
    [examples/minimal/agent-ready.yaml](../examples/minimal/agent-ready.yaml)
    for the smallest valid contract, or
    [examples/complete-phase-1/agent-ready.yaml](../examples/complete-phase-1/agent-ready.yaml)
    for one using every field.
-3. Create `agent-ready.yaml` at the repository root by hand, declaring
-   at minimum `version: 1` and `project.name`.
+3. Edit `agent-ready.yaml` at the repository root, declaring at minimum
+   `version: 1` and `project.name`.
 4. Declare the commands your repository already runs
    (`commands.lint.run`, `commands.test.run`, etc.) and list the ones
    that must pass under `verification.required`.
@@ -37,7 +40,7 @@ init` yet, so the first contract in a repository is still hand-authored.
    contract directly) as the source of truth for repository commands
    and constraints.
 
-## Future flow, once `agent-ready init` exists (not yet real)
+## Future flow, once the package is published to npm
 
 ```bash
 npm install -D agent-ready
@@ -46,12 +49,10 @@ npx agent-ready validate
 npx agent-ready generate --write
 ```
 
-`init` is proposed, not implemented — see
-[docs/implementation-scope-cli-package.md](implementation-scope-cli-package.md).
-Neither `npm install -D agent-ready` nor `npx agent-ready` works yet
-either, since the package is not published to npm; see
+The package is not yet published to npm — see
 [README.md](../README.md) for the current, from-source installation
-instructions.
+instructions. Once published, `npm install -D agent-ready` and
+`npx agent-ready` will work as shown above.
 
 ## What adoption does not require
 

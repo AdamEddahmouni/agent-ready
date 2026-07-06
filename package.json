@@ -18,13 +18,13 @@
     "yaml",
     "developer-tools"
   ],
-  "homepage": "https://github.com/agent-ready/agent-ready-repo#readme",
+  "homepage": "https://github.com/AdamEddahmouni/agent-ready-repo#readme",
   "bugs": {
-    "url": "https://github.com/agent-ready/agent-ready-repo/issues"
+    "url": "https://github.com/AdamEddahmouni/agent-ready-repo/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/agent-ready/agent-ready-repo.git"
+    "url": "git+https://github.com/AdamEddahmouni/agent-ready-repo.git"
   },
   "license": "Apache-2.0",
   "type": "module",

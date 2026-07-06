@@ -279,25 +279,15 @@ accounts · authentication · billing · telemetry · analytics · IDE
 extensions · a documentation website · GitHub App integration · a
 GitHub Action product · cloud APIs · enterprise features · AI-generated
 configuration · LLM calls · automatic repository modification · automated
-package publication or release.
+package publication or release.## Branding and visual design
 
-## Branding and visual design — deliberately deferred
-
-Logos, wordmarks, color palettes, a marketing/documentation website, and
-any visual identity for the future commercial product are explicitly
-deferred until the project reaches a fully public-ready 1.0 release.
-Until then, this remains a plain-text, terminal-first project: no design
-assets, brand guidelines, or website work will be produced, regardless of
-how complete an individual phase is. This is a scope decision, not an
-oversight.
-
-## Recommended next phase
-
-v0.2.0 has shipped and ADR-0021 has been accepted: Path A (CLI/package
-maturity) is selected over the three Phase 11 candidates ADR-0019
-enumerated — broader architecture-dependency analysis, task/context
-packets, and framework-specific examples. Those three remain valid
-future directions behind their own ADRs.
+Repository branding assets (logo, hero banner, diagrams, and feature
+cards under `assets/`) have been added for the GitHub README and social
+preview. A full visual identity system, brand guidelines, a
+marketing/documentation website, and any visual design for the future
+commercial product remain deferred until the project reaches a
+fully public-ready 1.0 release. The core CLI and specification remain
+terminal-first; the assets are presentation-layer only.
 
 ## Recommended next phase
 
