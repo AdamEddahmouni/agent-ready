@@ -226,7 +226,7 @@ jobs:
         uses: ./
         with:
           command: ${{ matrix.command }}
-          config: ${{ if(matrix.command == 'schema', '', 'examples/complete-phase-1/agent-ready.yaml') }}
+          config: ${{ matrix.command == 'schema' && '' || 'examples/complete-phase-1/agent-ready.yaml' }}
           json: "true"
 
   audit:
