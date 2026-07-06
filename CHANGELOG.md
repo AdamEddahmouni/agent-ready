@@ -3,6 +3,112 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
+## Unreleased
+
+### Added
+
+- `agent-ready schema`, a read-only CLI command that prints the bundled
+  Agent-Ready contract JSON Schema (path, contract version, JSON Schema
+  `$schema`/`$id`/`title`, byte count) and optionally (`--content`)
+  the parsed schema body. Requires no contract, repository, or Git
+  working tree. See
+  [ADR-0022](docs/decisions/0022-agent-ready-schema-command.md);
+  selected as the first Path A increment by
+  [ADR-0021](docs/decisions/0021-cli-package-maturity-direction.md).
+- `agent-ready doctor`, a read-only CLI command that inspects the host
+  environment for fitness to run Agent-Ready against the contract:
+  declared Node range (`runtime-node`), declared package manager
+  (`package-manager`), each declared non-`node` runtime
+  (`runtime-other-<name>`, warn-only), Git on `PATH` (`git-on-path`,
+  required iff `paths.protected` is non-empty), and Git working-tree
+  membership (`git-repository`, informational). Loads and validates
+  through the same contract pipeline as `agent-ready validate`; emits a
+  `{ ok, contractPath, repoRoot, checks, diagnostics }` envelope with a
+  uniform per-check row shape. Read-only: never executes
+  contract-declared commands, never invokes Git for state-changing
+  operations, never modifies the repository. See
+  [ADR-0023](docs/decisions/0023-agent-ready-doctor-command.md),
+  [ADR-0021](docs/decisions/0021-cli-package-maturity-direction.md).
+- New [`src/binary/`](src/binary/) module exporting the `BinaryClient`
+  boundary (`probe(target, root)` over the `git | pnpm | npm | yarn`
+  target union), the real
+  [NodeBinaryClient](src/binary/nodeBinaryClient.ts) (execFile-backed,
+  ADR-0013 invariant: hardcoded `[<target>, "--version"]` argv; ENOENT
+  resolves to `undefined`), and the
+  [FakeBinaryClient](src/binary/fakeBinaryClient.ts) test double. Mirrors
+  [`src/git/`](src/git/) in shape, so a future ADR adding a new probed
+  runtime (e.g. `python`, `rust`) extends the `BinaryTarget` union and
+  one probe mapping rather than introducing a parallel abstraction.
+- Five new doctor-raised diagnostic codes
+  (`RUNTIME_VERSION_MISMATCH`,
+  `RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED`,
+  `PACKAGE_MANAGER_UNAVAILABLE`,
+  `PACKAGE_MANAGER_VERSION_MISMATCH`,
+  `GIT_REQUIRED_BUT_UNAVAILABLE`) added to
+  [src/diagnostics/codes.ts](src/diagnostics/codes.ts), additive per
+  [ADR-0009](docs/decisions/0009-pre-1.0-stability-policy.md).
+- Vitest unit ([`tests/unit/doctor.test.ts`](tests/unit/doctor.test.ts))
+  and integration
+  ([`tests/integration/doctorCli.test.ts`](tests/integration/doctorCli.test.ts))
+  suites exercising the ADR-0023 §Tests matrix: all-pass happy path,
+  node-version mismatch, declared-but-unsupported non-Node runtimes,
+  package-manager absent / version mismatch / probe throw, Git missing
+  with `paths.protected` empty vs declared (warn vs fail), `git --version`
+  unexpected throw surfaces as `GIT_UNAVAILABLE` and exit 10.
+- Vitest integration test
+  [`tests/integration/actionSubcommands.test.ts`](tests/integration/actionSubcommands.test.ts)
+  asserting that every CLI subcommand wired in
+  [`src/cli/index.ts`](src/cli/index.ts) is listed in
+  [`action.yml`](action.yml)'s `inputs.command.description`, and
+  vice versa. Locks the action's accepted-subcommand allowlist in
+  lockstep with the wired CLI surface so a future Path A ship widens
+  both in one PR.
+
+### Changed
+
+- Widened the composite action's [`action.yml`](action.yml) `command`
+  input to accept `schema`, fulfilling the follow-up ADR-0022 deferred.
+  The action's typed inputs (`command:` / `config:` / `json:` / …) stay
+  data-driven — no shell-quoting or string interpolation into the bash
+  step. The
+  [`ci-integration.md`](docs/specification/ci-integration.md) reference
+  mirrors the accepted list and adds a `command: schema` example; the
+  [`.github/workflows/ci.yml`](.github/workflows/ci.yml) `dogfood-action`
+  matrix now exercises `schema` through the action as well, with
+  `config:` intentionally empty for that one entry
+  (`agent-ready schema` does not accept `--config` —
+  [ADR-0022](docs/decisions/0022-agent-ready-schema-command.md)).
+  Future Path A commands (`doctor`, `explain`, `init`) will widen this
+  action's `command` input in the same PR that adds each command, so the
+  composite action supports every shipped CLI subcommand without lag.
+- New [`action-fail-fast`](.github/workflows/ci.yml) CI smoke job
+  asserts `action.yml`'s bash `case` block rejects an unknown
+  subcommand (`command: bogus`) with exit 3 and a `::error::`
+  annotation. Guards against regression of the action-subcommand
+  allowlist.
+- De-duplicated the accepted-subcommands list in
+  [`docs/specification/ci-integration.md`](docs/specification/ci-integration.md)'s
+  Inputs section into a single "Accepted subcommands" subsection,
+  referenced by the Inputs table's `command` row. Fixed a
+  prettier-spacing sentence-join bug in the closing Path A prose.
+
+### Documentation
+
+- Selected Path A (CLI/package maturity) as the next increment via
+  [ADR-0021](docs/decisions/0021-cli-package-maturity-direction.md)
+  and updated ROADMAP.md's "Recommended next phase" and "CLI/package
+  maturity direction" sections accordingly; the first command to ship
+  is `agent-ready schema` (read-only, no contract-schema changes, no
+  new diagnostic codes).
+- Drafted [ADR-0023](docs/decisions/0023-agent-ready-doctor-command.md)
+  — the per-command design for `agent-ready doctor` (second Path A
+  ship). Sequenced `doctor` → `explain` → `init` from ADR-0021. Doctor
+  is the first Path A command that is contract-loading (it compares
+  detected tooling against declared `environment.runtimes`/`environment.packageManager`
+  and required-`paths.protected` git). Five new diagnostic codes and
+  one new `GitClient.getBinaryInfo(root)` method (ADR-0013 invariants
+  intact) are scoped for the implementation PR that follows.
+
 ## 0.2.0 - 2026-07-03
 
 ### Added

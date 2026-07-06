@@ -31,3 +31,6 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0018](0018-versioned-adapter-output-compatibility.md)        | Versioned adapter output compatibility corpus                   |
 | [0019](0019-phase-10-direction.md)                            | Phase 10 direction: architecture and documentation drift        |
 | [0020](0020-instruction-source-link-analysis.md)              | Instruction-source link analysis                                |
+| [0021](0021-cli-package-maturity-direction.md)                | CLI/package maturity direction (Path A) and first command       |
+| [0022](0022-agent-ready-schema-command.md)                    | `agent-ready schema` command (first Path A ship)                |
+| [0023](0023-agent-ready-doctor-command.md)                    | `agent-ready doctor` command (second Path A ship) — design only |

@@ -252,20 +252,23 @@ local verification. See the "open mechanism, paid coordination" principle
 referenced from the project brief and enforced by
 [ADR-0009](docs/decisions/0009-pre-1.0-stability-policy.md).
 
-## CLI/package maturity direction (proposed, not committed)
+## CLI/package maturity direction (selected — ADR-0021)
 
-A candidate next increment scopes new, adoption-focused CLI commands —
-`agent-ready init`, `doctor`, `explain`, `schema` — without changing
-what the contract means. This is direction, not a decision: it requires
-an ADR (and, for `init`, careful sequencing after the read-only
-commands) before any of it is built. See
-[docs/project-standing.md](docs/project-standing.md) for current vs.
-proposed state and
+Path A is the next increment: four adoption-focused CLI commands —
+`agent-ready init`, `doctor`, `explain`, `schema` — additive, no
+contract-semantic change. Decision recorded in
+[ADR-0021](docs/decisions/0021-cli-package-maturity-direction.md);
+see also
 [docs/implementation-scope-cli-package.md](docs/implementation-scope-cli-package.md)
 for the full scope, including why `agent-ready generate` already covers
-what a command called "sync" would do. This revisits, but does not yet
-override, the `init`/`sync` entry in the non-goals list immediately
-below — that list still reflects current, decided scope.
+what a command called "sync" would do. First command to ship:
+`agent-ready schema` (read-only, lowest risk);the remaining three are sequenced as the proposal recommends — `doctor` → `explain` → `init`,
+each behind its own ADR.
+
+This supersedes, but does not itself override, the `init`/`sync` entry
+in the strict non-goals list immediately below — that list still
+reflects current, decided scope; a future ADR for `init` specifically
+will need to revisit it on its own merits.
 
 ## Strict non-goals for the current phase
 
@@ -301,7 +304,17 @@ oversight.
 
 ## Recommended next phase
 
-Stabilize and release Phase 10 as `v0.2.0` before selecting another feature phase. After
-release, use a focused ADR to choose between broader architecture-dependency
-analysis, task/context packets, and framework-specific examples; no Phase 11
-scope is committed yet.
+v0.2.0 has shipped and ADR-0021 has been accepted: Path A (CLI/package
+maturity) is selected over the three Phase 11 candidates ADR-0019
+enumerated — broader architecture-dependency analysis, task/context
+packets, and framework-specific examples. Those three remain valid
+future directions behind their own ADRs.
+
+The first Path A deliverable — `agent-ready schema` — has shipped (see
+[ADR-0022](docs/decisions/0022-agent-ready-schema-command.md)). The
+remaining three Path A commands (`doctor`, `explain`, `init`) stay
+sequenced behind their own ADRs per
+[ADR-0021](docs/decisions/0021-cli-package-maturity-direction.md)'s
+post-`schema` order (`doctor` → `explain` → `init`); the per-command ADR
+discipline established through Phase 10 remains the project's
+preference over bundling.

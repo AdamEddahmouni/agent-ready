@@ -4,12 +4,15 @@ import { Command } from "commander";
 import { NodeFileSystem } from "../filesystem/nodeFileSystem.js";
 import { NodeGitClient } from "../git/nodeGitClient.js";
 import { NodeCommandRunner } from "../verify/nodeCommandRunner.js";
+import { NodeBinaryClient } from "../binary/nodeBinaryClient.js";
 import { runValidate } from "./commands/validate.js";
 import { runInspect } from "./commands/inspect.js";
 import { runGenerate } from "./commands/generate.js";
 import { runCheck } from "./commands/check.js";
 import { runVerify, VERIFICATION_RECORD_FILENAME } from "./commands/verify.js";
 import { runAnalyze } from "./commands/analyze.js";
+import { runSchema } from "./commands/schema.js";
+import { runDoctor } from "./commands/doctor.js";
 
 interface PackageJson {
   readonly version: string;
@@ -24,10 +27,10 @@ const program = new Command();
 program
   .name("agent-ready")
   .description(
-    "Validate, inspect, generate, check, analyze, and verify a repository's\n" +
-      "agent-ready.yaml contract. This CLI never modifies the repository unless\n" +
-      "`generate --write` is used, and never executes repository commands\n" +
-      "unless `verify --execute` is used.",
+    "Validate, inspect, generate, check, analyze, doctor, verify, and inspect the\n" +
+      "bundled contract JSON Schema. This CLI never modifies the repository\n" +
+      "unless `generate --write` is used, and never executes repository\n" +
+      "commands unless `verify --execute` is used.",
   )
   .version(pkg.version);
 
@@ -124,6 +127,48 @@ program
   .action(async (opts: { json: boolean; config?: string }) => {
     const fs = new NodeFileSystem();
     const outcome = await runAnalyze(fs, opts);
+    if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
+    if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
+    process.exitCode = outcome.exitCode;
+  });
+
+program
+  .command("schema")
+  .description(
+    "Print the bundled Agent-Ready contract JSON Schema and its version\n" +
+      "metadata. Read-only; never modifies the repository, never executes\n" +
+      "commands, and does not require an existing agent-ready.yaml.",
+  )
+  .option("--json", "Print results as machine-readable JSON.", false)
+  .option(
+    "--content",
+    "Include the full parsed schema body in the output, not just metadata.",
+    false,
+  )
+  .action(async (opts: { json: boolean; content: boolean }) => {
+    const outcome = await runSchema({ json: opts.json, content: opts.content });
+    if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
+    if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
+    process.exitCode = outcome.exitCode;
+  });
+
+program
+  .command("doctor")
+  .description(
+    "Inspect the host environment for fitness to run Agent-Ready against\n" +
+      "the contract: declared Node range, declared package manager,\n" +
+      "declared non-Node runtimes, Git on PATH, and Git working-tree\n" +
+      "membership. Read-only; never executes contract-declared commands,\n" +
+      "never invokes Git for state-changing operations, never modifies the\n" +
+      "repository. See docs/decisions/0023-agent-ready-doctor-command.md.",
+  )
+  .option("--json", "Print results as machine-readable JSON.", false)
+  .option("--config <path>", "Explicit path to the contract file.")
+  .action(async (opts: { json: boolean; config?: string }) => {
+    const fs = new NodeFileSystem();
+    const git = new NodeGitClient();
+    const binary = new NodeBinaryClient();
+    const outcome = await runDoctor(fs, git, binary, opts);
     if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
     if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
     process.exitCode = outcome.exitCode;

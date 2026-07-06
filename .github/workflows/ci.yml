@@ -61,6 +61,8 @@ jobs:
           node dist/cli/index.js validate --help
           node dist/cli/index.js inspect --help
           node dist/cli/index.js analyze --help
+          node dist/cli/index.js schema --help
+          node dist/cli/index.js doctor --help
           node dist/cli/index.js verify --help
 
       - name: CLI smoke test - valid examples pass
@@ -214,7 +216,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        command: [validate, inspect, generate, check, analyze, verify]
+        command: [validate, inspect, generate, check, analyze, schema, doctor, verify]
     steps:
       - uses: actions/checkout@v4
 
@@ -222,7 +224,7 @@ jobs:
         uses: ./
         with:
           command: ${{ matrix.command }}
-          config: examples/complete-phase-1/agent-ready.yaml
+          config: ${{ if(matrix.command == 'schema', '', 'examples/complete-phase-1/agent-ready.yaml') }}
           json: "true"
 
   audit:
@@ -246,3 +248,24 @@ jobs:
       - name: pnpm audit
         run: pnpm audit --audit-level=high
         continue-on-error: true
+
+  action-fail-fast:
+    name: composite action fail-fast on unknown subcommand
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The step name below contains the unquoted substring command: bogus,
+      # which prettier-plugin-yaml's compact-mapping parser would otherwise
+      # read as a nested mapping. Single-quoting the scalar suppresses that.
+      - name: "agent-ready via ./action.yml with command: bogus (must exit 3)"
+        id: fail-fast
+        uses: ./
+        with:
+          command: bogus
+
+      - name: assert the fail-fast case block fired (must be skipped when fail-fast ran)
+        if: steps.fail-fast.outcome != 'failure'
+        run: |
+          echo "::error::agent-ready: action.yml must reject an unknown subcommand (command: bogus); expected the bash case block to emit a ::error annotation that names bogus and exit 3. The step succeeded, meaning the case block regressed."
+          exit 1

@@ -14,14 +14,17 @@ agent-ready.yaml
 
 ## What this foundation actually does today
 
-This is the **Phase 0/1/2/3/4/5/6/7/8/9/10 foundation**: a minimal contract
+This is the **Phase 0/1/2/3/4/5/6/7/8/9/10 + Path A first-ship
+foundation**: a minimal contract
 core, a local CLI, agent-instruction generation for `AGENTS.md`,
 `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, and
 `GEMINI.md`, protected-path enforcement against real Git changes, local
 execution of a contract's declared verification commands, local
 recording of that execution's evidence, and a reusable GitHub composite
 action for adopting all of the above in another repository's CI, plus local
-documentation-link drift analysis for declared instruction sources.
+documentation-link drift analysis for declared instruction sources, plus
+a read-only introspection command that prints the bundled contract
+JSON Schema.
 Concretely, right now Agent-Ready can:
 
 - Discover a repository's `agent-ready.yaml` (see
@@ -170,6 +173,11 @@ agent-ready check --json
 agent-ready analyze                        # check instruction-source Markdown links
 agent-ready analyze --json                 # structured findings and diagnostics
 
+agent-ready schema                         # print the bundled contract JSON Schema metadata
+agent-ready schema --json                  # structured JSON envelope (no schema body)
+agent-ready schema --content               # human output with the schema body appended
+agent-ready schema --json --content        # structured JSON with the schema body as a `schema` field
+
 agent-ready verify                         # dry run: print the verification.required plan
 agent-ready verify --execute               # actually run those commands, in order
 agent-ready verify --execute --timeout 60  # override the per-command timeout (seconds)
@@ -275,25 +283,26 @@ checks, and similar) without ever making the local contract or CLI
 dependent on it — see [ROADMAP.md](ROADMAP.md) for details and explicit
 non-goals for this phase.
 
-## Planned CLI/package direction (proposed, not implemented)
+## Path A command status (first shipped — ADR-0022)
 
-The six commands documented above (`validate`, `inspect`, `generate`,
-`check`, `analyze`, `verify`) exist today. A candidate next increment
-would add adoption-focused commands on top of them:
+The seven commands documented above (`validate`, `inspect`, `generate`,
+`check`, `analyze`, `schema`, `verify`) exist today. Three more
+adoption-focused commands remain on Path A's roadmap, sequenced per
+[docs/implementation-scope-cli-package.md](docs/implementation-scope-cli-package.md)
+and
+[ADR-0021](docs/decisions/0021-cli-package-maturity-direction.md):
 
 ```bash
-agent-ready init      # NOT YET IMPLEMENTED — proposed
-agent-ready doctor    # NOT YET IMPLEMENTED — proposed
-agent-ready explain   # NOT YET IMPLEMENTED — proposed
-agent-ready schema    # NOT YET IMPLEMENTED — proposed
+agent-ready schema    # SHIPPED — see ADR-0022
+agent-ready doctor    # NOT YET IMPLEMENTED — sequenced after schema
+agent-ready explain   # NOT YET IMPLEMENTED — sequenced after doctor
+agent-ready init      # NOT YET IMPLEMENTED — sequenced last (the only second writer in the codebase besides `generate --write`)
 ```
 
-This is direction under discussion, not a commitment — see
+`agent-ready schema` is the first Path A command to ship — see
+[ADR-0022](docs/decisions/0022-agent-ready-schema-command.md). See
 [docs/project-standing.md](docs/project-standing.md) for exactly what's
-real today and
-[docs/implementation-scope-cli-package.md](docs/implementation-scope-cli-package.md)
-for the full scope, non-goals, and the ADR each command would need
-before it's built.
+real today.
 
 ## Contributing
 

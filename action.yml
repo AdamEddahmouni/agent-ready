@@ -1,15 +1,15 @@
 name: "Agent-Ready"
 description: >-
-  Validate, inspect, generate, check, analyze, and verify a repository's
-  agent-ready.yaml contract, using this repository's own CLI built from
-  source. See docs/specification/ci-integration.md.
+  Validate, inspect, generate, check, analyze, schema, doctor, and verify a
+  repository's agent-ready.yaml contract, using this repository's own
+  CLI built from source. See docs/specification/ci-integration.md.
 author: "Agent-Ready"
 
 inputs:
   command:
     description: >-
       The agent-ready subcommand to run: validate, inspect, generate,
-      check, analyze, or verify.
+      check, analyze, schema, doctor, or verify.
     required: true
   config:
     description: "Explicit path to the contract file (agent-ready.yaml)."
@@ -93,6 +93,23 @@ runs:
         INPUT_RECORD: ${{ inputs.record }}
       run: |
         set -euo pipefail
+
+        # Single source of truth for accepted subcommands. Both the
+        # `case` arm below and the `::error::` echo derive from this
+        # variable (the human-readable form uses bash `${var//|/, }`
+        # substitution to render the same list comma-separated), so
+        # the two cannot drift. Keep in sync with the `command`
+        # input's prose description above; widen both when a new
+        # subcommand ships per ADR-0021's ordered Path A rollout.
+        readonly accepted_subcommands='validate|inspect|generate|check|analyze|schema|doctor|verify'
+
+        case "$INPUT_COMMAND" in
+          $accepted_subcommands) ;;
+          *)
+            echo >&2 "::error::agent-ready: unknown command '$INPUT_COMMAND'. Accepted: ${accepted_subcommands//|/, }."
+            exit 3
+            ;;
+        esac
 
         args=("$INPUT_COMMAND")
 

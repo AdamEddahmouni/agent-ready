@@ -15,8 +15,9 @@ TypeScript package, not just a specification document:
   ([schemas/v1/agent-ready.schema.json](../schemas/v1/agent-ready.schema.json))
   and a full field reference
   ([docs/specification/contract-reference.md](specification/contract-reference.md)).
-- A working CLI (`agent-ready`, package bin) with six real commands:
-  `validate`, `inspect`, `generate`, `check`, `analyze`, `verify` — see
+- A working CLI (`agent-ready`, package bin) with eight real commands:
+  `validate`, `inspect`, `generate`, `check`, `analyze`, `schema`,
+  `doctor`, `verify` — see
   [docs/specification/cli-reference.md](specification/cli-reference.md)
   for exact behavior, flags, exit codes, and JSON output shapes.
 - Five implemented adapters that generate agent-instruction files from
@@ -36,7 +37,7 @@ TypeScript package, not just a specification document:
   embedding the validation pipeline in another tool — see
   [docs/specification/api-stability.md](specification/api-stability.md).
 - Unit and integration tests, a CI pipeline
-  (`.github/workflows/ci.yml`), 20 Architecture Decision Records
+  (`.github/workflows/ci.yml`), 23 Architecture Decision Records
   (`docs/decisions/`), a threat model, and a stated pre-1.0
   compatibility policy.
 
@@ -49,8 +50,10 @@ install && pnpm build` and every command above is real.
   hand-authoring the first `agent-ready.yaml` (with the examples in
   [examples/](../examples/) as a starting point), not scaffolding one
   with a CLI command.
-- **No `agent-ready doctor`, `agent-ready explain`, or `agent-ready
-schema` commands.** These are proposed, not built — see
+- **`agent-ready schema` is shipped** as the first Path A command per
+  [ADR-0022](decisions/0022-agent-ready-schema-command.md). `agent-ready
+doctor`, `explain`, and `init` remain sequenced behind their own ADRs
+  per [ADR-0021](decisions/0021-cli-package-maturity-direction.md) and
   [docs/implementation-scope-cli-package.md](implementation-scope-cli-package.md).
 - **No richer, structured "handoff evidence"** (summary, assumptions,
   known issues, risks) beyond the command-level pass/fail/timeout

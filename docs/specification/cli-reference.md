@@ -12,10 +12,14 @@ verify --execute`, which runs exactly the commands declared in
 `verification.required` (see [`agent-ready verify`](#agent-ready-verify)
 below and [ADR-0014](../decisions/0014-verification-execution.md)).
 
-This reference covers the six commands that exist today. Additional
-commands (`init`, `doctor`, `explain`, `schema`) are proposed, not
-implemented — see
+This reference covers the eight commands that exist today. Additional
+commands (`init`, `explain`) are proposed, not implemented — see
 [docs/implementation-scope-cli-package.md](../implementation-scope-cli-package.md).
+`agent-ready schema` is the first Path A ship per
+[ADR-0021](../decisions/0021-cli-package-maturity-direction.md) and
+[ADR-0022](../decisions/0022-agent-ready-schema-command.md);
+`agent-ready doctor` is the second, per
+[ADR-0023](../decisions/0023-agent-ready-doctor-command.md).
 
 ## `agent-ready --help` / `agent-ready --version`
 
@@ -275,6 +279,189 @@ No documentation drift found.
 When no instruction sources are declared, analysis succeeds with zero source
 and link counts.
 
+## `agent-ready schema`
+
+Prints the bundled Agent-Ready contract JSON Schema — the file the CLI
+itself validates `agent-ready.yaml` against — without requiring a
+contract, repository, or Git working tree. Read-only: never modifies
+the repository, never invokes Git, never runs commands, and never
+makes network calls. See
+[ADR-0022](../decisions/0022-agent-ready-schema-command.md).
+
+```bash
+agent-ready schema              # metadata-only human-readable summary
+agent-ready schema --json       # structured JSON without schema body
+agent-ready schema --content    # also include the full schema body (human)
+agent-ready schema --json --content   # structured JSON, body included as `schema` field
+```
+
+| Option      | Description                                                      |
+| ----------- | ---------------------------------------------------------------- |
+| `--json`    | Print results as machine-readable JSON.                          |
+| `--content` | Include the parsed schema body in the output, not just metadata. |
+
+This command has no `--config` flag and does not consult the user's
+`agent-ready.yaml`/repository/Git. It is the only Agent-Ready command
+that does not require any pre-existing repository state at all.
+
+**Human output** (success, no `--content`):
+
+```text
+Agent-Ready contract JSON Schema (bundled with this CLI).
+  contract version: 1
+  path: /abs/path/to/schemas/v1/agent-ready.schema.json
+  bytes: 5402
+  JSON Schema $schema: https://json-schema.org/draft/2020-12/schema
+  JSON Schema $id: https://schemas.agent-ready.dev/v1/agent-ready.schema.json
+  title: Agent-Ready Repository Contract (v1, Phase 1 minimal core)
+```
+
+**JSON output** (`--json`, no `--content`):
+
+```json
+{
+  "ok": true,
+  "schemaPath": "/abs/path/to/schemas/v1/agent-ready.schema.json",
+  "contractVersion": 1,
+  "draft": "https://json-schema.org/draft/2020-12/schema",
+  "id": "https://schemas.agent-ready.dev/v1/agent-ready.schema.json",
+  "title": "Agent-Ready Repository Contract (v1, Phase 1 minimal core)",
+  "byteCount": 5402,
+  "diagnostics": []
+}
+```
+
+With `--content`, the human output appends a pretty-printed schema body
+after the metadata, and the `--json` output adds a `schema` field whose
+value is the parsed JSON Schema object.
+
+On an integrity failure (bundle missing, malformed, or not a JSON
+object), `ok` is `false`, the run's exit code reflects
+`ExitCode.INTERNAL_ERROR` (10), and `diagnostics` contains exactly one
+`INTERNAL_INVARIANT_VIOLATION`. The bundled schema is shipped next to
+the installed CLI and should always parse cleanly; this is treated as
+an Agent-Ready-installation bug rather than a user-correctable error.
+
+## `agent-ready doctor`
+
+Inspects the host environment for fitness to run Agent-Ready against the
+contract without spawning anything contract-declared. Reports, per
+check, whether the host satisfies what the contract declares: declared
+Node range, declared package manager, declared non-`node` runtimes, Git
+on `PATH`, and Git working-tree membership. **Read-only**: never
+executes contract-declared commands, never invokes Git for
+state-changing operations, never modifies the repository. Loads and
+validates through the same contract pipeline as
+[`agent-ready validate`](#agent-ready-validate), so a contract that
+fails validation short-circuits the run with the same diagnostics. See
+[ADR-0023](../decisions/0023-agent-ready-doctor-command.md).
+
+```bash
+agent-ready doctor
+agent-ready doctor --json
+agent-ready doctor --config path/to/agent-ready.yaml
+```
+
+| Option            | Description                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| `--json`          | Print a machine-readable JSON envelope (per-check rows + diagnostics) instead of human-readable.       |
+| `--config <path>` | Use this exact contract file instead of discovery; see [discovery.md](discovery.md#explicit---config). |
+
+**Per-check axes (in document order):**
+
+| Check axis             | Always emitted?  | Notes                                                                                                           |
+| ---------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------- |
+| `runtime-node`         | yes              | Detected via `process.version` vs declared `environment.runtimes.node`. Warn when not declared.                 |
+| `runtime-other-<name>` | yes, one per key | One row per non-`node` declaration under `environment.runtimes`. Warn-only: doctor does not probe non-Node yet. |
+| `package-manager`      | only if declared | Detected via `BinaryClient.probe(<name>, root)` vs declared `environment.packageManager`.                       |
+| `git-on-path`          | yes              | Detected via `BinaryClient.probe('git', root)`. Required iff `paths.protected` is non-empty (else warn-only).   |
+| `git-repository`       | yes              | Detected via `GitClient.isRepository(root)`. Warn-only on mismatch when `paths.protected` is non-empty.         |
+
+**Human output** (success):
+
+```text
+Agent-Ready doctor - repoRoot: /path
+
+  [pass] runtime-node: detected v20.10.0 satisfies declared ">=20 <23"
+  [pass] package-manager: detected pnpm 10.0.0 satisfies declared "10"
+  [pass] git-on-path: detected git version 2.43.0 on /usr/bin/git
+  [pass] git-repository: cwd is inside a Git working tree
+
+All 4 checks pass.
+```
+
+**JSON output** (`--json`), always an envelope `{ ok, contractPath,
+repoRoot, checks, diagnostics }`:
+
+```json
+{
+  "ok": false,
+  "contractPath": "/path/to/agent-ready.yaml",
+  "repoRoot": "/path",
+  "checks": [
+    {
+      "check": "runtime-node",
+      "status": "pass",
+      "declared": ">=20 <23",
+      "detected": "v20.10.0"
+    },
+    {
+      "check": "runtime-other-python",
+      "status": "warn",
+      "declared": ">=3.10",
+      "detected": null,
+      "summary": "doctor does not probe python in this ADR."
+    },
+    {
+      "check": "package-manager",
+      "status": "fail",
+      "declared": { "name": "pnpm", "version": "10" },
+      "detected": null,
+      "summary": "Declared package manager pnpm is not on PATH."
+    },
+    {
+      "check": "git-on-path",
+      "status": "pass",
+      "required": true,
+      "detected": { "version": "git version 2.43.0", "path": "/usr/bin/git" }
+    },
+    {
+      "check": "git-repository",
+      "status": "pass",
+      "required": false,
+      "detected": true
+    }
+  ],
+  "diagnostics": [
+    {
+      "code": "RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED",
+      "severity": "warning",
+      "summary": "Declared runtime python is not probed by doctor in this ADR.",
+      "field": "/environment/runtimes/python",
+      "remediation": "Track ADR-0023 follow-ups; future ADRs may graduate python to a first-class BinaryClient.probe target."
+    },
+    {
+      "code": "PACKAGE_MANAGER_UNAVAILABLE",
+      "severity": "error",
+      "summary": "Declared package manager pnpm is not on PATH.",
+      "field": "/environment/packageManager",
+      "remediation": "Install pnpm or update environment.packageManager to match an installed manager."
+    }
+  ]
+}
+```
+
+Per-row fields appear conditionally per ADR-0023 "JSON output": every
+row carries `check` and `status`; `declared`, `detected`, `required`,
+and `summary` appear only where ADR-0023 calls for them. `summary` is
+present whenever a row's `status` is `"warn"` or `"fail"`.
+
+Five additive diagnostic codes per
+[ADR-0009](../decisions/0009-pre-1.0-stability-policy.md):
+[`RUNTIME_VERSION_MISMATCH`, `RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED`,
+`PACKAGE_MANAGER_UNAVAILABLE`, `PACKAGE_MANAGER_VERSION_MISMATCH`,
+`GIT_REQUIRED_BUT_UNAVAILABLE`](diagnostics.md).
+
 ## `agent-ready verify`
 
 Runs the same pipeline as `validate`, then runs the contract's
@@ -384,13 +571,13 @@ category (this is a single local file, not history or a dashboard).
 
 ## Exit codes
 
-| Code | Meaning                                                                                                                                              |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | Success                                                                                                                                              |
-| 1    | Validation failed (schema or semantic error), generated/protected/documentation drift was found, or a `verify --execute` command failed or timed out |
-| 2    | Contract or analysis input was not readable; Git could not be read (`check`); or a `verify --execute` command could not be spawned                   |
-| 3    | Unsupported contract version                                                                                                                         |
-| 10   | Internal Agent-Ready failure, including a `generate --write` or `verify --execute --record` write failure (please report as a bug)                   |
+| Code | Meaning                                                                                                                                                                                |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | Success                                                                                                                                                                                |
+| 1    | Validation failed (schema or semantic error), generated/protected/documentation drift was found, or a `verify --execute` command failed or timed out                                   |
+| 2    | Contract or analysis input was not readable; Git could not be read (`check`); or a `verify --execute` command could not be spawned                                                     |
+| 3    | Unsupported contract version                                                                                                                                                           |
+| 10   | Internal Agent-Ready failure, including a `generate --write` or `verify --execute --record` write failure or a bundled-`agent-ready schema` integrity failure (please report as a bug) |
 
 See [diagnostics.md](diagnostics.md) and
 [ADR-0008](../decisions/0008-diagnostics-and-exit-codes.md) for how a set
