@@ -3,7 +3,14 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
-## 0.4.0-beta.3 - Unreleased
+## 0.4.0-beta.4 - Unreleased
+
+### Fixed
+
+- Attach the adapter compatibility corpus to each GitHub Release, alongside
+  the npm tarball as documented.
+
+## 0.4.0-beta.3 - 2026-07-11
 
 ### Fixed
 

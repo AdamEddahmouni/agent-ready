@@ -25,11 +25,11 @@ describe("release helper scripts", () => {
 
     await execFile(process.execPath, [
       "scripts/extract-release-notes.mjs",
-      "0.4.0-beta.3",
+      "0.4.0-beta.4",
       outputPath,
     ]);
     const notes = await readFile(outputPath, "utf8");
-    expect(notes).toContain("# Agent-Ready 0.4.0-beta.3");
+    expect(notes).toContain("# Agent-Ready 0.4.0-beta.4");
     expect(notes).toContain("### Fixed");
     expect(notes).toContain("## Release assets");
     expect(notes).not.toContain("## 0.3.0");

@@ -65,6 +65,7 @@ jobs:
           if [[ "$VERSION" == *-* ]]; then PRERELEASE_ARGS+=(--prerelease); fi
           gh release create "${{ github.ref_name }}" \
             "$PACKAGE_TARBALL" \
+            release-assets/agent-ready-adapter-compatibility-v1.tgz \
             --verify-tag \
             --title "Agent-Ready $VERSION" \
             --notes-file release-assets/release-notes.md \
