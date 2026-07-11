@@ -73,11 +73,12 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="$(node -p "require('./package.json').version")"
+          PACKAGE_NAME="@adameddahmouni/agent-ready"
 
           for attempt in 1 2 3 4 5 6; do
-            if npm view "agent-ready@$VERSION" version >/dev/null 2>&1; then break; fi
+            if npm view "$PACKAGE_NAME@$VERSION" version >/dev/null 2>&1; then break; fi
             if [ "$attempt" = "6" ]; then
-              echo "::error::agent-ready@$VERSION did not become visible on npm in time"
+              echo "::error::$PACKAGE_NAME@$VERSION did not become visible on npm in time"
               exit 1
             fi
             sleep 10
@@ -87,7 +88,7 @@ jobs:
           cp examples/minimal/agent-ready.yaml "$TEMP_DIR/agent-ready.yaml"
           cd "$TEMP_DIR"
           npm init --yes >/dev/null
-          npm install --ignore-scripts --save-dev "agent-ready@$VERSION"
+          npm install --ignore-scripts --save-dev "$PACKAGE_NAME@$VERSION"
 
           INSTALLED_VERSION="$(npx --no-install agent-ready --version)"
           if [ "$INSTALLED_VERSION" != "$VERSION" ]; then

@@ -56,10 +56,15 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="$(node -p "require('./package.json').version")"
+          PACKAGE_TARBALL="$(find release-assets -maxdepth 1 -type f -name '*.tgz' ! -name 'agent-ready-adapter-compatibility-v1.tgz' -print -quit)"
+          if [ -z "$PACKAGE_TARBALL" ]; then
+            echo "::error::npm package tarball was not created"
+            exit 1
+          fi
           PRERELEASE_ARGS=()
           if [[ "$VERSION" == *-* ]]; then PRERELEASE_ARGS+=(--prerelease); fi
           gh release create "${{ github.ref_name }}" \
-            release-assets/agent-ready-*.tgz \
+            "$PACKAGE_TARBALL" \
             --verify-tag \
             --title "Agent-Ready $VERSION" \
             --notes-file release-assets/release-notes.md \

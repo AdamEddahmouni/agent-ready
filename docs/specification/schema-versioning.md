@@ -11,7 +11,7 @@ These are two different numbers:
 - **Contract `version`** (the `version: 1` field inside
   `agent-ready.yaml`) identifies the _shape_ of the contract itself. Only
   `1` is supported today.
-- **Agent-Ready package version** (in `package.json`, currently `0.4.0-beta.1`)
+- **Agent-Ready package version** (in `package.json`, currently `0.4.0-beta.2`)
   identifies the CLI/library release. Multiple package versions can, and
   will, support contract `version: 1` — adding an optional field to the
   schema is a minor package release, not a new contract version.

@@ -63,8 +63,8 @@ known limitations documented in the threat model.
 - [x] **ADR-0027: npm package publication strategy.** Justifies the
       publish-on-tag workflow (already in `publish.yml`), the `files` allowlist
       in `package.json`, provenance attestation via OIDC trusted publishing,
-      and the decision to publish `agent-ready` as an unscoped package (name
-      verified available on npm as of 2026-07-10). **This ADR formally reopens
+      and the decision to publish `@adameddahmouni/agent-ready` as a scoped package
+      after npm rejected the unscoped name for similarity. **This ADR formally reopens
       the "automated package publication or release" non-goal from ROADMAP.md**
       — the existing non-goal was scoped to the composite action not requiring
       npm publish (ADR-0016); this ADR broadens the project to support
@@ -72,10 +72,10 @@ known limitations documented in the threat model.
       action remains build-from-source.
 
 - [ ] Configure npm Trusted Publishing on npmjs.com (link the
-      `agent-ready` package to this GitHub repo + `publish.yml` workflow).
+      `@adameddahmouni/agent-ready` package to this GitHub repo + `publish.yml` workflow).
 - [ ] Tag `v0.4.0` and publish. Update `README.md` and
       `docs/adoption-guide.md` installation instructions to show
-      `npm install -D agent-ready` / `npx agent-ready` as the primary path,
+      `npm install -D @adameddahmouni/agent-ready` / `npx agent-ready` as the primary path,
       with from-source as the fallback.
 - [x] Add a `postpublish` smoke verification step to `publish.yml`
       that installs the just-published version in a clean temp directory
@@ -142,7 +142,7 @@ examples/minimal/agent-ready.yaml`.
 
 ### v0.4.0 exit criteria
 
-- [ ] `npm install -D agent-ready` works and produces a working CLI. Requires
+- [ ] `npm install -D @adameddahmouni/agent-ready` works and produces a working CLI. Requires
       the external public-repository, npm-bootstrap, and tag-publication steps.
 - [x] `agent-ready upgrade --write` safely modernizes a v0.1.0-era contract.
 - [x] All three threat-model known limitations addressed above are closed.

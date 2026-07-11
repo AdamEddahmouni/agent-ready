@@ -14,7 +14,8 @@ ADR-0016 deliberately made the composite GitHub Action build from source so
 adopters did not depend on an npm release. That decision did not prohibit npm
 as an additional distribution channel, but ROADMAP.md retained automated
 publication as a phase non-goal. Path A is complete and the CLI is now mature
-enough that `npm install -D agent-ready` should be the primary onboarding path.
+enough that `npm install -D @adameddahmouni/agent-ready` should be the primary
+onboarding path.
 
 Publishing creates a supply-chain boundary: a tag, source commit, package
 contents, registry identity, and generated artifact must agree. The first

@@ -98,7 +98,7 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
     {
       what: "The `version` field in agent-ready.yaml is a number other than 1. Only contract version 1 is supported by this CLI build.",
       why: "The contract version lets Agent-Ready evolve the schema without breaking existing files. If you have a version other than 1, this CLI build cannot validate your contract correctly.",
-      fix: "1. Set `version: 1` at the top of agent-ready.yaml.\n2. If you genuinely need a newer contract version, upgrade the Agent-Ready CLI:\n     pnpm add -D agent-ready@latest",
+      fix: "1. Set `version: 1` at the top of agent-ready.yaml.\n2. If you genuinely need a newer contract version, upgrade the Agent-Ready CLI:\n     pnpm add -D @adameddahmouni/agent-ready@latest",
       fields: ["/version"],
     },
   ],
@@ -223,7 +223,7 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
     {
       what: "An unexpected internal error occurred — the Agent-Ready installation itself appears broken, or an invariant the code assumes always holds was violated.",
       why: "This is always a bug in Agent-Ready, not a problem with your contract.",
-      fix: "1. Reinstall Agent-Ready:\n     pnpm add -D agent-ready@latest\n2. If the error persists, please report it as a bug at github.com/AdamEddahmouni/agent-ready/issues. Include the full error output and the agent-ready.yaml that triggered it.",
+      fix: "1. Reinstall Agent-Ready:\n     pnpm add -D @adameddahmouni/agent-ready@latest\n2. If the error persists, please report it as a bug at github.com/AdamEddahmouni/agent-ready/issues. Include the full error output and the agent-ready.yaml that triggered it.",
     },
   ],
 

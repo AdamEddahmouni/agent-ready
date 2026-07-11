@@ -35,7 +35,7 @@ it. For the first publication only:
 1. Make the GitHub repository public so npm provenance can link to the public
    source commit.
 2. Create a short-lived, granular npm token authorized to publish
-   `agent-ready`, store it as the repository secret `NPM_TOKEN`, and keep 2FA
+   `@adameddahmouni/agent-ready`, store it as the repository secret `NPM_TOKEN`, and keep 2FA
    enabled on the npm account.
 3. Push the first release tag. The publish workflow uses `NPM_TOKEN` for this
    bootstrap run and publishes prereleases under the `next` dist-tag.
@@ -47,7 +47,7 @@ it. For the first publication only:
 ## Configure Trusted Publishing
 
 1. Log in to [npmjs.com](https://www.npmjs.com) and go to the
-   `agent-ready` package.
+   `@adameddahmouni/agent-ready` package.
 2. **Settings** → **Trusted Publishing** → **Add Trusted Publisher**.
 3. Choose **GitHub Actions**, enter:
    - Repository: `AdamEddahmouni/agent-ready`

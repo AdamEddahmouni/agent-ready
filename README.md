@@ -202,13 +202,13 @@ One repository contract. Any agent. Write the instructions once.
 
 ## Installation
 
-The first npm public preview is being prepared as `0.4.0-beta.1`. After that
+The first npm public preview is being prepared as `0.4.0-beta.2`. After that
 release is available under npm's `next` tag, install it with:
 
 ```bash
-npm install --save-dev agent-ready@next
+npm install --save-dev @adameddahmouni/agent-ready@next
 # or
-pnpm add --save-dev agent-ready@next
+pnpm add --save-dev @adameddahmouni/agent-ready@next
 ```
 
 Then run the local binary with `npx agent-ready` or `pnpm exec agent-ready`.
@@ -275,7 +275,7 @@ reporting what they ran, what passed, and what changed.
 ## Project Status
 
 Agent-Ready is **pre-1.0**. The current development version is
-`0.4.0-beta.1`, the first public-preview line. The core contract schema and
+`0.4.0-beta.2`, the first public-preview line. The core contract schema and
 CLI are stable enough for evaluation and daily use. Path A (the adoption
 funnel: `schema` →
 `doctor` → `explain` → `init`) is complete. All eleven commands ship and run
@@ -297,7 +297,7 @@ it after that tag appears in this repository's Releases page:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: AdamEddahmouni/agent-ready@v0.4.0-beta.1
+- uses: AdamEddahmouni/agent-ready@v0.4.0-beta.2
   with:
     command: verify
     execute: "true"

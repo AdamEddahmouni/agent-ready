@@ -5,7 +5,7 @@ This document is the honest, current-state entry point for anyone asking
 because Agent-Ready's direction is easy to over- or under-state: the
 project is neither a documentation-only proposal nor a finished product.
 
-## What exists today (v0.4.0-beta.1 development line, pre-1.0)
+## What exists today (v0.4.0-beta.2 development line, pre-1.0)
 
 Agent-Ready already ships a real, installable-from-source CLI and
 TypeScript package, not just a specification document:
@@ -47,7 +47,7 @@ install && pnpm build` and every command above is real.
 ## What does not exist yet
 
 - **No stable npm release.** The source tree is installable and package-smoke
-  tested, while `0.4.0-beta.1` is the first public-preview package line.
+  tested, while `0.4.0-beta.2` is the first public-preview package line.
   The composite GitHub Action remains build-from-source and does not depend on
   npm publication.
 - **No richer, structured "handoff evidence"** (summary, assumptions,

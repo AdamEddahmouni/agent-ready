@@ -102,7 +102,7 @@ path).
 
 ## Expected package shape
 
-No change from today: a single npm package (`agent-ready`), `bin` entry
+No change from today: a single scoped npm package (`@adameddahmouni/agent-ready`), `bin` entry
 pointing at `dist/cli/index.js`, a public programmatic API from
 `src/index.ts`, and the bundled schema at `schemas/v1/agent-ready.schema.json`
 (see [docs/specification/api-stability.md](specification/api-stability.md)).

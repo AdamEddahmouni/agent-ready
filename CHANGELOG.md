@@ -3,7 +3,7 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
-## 0.4.0-beta.1 - Unreleased
+## 0.4.0-beta.2 - Unreleased
 
 ### Added
 
@@ -27,8 +27,9 @@ All notable changes to Agent-Ready are documented here. The project follows
   path rules, and completion guidance.
 - Pinned third-party GitHub Actions to immutable commit SHAs and tightened
   Dependabot configuration.
-- Prepared package metadata and documentation for the `0.4.0-beta.1` public
-  preview rather than presenting post-`v0.3.0` work as version `0.3.0`.
+- Prepared package metadata and documentation for the scoped
+  `@adameddahmouni/agent-ready` `0.4.0-beta.2` public preview rather than
+  presenting post-`v0.3.0` work as version `0.3.0`.
 - Added an immutable Action-pin check to the local and CI quality gates.
 
 ### Fixed
