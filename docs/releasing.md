@@ -5,14 +5,14 @@
 The following identifiers describe different things and must not be used
 interchangeably:
 
-| Identifier                   | Example                      | Purpose                                                                                |
-| ---------------------------- | ---------------------------- | -------------------------------------------------------------------------------------- |
-| Package version and Git tag  | `0.5.0` / `v0.5.0` | The immutable, published Agent-Ready release.                                          |
-| npm dist-tag                 | `next` or `latest`           | The moving installation channel: prereleases use `next`; stable releases use `latest`. |
-| Contract schema version      | `version: 1`                 | The compatibility shape of `agent-ready.yaml`; independent of package releases.        |
+| Identifier                   | Example                      | Purpose                                                                                 |
+| ---------------------------- | ---------------------------- | --------------------------------------------------------------------------------------- |
+| Package version and Git tag  | `0.5.0` / `v0.5.0`           | The immutable, published Agent-Ready release.                                           |
+| npm dist-tag                 | `next` or `latest`           | The moving installation channel: prereleases use `next`; stable releases use `latest`.  |
+| Contract schema version      | `version: 1`                 | The compatibility shape of `agent-ready.yaml`; independent of package releases.         |
 | Adapter compatibility corpus | `adapter-output/v1` and `v2` | Independently versioned expected-output fixture formats, archived together per release. |
-| Roadmap milestone            | `M1`                         | A planning grouping, not a release number.                                             |
-| ADR and GitHub issue         | `ADR-0040`, `#123`           | A durable decision record and a trackable work item.                                   |
+| Roadmap milestone            | `M1`                         | A planning grouping, not a release number.                                              |
+| ADR and GitHub issue         | `ADR-0040`, `#123`           | A durable decision record and a trackable work item.                                    |
 
 Release progression is `alpha.N` for early feature previews, `beta.N` for
 public previews, `rc.N` for feature-frozen release candidates, then the stable
