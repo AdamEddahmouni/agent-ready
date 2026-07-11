@@ -37,7 +37,7 @@ TypeScript package, not just a specification document:
   embedding the validation pipeline in another tool — see
   [docs/specification/api-stability.md](specification/api-stability.md).
 - Unit and integration tests, a CI pipeline
-  (`.github/workflows/ci.yml`), 32 Architecture Decision Records
+  (`.github/workflows/ci.yml`), 34 Architecture Decision Records
   (`docs/decisions/`), a threat model, and a stated pre-1.0
   compatibility policy.
 
@@ -56,10 +56,10 @@ install && pnpm build` and every command above is real.
   [docs/specification/evidence.md](specification/evidence.md) for the
   distinction between what's recorded now and what's proposed.
 - **No schema fields for `agents:`, `quality_gates:`, `handoff:`, or
-  `architecture:` blocks.** Ideas for these are sketched, non-normative,
-  in [docs/specification/config-evolution-draft.md](specification/config-evolution-draft.md),
-  but adding them to the schema requires an ADR and a maintainer
-  sign-off per [GOVERNANCE.md](../GOVERNANCE.md) — they are not decided.
+  `architecture:` blocks yet.** `architecture` and `agents` have accepted
+  v0.5.0 designs (ADR-0032 and ADR-0033), but remain invalid until their
+  implementation ships. `quality_gates` and `handoff` remain non-normative
+  ideas in [docs/specification/config-evolution-draft.md](specification/config-evolution-draft.md).
 - **No community/plugin adapter mechanism.** The five adapters are a
   fixed, hardcoded registry (`generate/generate.ts`'s `RendererRegistry`)
   by design at this phase — see

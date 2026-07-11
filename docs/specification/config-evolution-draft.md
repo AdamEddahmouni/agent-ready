@@ -21,6 +21,14 @@ approval-required actions) and lightweight architecture notes
 marked as non-normative, lets that direction be discussed concretely
 without pretending it is decided.
 
+## Accepted v0.5.0 designs, not yet implemented
+
+The `architecture` and `agents` blocks now have accepted designs in
+[ADR-0032](../decisions/0032-architecture-contract-block.md) and
+[ADR-0033](../decisions/0033-agents-contract-block.md). They remain invalid
+until the v0.5.0 implementation ships. The sketches below are retained only to
+show the broader ideas considered before those ADRs narrowed the scope.
+
 ## Possible future blocks
 
 ```yaml

@@ -8,6 +8,15 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - dependencies
+    ignore:
+      # Commander 15 requires Node.js 22.12+, while Agent-Ready supports
+      # Node.js 20. Keep receiving compatible Commander 13/14 updates.
+      - dependency-name: commander
+        versions: [">=15"]
+      # TypeScript 6 changes ambient type discovery and requires a deliberate
+      # compiler/lint migration. Keep the v0.5 line on the validated TS 5 line.
+      - dependency-name: typescript
+        versions: [">=6"]
 
   - package-ecosystem: "github-actions"
     directory: "/"

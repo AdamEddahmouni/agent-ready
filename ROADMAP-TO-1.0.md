@@ -163,9 +163,14 @@ Markdown-escaping discipline.
 
 ### v0.5.0 — Architecture & agent-guidance blocks
 
+The implementation sequence, prerelease ladder, explicit non-goals, and
+verification matrix are defined in
+[the v0.5.0 implementation plan](docs/v0.5.0-implementation-plan.md).
+
 #### 1. `architecture` block
 
-- [ ] **ADR-0032: `architecture` schema block.** Adds an optional
+- [x] **ADR-0032: `architecture` schema block.** Accepted; implementation
+      remains pending for v0.5.0. Adds an optional
       `architecture` top-level block to the contract, letting a repository
       declare structured architectural invariants that flow into generated
       agent instructions:
@@ -200,9 +205,10 @@ Markdown-escaping discipline.
 
 #### 2. `agents` block (refined from config-evolution draft)
 
-- [ ] **ADR-0033: `agents` schema block.** Adds an optional `agents`
-      top-level block for agent-operating constraints that are
-      _enforceable_ (unlike free-form instruction documents):
+- [x] **ADR-0033: `agents` schema block.** Accepted; implementation remains
+      pending for v0.5.0. Adds an optional `agents`
+      top-level block for structured agent-operating guidance that flows into
+      generated instructions without runtime enforcement:
 
   ```yaml
   agents:
@@ -358,7 +364,9 @@ introduce the first adapter plugin mechanism — all behind ADRs.
 
 ### v0.7.0 — Architecture-dependency analysis
 
-#### 1. `agent-ready analyze --architecture`- [ ] **ADR-0037: Architecture-dependency drift analysis.** Extends
+#### 1. `agent-ready analyze --architecture`
+
+- [ ] **ADR-0037: Architecture-dependency drift analysis.** Extends
 
 `agent-ready analyze` with an optional `--architecture` flag that
 checks the `architecture.boundaries` declarations (from v0.5.0)
