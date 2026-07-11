@@ -97,22 +97,16 @@ runs:
       run: |
         set -euo pipefail
 
-        # Single source of truth for accepted subcommands. Both the
-        # `case` arm below and the `::error::` echo derive from this
-        # variable (the human-readable form uses bash `${var//|/, }`
-        # substitution to render the same list comma-separated), so
-        # the two cannot drift. Keep in sync with the `command`
-        # input's prose description above; widen both when a new
-        # subcommand ships per ADR-0021's ordered Path A rollout.
-        readonly accepted_subcommands='validate|inspect|generate|check|analyze|schema|doctor|explain|init|upgrade|verify'
+        # Bash does not parse `|` from a variable expansion as case-pattern
+        # alternation. Keep an explicit regex for validation and a matching
+        # display list for errors; update both with the command input prose.
+        readonly accepted_subcommands_regex='^(validate|inspect|generate|check|analyze|schema|doctor|explain|init|upgrade|verify)$'
+        readonly accepted_subcommands_display='validate, inspect, generate, check, analyze, schema, doctor, explain, init, upgrade, verify'
 
-        case "$INPUT_COMMAND" in
-          $accepted_subcommands) ;;
-          *)
-            echo >&2 "::error::agent-ready: unknown command '$INPUT_COMMAND'. Accepted: ${accepted_subcommands//|/, }."
-            exit 3
-            ;;
-        esac
+        if [[ ! "$INPUT_COMMAND" =~ $accepted_subcommands_regex ]]; then
+          echo >&2 "::error::agent-ready: unknown command '$INPUT_COMMAND'. Accepted: $accepted_subcommands_display."
+          exit 3
+        fi
 
         args=("$INPUT_COMMAND")
 
