@@ -268,14 +268,15 @@ jobs:
       # The step name below contains the unquoted substring command: bogus,
       # which prettier-plugin-yaml's compact-mapping parser would otherwise
       # read as a nested mapping. Single-quoting the scalar suppresses that.
-      - name: "agent-ready via ./action.yml with command: bogus (must exit 3)"
+      - name: "agent-ready via ./action.yml with command: bogus (must fail)"
         id: fail-fast
+        continue-on-error: true
         uses: ./
         with:
           command: bogus
 
-      - name: assert the fail-fast case block fired (must be skipped when fail-fast ran)
+      - name: assert the invalid command was rejected
         if: steps.fail-fast.outcome != 'failure'
         run: |
-          echo "::error::agent-ready: action.yml must reject an unknown subcommand (command: bogus); expected the bash case block to emit a ::error annotation that names bogus and exit 3. The step succeeded, meaning the case block regressed."
+          echo "::error::agent-ready: action.yml must reject an unknown subcommand (command: bogus). The action step unexpectedly succeeded."
           exit 1
