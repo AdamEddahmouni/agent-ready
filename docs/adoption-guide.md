@@ -9,9 +9,7 @@ one — both paths are real today.
 ## Current adoption flow (real today)
 
 1. Install the public preview with
-   `npm install -D @adameddahmouni/agent-ready@next` once the
-   `0.4.0-beta.2` package is published. Until then, run `pnpm install` and
-   `pnpm build` inside a source checkout; see [README.md](../README.md).
+   `npm install -D @adameddahmouni/agent-ready@next`.
 2. Scaffold a starter contract with `agent-ready init` (review the
    output, then `agent-ready init --write` to write it), or hand-author
    one using [docs/specification/contract-reference.md](specification/contract-reference.md)
@@ -53,9 +51,7 @@ npx agent-ready validate
 npx agent-ready generate --write
 ```
 
-The package workflow is ready but the first public preview still requires the
-repository-visibility and npm bootstrap steps in
-[docs/releasing.md](releasing.md). Stable v0.4.0 will use the normal
+Stable v0.4.0 will use the normal
 `npm install -D @adameddahmouni/agent-ready` command without the `next` tag.
 
 ## What adoption does not require

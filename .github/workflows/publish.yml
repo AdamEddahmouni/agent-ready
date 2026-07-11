@@ -75,9 +75,12 @@ jobs:
           VERSION="$(node -p "require('./package.json').version")"
           PACKAGE_NAME="@adameddahmouni/agent-ready"
 
-          for attempt in 1 2 3 4 5 6; do
+          # npm's public registry can take several minutes to propagate a new
+          # package version. Wait up to five minutes before treating that as a
+          # publication failure.
+          for attempt in $(seq 1 30); do
             if npm view "$PACKAGE_NAME@$VERSION" version >/dev/null 2>&1; then break; fi
-            if [ "$attempt" = "6" ]; then
+            if [ "$attempt" = "30" ]; then
               echo "::error::$PACKAGE_NAME@$VERSION did not become visible on npm in time"
               exit 1
             fi

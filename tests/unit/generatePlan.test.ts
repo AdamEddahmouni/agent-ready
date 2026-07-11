@@ -63,6 +63,15 @@ describe("planGeneration", () => {
     expect(plan.entries).toEqual([]);
     expect(plan.diagnostics).toEqual([]);
   });
+
+  it("handles a root with a long run of trailing path separators", () => {
+    const contract = normalizeContract(baseRaw);
+    const repoRoot = `/repo${"/".repeat(10_000)}`;
+    const plan = planGeneration(contract, repoRoot);
+
+    expect(plan.diagnostics).toEqual([]);
+    expect(plan.entries).toHaveLength(5);
+  });
 });
 
 describe("resolvePlannedOutputs", () => {

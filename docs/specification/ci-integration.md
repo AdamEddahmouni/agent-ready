@@ -28,7 +28,7 @@ uses: AdamEddahmouni/agent-ready@<commit-sha>
 ```
 
 For readable version pinning, use the corresponding release tag, such as
-`v0.4.0-beta.2`. Do not pin a mutable branch name.
+`v0.4.0-beta.3`. Do not pin a mutable branch name.
 
 ## Usage
 
@@ -48,33 +48,33 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Validate contract
-        uses: AdamEddahmouni/agent-ready@v0.4.0-beta.2
+        uses: AdamEddahmouni/agent-ready@v0.4.0-beta.3
         with:
           command: validate
 
       - name: Check generated files are up to date
-        uses: AdamEddahmouni/agent-ready@v0.4.0-beta.2
+        uses: AdamEddahmouni/agent-ready@v0.4.0-beta.3
         with:
           command: generate
           check: "true"
 
       - name: Check protected paths
-        uses: AdamEddahmouni/agent-ready@v0.4.0-beta.2
+        uses: AdamEddahmouni/agent-ready@v0.4.0-beta.3
         with:
           command: check
 
       - name: Check documentation links
-        uses: AdamEddahmouni/agent-ready@v0.4.0-beta.2
+        uses: AdamEddahmouni/agent-ready@v0.4.0-beta.3
         with:
           command: analyze
 
       - name: Print the bundled contract JSON Schema
-        uses: AdamEddahmouni/agent-ready@v0.4.0-beta.2
+        uses: AdamEddahmouni/agent-ready@v0.4.0-beta.3
         with:
           command: schema
 
       - name: Run verification
-        uses: AdamEddahmouni/agent-ready@v0.4.0-beta.2
+        uses: AdamEddahmouni/agent-ready@v0.4.0-beta.3
         with:
           command: verify
           execute: "true"

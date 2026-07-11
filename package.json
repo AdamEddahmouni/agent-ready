@@ -1,6 +1,6 @@
 {
   "name": "@adameddahmouni/agent-ready",
-  "version": "0.4.0-beta.2",
+  "version": "0.4.0-beta.3",
   "description": "The standard for agent-instruction files. Define commands, paths, and verification once in agent-ready.yaml — validate, enforce, generate AGENTS.md/CLAUDE.md/.cursorrules, and verify the work. Zero API keys, zero cost.",
   "keywords": [
     "agent-ready",

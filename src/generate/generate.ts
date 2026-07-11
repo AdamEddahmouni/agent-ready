@@ -101,10 +101,24 @@ export async function resolvePlannedOutputs(
 }
 
 function isWithinRoot(repoRoot: string, absolutePath: string): boolean {
-  const normalizedRoot = repoRoot.replace(/[/\\]+$/, "");
+  const normalizedRoot = trimTrailingPathSeparators(repoRoot);
   return (
     absolutePath === normalizedRoot ||
     absolutePath.startsWith(`${normalizedRoot}/`) ||
     absolutePath.startsWith(`${normalizedRoot}\\`)
   );
+}
+
+/**
+ * Removes trailing path separators without a backtracking regular expression.
+ * `repoRoot` comes from the host filesystem, so this keeps the containment
+ * guard predictably linear even when a path contains a very long run of
+ * separators.
+ */
+function trimTrailingPathSeparators(path: string): string {
+  let end = path.length;
+  while (end > 0 && (path[end - 1] === "/" || path[end - 1] === "\\")) {
+    end -= 1;
+  }
+  return path.slice(0, end);
 }

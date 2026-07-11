@@ -3,7 +3,17 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
-## 0.4.0-beta.2 - Unreleased
+## 0.4.0-beta.3 - Unreleased
+
+### Fixed
+
+- Replaced a backtracking path-separator regular expression in the generation
+  containment guard with a bounded linear scan, resolving CodeQL's
+  polynomial-ReDoS finding.
+- Extended the post-publish npm visibility wait to five minutes so registry
+  propagation does not incorrectly fail an otherwise successful release.
+
+## 0.4.0-beta.2 - 2026-07-11
 
 ### Added
 

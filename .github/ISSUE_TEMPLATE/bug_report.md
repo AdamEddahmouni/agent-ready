@@ -46,7 +46,7 @@ body:
     attributes:
       label: Agent-Ready version
       description: Run `agent-ready --version` or check `package.json`.
-      placeholder: "0.4.0-beta.2"
+      placeholder: "0.4.0-beta.3"
     validations:
       required: true
   - type: input
