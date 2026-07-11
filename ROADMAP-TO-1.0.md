@@ -56,6 +56,8 @@ criteria that must be met before the next milestone begins.
 first fully working Agent-Ready repository. Publish to npm. Harden the
 known limitations documented in the threat model.
 
+**Status:** Complete in `v0.4.0`.
+
 ### v0.4.0 deliverables
 
 #### 1. npm publication
@@ -73,7 +75,7 @@ known limitations documented in the threat model.
 
 - [x] Configure npm Trusted Publishing on npmjs.com (link the
       `@adameddahmouni/agent-ready` package to this GitHub repo + `publish.yml` workflow).
-- [ ] Promote the validated release candidate as `v0.4.0` and update `README.md` and
+- [x] Promote the validated release candidate as `v0.4.0` and update `README.md` and
       `docs/adoption-guide.md` installation instructions to show
       `npm install -D @adameddahmouni/agent-ready` / `npx agent-ready` as the primary path,
       with from-source as the fallback.
@@ -142,8 +144,8 @@ examples/minimal/agent-ready.yaml`.
 
 ### v0.4.0 exit criteria
 
-- [ ] `npm install -D @adameddahmouni/agent-ready` works and produces a working CLI from
-      npm's `latest` tag. The preview line is validated on `next`; stable promotion remains.
+- [x] `npm install -D @adameddahmouni/agent-ready` works and produces a working CLI from
+      npm's `latest` tag.
 - [x] `agent-ready upgrade --write` safely modernizes a v0.1.0-era contract.
 - [x] All three threat-model known limitations addressed above are closed.
 - [x] All GitHub Actions are SHA-pinned and checked in CI.

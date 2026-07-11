@@ -202,12 +202,12 @@ One repository contract. Any agent. Write the instructions once.
 
 ## Installation
 
-The release candidate is available under npm's `next` tag. Install it with:
+The stable package is available under npm's `latest` tag. Install it with:
 
 ```bash
-npm install --save-dev @adameddahmouni/agent-ready@next
+npm install --save-dev @adameddahmouni/agent-ready
 # or
-pnpm add --save-dev @adameddahmouni/agent-ready@next
+pnpm add --save-dev @adameddahmouni/agent-ready
 ```
 
 Then run the local binary with `npx agent-ready` or `pnpm exec agent-ready`.
@@ -227,7 +227,7 @@ pnpm build
 
 ## Quick start
 
-The commands below assume the npm release candidate is installed. From a source checkout,
+The commands below assume the npm package is installed. From a source checkout,
 replace `agent-ready` with `pnpm cli --`.
 
 ```bash
@@ -272,8 +272,7 @@ reporting what they ran, what passed, and what changed.
 
 ## Project Status
 
-Agent-Ready is **pre-1.0**. The current release candidate is
-`0.4.0-rc.1`, on the path to the first stable release. The core contract schema and
+Agent-Ready is **pre-1.0**. The current stable release is `0.4.0`. The core contract schema and
 CLI are stable enough for evaluation and daily use. Path A (the adoption
 funnel: `schema` →
 `doctor` → `explain` → `init`) is complete. All eleven commands ship and run
@@ -290,11 +289,11 @@ gate.
 ## CI Integration
 
 Adopt the same commands in another repository's CI via the reusable GitHub
-composite action. The example below targets the current release-candidate tag:
+composite action. The example below targets the current stable tag:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: AdamEddahmouni/agent-ready@v0.4.0-rc.1
+- uses: AdamEddahmouni/agent-ready@v0.4.0
   with:
     command: verify
     execute: "true"

@@ -3,7 +3,17 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
-## 0.4.0-rc.1 - Unreleased
+## 0.4.0 - 2026-07-11
+
+### Added
+
+- The public `@adameddahmouni/agent-ready` npm package, GitHub Releases with
+  package and compatibility-corpus assets, provenance attestations, and
+  OIDC-only Trusted Publishing.
+- `agent-ready init` and `agent-ready upgrade`, plus hand-authored
+  `instructions.content` rendered consistently by all adapters.
+- Threat-model hardening for YAML nesting, instruction-source size, immutable
+  Action pins, and post-publish clean-install verification.
 
 ### Changed
 
@@ -12,6 +22,20 @@ All notable changes to Agent-Ready are documented here. The project follows
   roadmap milestones, ADRs, and GitHub issues.
 - Removed the completed first-publication token fallback; all future npm
   releases use GitHub Actions OIDC Trusted Publishing only.
+
+### Fixed
+
+- Corrected release automation so every GitHub Release contains both the npm
+  package and the adapter compatibility corpus.
+- Replaced a polynomial-ReDoS-prone path-separator expression with a bounded
+  linear scan.
+
+## 0.4.0-rc.1 - 2026-07-11
+
+### Changed
+
+- Prepared the feature-frozen stable release candidate and validated it through
+  CI, CodeQL, OIDC publication, and clean-install verification.
 
 ## 0.4.0-beta.4 - 2026-07-11
 

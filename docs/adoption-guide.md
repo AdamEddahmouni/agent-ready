@@ -8,8 +8,7 @@ one — both paths are real today.
 
 ## Current adoption flow (real today)
 
-1. Install the current release candidate with
-   `npm install -D @adameddahmouni/agent-ready@next`.
+1. Install the stable package with `npm install -D @adameddahmouni/agent-ready`.
 2. Scaffold a starter contract with `agent-ready init` (review the
    output, then `agent-ready init --write` to write it), or hand-author
    one using [docs/specification/contract-reference.md](specification/contract-reference.md)
@@ -42,17 +41,17 @@ For a repository that already has a valid contract from an earlier release,
 run `agent-ready upgrade` first, review its field-level diff, and opt in with
 `agent-ready upgrade --write` when the additions are appropriate.
 
-## npm release-candidate flow
+## npm stable flow
 
 ```bash
-npm install -D @adameddahmouni/agent-ready@next
+npm install -D @adameddahmouni/agent-ready
 npx agent-ready init
 npx agent-ready validate
 npx agent-ready generate --write
 ```
 
-Stable v0.4.0 will use the normal
-`npm install -D @adameddahmouni/agent-ready` command without the `next` tag.
+Preview builds remain available through npm's `next` tag; stable users should
+use the untagged install command above.
 
 ## What adoption does not require
 

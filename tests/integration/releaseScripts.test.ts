@@ -23,14 +23,10 @@ describe("release helper scripts", () => {
     cleanups.push(temp.cleanup);
     const outputPath = join(temp.root, "notes.md");
 
-    await execFile(process.execPath, [
-      "scripts/extract-release-notes.mjs",
-      "0.4.0-rc.1",
-      outputPath,
-    ]);
+    await execFile(process.execPath, ["scripts/extract-release-notes.mjs", "0.4.0", outputPath]);
     const notes = await readFile(outputPath, "utf8");
-    expect(notes).toContain("# Agent-Ready 0.4.0-rc.1");
-    expect(notes).toContain("### Changed");
+    expect(notes).toContain("# Agent-Ready 0.4.0");
+    expect(notes).toContain("### Added");
     expect(notes).toContain("## Release assets");
     expect(notes).not.toContain("## 0.3.0");
   });
