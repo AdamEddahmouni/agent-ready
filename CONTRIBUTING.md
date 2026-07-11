@@ -37,6 +37,7 @@ succeeds:
 
 ```bash
 pnpm format:check
+pnpm check:action-pins
 pnpm lint
 pnpm typecheck
 pnpm test

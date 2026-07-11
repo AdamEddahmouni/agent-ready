@@ -22,7 +22,18 @@ export async function createTestRepo(
   }
   return {
     root,
-    cleanup: () => rm(root, { recursive: true, force: true }),
+    // Windows can keep a just-terminated process's working directory busy
+    // briefly after the process tree has closed. fs.rm's bounded retry support
+    // handles that normal release race without hiding a persistent cleanup
+    // failure: EBUSY/EPERM/ENOTEMPTY are retried with linear backoff, then the
+    // original error is still surfaced.
+    cleanup: () =>
+      rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 100,
+      }),
   };
 }
 

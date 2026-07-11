@@ -8,6 +8,8 @@ export interface FileStat {
   readonly isFile: boolean;
   readonly isDirectory: boolean;
   readonly isSymbolicLink: boolean;
+  /** File size in bytes. Directories and other non-file entries report 0. */
+  readonly sizeBytes: number;
 }
 
 export interface FileSystem {
@@ -22,8 +24,9 @@ export interface FileSystem {
    * Writes UTF-8 text to a file, creating it if it does not exist and
    * overwriting it if it does. Never creates directories. Throws
    * FileSystemError if the write fails. The only write path in the
-   * FileSystem interface — used by `agent-ready generate --write` and by
-   * `agent-ready verify --execute --record` (see ADR-0015).
+   * FileSystem interface — used by `agent-ready generate --write`,
+   * `agent-ready upgrade --write`, and `agent-ready verify --execute --record`
+   * (see ADR-0015).
    */
   writeTextFile(absolutePath: string, content: string): Promise<void>;
 }

@@ -7,6 +7,10 @@ below); `agent-ready init --write`, which writes a starter
 `agent-ready.yaml` and refuses if one already exists (see
 [`agent-ready init`](#agent-ready-init) below and
 [ADR-0025](../decisions/0025-agent-ready-init-command.md)); and
+`agent-ready upgrade --write`, which applies a validated set of safe,
+additive changes to an existing contract after showing a dry-run diff (see
+[`agent-ready upgrade`](#agent-ready-upgrade) and
+[ADR-0028](../decisions/0028-agent-ready-upgrade-command.md)); and
 `agent-ready verify --execute --record`, which writes a single
 JSON evidence file to the repository root (see
 [`agent-ready verify`](#agent-ready-verify) below and
@@ -16,7 +20,7 @@ verify --execute`, which runs exactly the commands declared in
 `verification.required` (see [`agent-ready verify`](#agent-ready-verify)
 below and [ADR-0014](../decisions/0014-verification-execution.md)).
 
-This reference covers the ten commands that exist today. Path A is
+This reference covers the eleven commands that exist today. Path A is
 complete: `agent-ready schema` ([ADR-0022](../decisions/0022-agent-ready-schema-command.md)),
 `agent-ready doctor` ([ADR-0023](../decisions/0023-agent-ready-doctor-command.md)),
 `agent-ready explain` ([ADR-0024](../decisions/0024-agent-ready-explain-command.md)),
@@ -226,7 +230,9 @@ Runs the same contract pipeline as `validate`, then reads each file declared in
 `instructions.sources` and checks its repository-relative Markdown link
 destinations. It is read-only: it never invokes Git, executes contract commands,
 follows remote links, or rewrites documentation. See
-[ADR-0020](../decisions/0020-instruction-source-link-analysis.md).
+[ADR-0020](../decisions/0020-instruction-source-link-analysis.md). Each
+declared source is inspected before reading and must not exceed 5,000,000
+bytes; larger files fail with `INSTRUCTION_SOURCE_TOO_LARGE`.
 
 ```bash
 agent-ready analyze
@@ -457,6 +463,66 @@ With `--write`, `mode` is `"write"` and the output adds `contractPath`.
 When the contract already exists, `ok` is `false`, `mode` reflects the
 invocation (dry-run or write), and `diagnostics` contains
 `INIT_CONTRACT_EXISTS`.
+
+## `agent-ready upgrade`
+
+Inspects an already-valid contract and proposes conservative, additive
+modernizations. It is a dry run by default and never removes a declaration or
+replaces a maintainer-authored scalar. See
+[ADR-0028](../decisions/0028-agent-ready-upgrade-command.md).
+
+```bash
+agent-ready upgrade
+agent-ready upgrade --json
+agent-ready upgrade --write
+agent-ready upgrade --config path/to/agent-ready.yaml
+```
+
+| Option            | Description                                                               |
+| ----------------- | ------------------------------------------------------------------------- |
+| `--write`         | Validate and apply the proposed transformations to the existing contract. |
+| `--json`          | Print structured changes, the field-level diff, status, and diagnostics.  |
+| `--config <path>` | Upgrade this exact contract instead of using normal ancestor discovery.   |
+
+Automatic rules are evidence-backed:
+
+- `.env*` is added to `paths.protected` only when `.gitignore` already excludes
+  environment files.
+- `node_modules/**`, `dist/**`, and `coverage/**` are classified only when the
+  declared package manager or commands support the recommendation.
+- `README.md` is added to `instructions.sources` only when the file exists.
+- A recommendation is skipped if the same normalized path already belongs to
+  any path category.
+
+Old Node ranges are never rewritten automatically. They produce
+`UPGRADE_MANUAL_REVIEW_REQUIRED` with the current and suggested values. Before
+`--write`, the complete proposed YAML is parsed, schema-validated, and
+semantically validated. A failed proposal is never written.
+
+**Human output** (dry run):
+
+```text
+Upgrade (dry-run) - contract: /repo/agent-ready.yaml
+
+  /paths/ignored: Ignore installed Node.js dependencies.
+
+--- /repo/agent-ready.yaml
++++ /repo/agent-ready.yaml (proposed)
+@@ /paths/ignored @@
+- <absent or empty>
++ ["node_modules/**"]
+
+Dry run only. Re-run with --write to apply these changes.
+```
+
+**JSON output** contains `ok`, `contractPath`, `repoRoot`, `mode`, `written`,
+`changes`, `diff`, and `diagnostics`. Each change has a stable `id`, JSON
+Pointer `field`, summary, and exact `before`/`after` values.
+
+**Exit codes**: `0` for a successful dry run/write, including
+`UPGRADE_NO_CHANGES_NEEDED` and manual-review warnings; the ordinary contract
+pipeline codes for invalid input; `10` for `UPGRADE_WRITE_FAILED` or an invalid
+internal proposal.
 
 ## `agent-ready doctor`
 

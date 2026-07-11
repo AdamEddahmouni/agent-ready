@@ -5,7 +5,7 @@ This document is the honest, current-state entry point for anyone asking
 because Agent-Ready's direction is easy to over- or under-state: the
 project is neither a documentation-only proposal nor a finished product.
 
-## What exists today (v0.3.0, pre-1.0)
+## What exists today (v0.4.0-beta.1 development line, pre-1.0)
 
 Agent-Ready already ships a real, installable-from-source CLI and
 TypeScript package, not just a specification document:
@@ -15,9 +15,9 @@ TypeScript package, not just a specification document:
   ([schemas/v1/agent-ready.schema.json](../schemas/v1/agent-ready.schema.json))
   and a full field reference
   ([docs/specification/contract-reference.md](specification/contract-reference.md)).
-- A working CLI (`agent-ready`, package bin) with ten real commands:
+- A working CLI (`agent-ready`, package bin) with eleven real commands:
   `validate`, `inspect`, `generate`, `check`, `analyze`, `schema`,
-  `doctor`, `explain`, `init`, `verify` — see
+  `doctor`, `explain`, `init`, `upgrade`, `verify` — see
   [docs/specification/cli-reference.md](specification/cli-reference.md)
   for exact behavior, flags, exit codes, and JSON output shapes.
 - Five implemented adapters that generate agent-instruction files from
@@ -37,7 +37,7 @@ TypeScript package, not just a specification document:
   embedding the validation pipeline in another tool — see
   [docs/specification/api-stability.md](specification/api-stability.md).
 - Unit and integration tests, a CI pipeline
-  (`.github/workflows/ci.yml`), 24 Architecture Decision Records
+  (`.github/workflows/ci.yml`), 31 Architecture Decision Records
   (`docs/decisions/`), a threat model, and a stated pre-1.0
   compatibility policy.
 
@@ -46,13 +46,10 @@ install && pnpm build` and every command above is real.
 
 ## What does not exist yet
 
-- **`agent-ready init` is shipped** as the fourth and final Path A command per
-  [ADR-0025](decisions/0025-agent-ready-init-command.md). Path A is now complete:
-  `schema` → `doctor` → `explain` → `init`, all four shipped behind their
-  own ADRs. Adoption no longer requires hand-authoring a first
-  `agent-ready.yaml` from scratch. See
-  [docs/implementation-scope-cli-package.md](implementation-scope-cli-package.md)
-  for the final status.
+- **No stable npm release.** The source tree is installable and package-smoke
+  tested, while `0.4.0-beta.1` is the first public-preview package line.
+  The composite GitHub Action remains build-from-source and does not depend on
+  npm publication.
 - **No richer, structured "handoff evidence"** (summary, assumptions,
   known issues, risks) beyond the command-level pass/fail/timeout
   evidence `verify --execute --record` already writes today. See
@@ -71,9 +68,9 @@ install && pnpm build` and every command above is real.
   possible future commercial product ("Agent-Ready Cloud" or similar)
   is discussed only as direction, not built — see
   [ROADMAP.md](../ROADMAP.md#long-term-commercial-direction-not-implemented).
-- **No visual identity, website, or branding.** Deliberately deferred
-  until the project is ready for a public 1.0 — see
-  [ROADMAP.md](../ROADMAP.md#branding-and-visual-design--deliberately-deferred).
+- **No standalone documentation website.** Repository branding, diagrams, and
+  a GitHub social preview exist today; the repository documentation remains
+  the canonical public site for the preview line.
 
 ## Why a standard is useful even before every command exists
 
@@ -83,23 +80,21 @@ drift from what the repository actually requires, and nothing catches
 the drift. A structured, validated contract makes a narrower set of
 claims — "this command exists," "this path is protected," "this
 verification step ran and passed" — checkable rather than merely
-asserted. That value exists at `agent-ready validate` and
-`agent-ready generate` alone; it does not require `init`, `doctor`, or a
-hosted product to be worth adopting today.
+asserted. That value exists at `agent-ready validate` and `agent-ready
+generate` alone; it does not require every planned contract field, ecosystem
+integration, or a hosted product to be worth adopting today.
 
-## Why the CLI/package is the right next evolution
+## Why adoption and hardening are the next evolution
 
 The contract format was the harder design problem and is now
 reasonably stable (Phases 0–10, an ADR per consequential decision, a
-stated pre-1.0 compatibility policy). The natural next problem is
-adoption friction: today, adopting Agent-Ready means reading the spec
-and hand-writing YAML. A more complete CLI (starter scaffolding,
-environment diagnostics, plain-language explanations of a contract, a
-`schema` introspection command) reduces that friction without changing
-what the contract _means_ — which is why
-[docs/implementation-scope-cli-package.md](implementation-scope-cli-package.md)
-scopes new commands, not new contract semantics, as the next
-increment.
+stated pre-1.0 compatibility policy). The Path A adoption commands are now
+complete: `schema`, `doctor`, `explain`, and `init` all ship. The v0.4 source
+tree also includes safe contract upgrades, bounded YAML/source analysis, and
+release automation. The remaining problem is proving the distribution and
+onboarding path in public repositories: publish the preview package and
+validate installation and CI use outside this repository. See
+[ROADMAP-TO-1.0.md](../ROADMAP-TO-1.0.md) for the release sequence.
 
 ## How the project should evolve responsibly
 
@@ -115,12 +110,12 @@ increment.
 - Keep every new command safe by default: dry-run first, explicit flags
   for anything that writes or executes, and no silent overwrite of
   hand-authored content — the same discipline `generate --write` and
-  `verify --execute --record` already established.
+  `verify --execute --record` established and `upgrade --write` extends with a
+  validated, reviewable field-level diff.
 
 ## What is intentionally out of scope (unchanged)
 
 See [ROADMAP.md](../ROADMAP.md#strict-non-goals-for-the-current-phase)
-for the full list. Nothing in this document changes that list; it
-narrows in on one candidate revision — reconsidering `init` and adding
-`doctor`/`explain`/`schema` — which is proposed direction, not a
-decision, until it goes through the ADR process described above.
+for the full list. Nothing in this document changes that list. Proposed
+features remain non-normative until they follow the ADR and
+specification-change process described above.

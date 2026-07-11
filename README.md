@@ -156,7 +156,7 @@ network access. The same contract produces the same result every time.
   <img src="assets/cards/cli-validation-card.png" alt="Agent-Ready validate output showing schema valid and status ready." width="100%">
 </p>
 
-The CLI ships **ten real commands** — not documentation placeholders:
+The CLI ships **eleven real commands** — not documentation placeholders:
 
 | Command    | What it does                                                                       |
 | ---------- | ---------------------------------------------------------------------------------- |
@@ -169,6 +169,7 @@ The CLI ships **ten real commands** — not documentation placeholders:
 | `doctor`   | Inspect the host environment against contract requirements                         |
 | `explain`  | Print extended plain-language explanations of diagnostic codes                     |
 | `init`     | Scaffold a starter `agent-ready.yaml` from repository inspection                   |
+| `upgrade`  | Propose or apply safe, additive modernizations to an existing contract             |
 | `verify`   | Execute the contract's verification pipeline and record evidence                   |
 
 Every command supports `--json` for CI and tooling. See the
@@ -201,13 +202,18 @@ One repository contract. Any agent. Write the instructions once.
 
 ## Installation
 
+The first npm public preview is being prepared as `0.4.0-beta.1`. After that
+release is available under npm's `next` tag, install it with:
+
 ```bash
-npm install agent-ready
+npm install --save-dev agent-ready@next
 # or
-pnpm add agent-ready
+pnpm add --save-dev agent-ready@next
 ```
 
-Requires Node.js `>=20.0.0`.
+Then run the local binary with `npx agent-ready` or `pnpm exec agent-ready`.
+Until the preview is published, use the source setup below. Agent-Ready
+requires Node.js `>=20.0.0`.
 
 ### Development Setup
 
@@ -222,6 +228,9 @@ pnpm build
 ```
 
 ## Quick start
+
+The commands below assume the npm preview is installed. From a source checkout,
+replace `agent-ready` with `pnpm cli --`.
 
 ```bash
 # Scaffold a starter contract from your repo
@@ -265,13 +274,16 @@ reporting what they ran, what passed, and what changed.
 
 ## Project Status
 
-Agent-Ready is **pre-1.0** (v0.3.0). The core contract schema and CLI are
-stable enough for daily use. Path A (the adoption funnel: `schema` →
-`doctor` → `explain` → `init`) is complete. All ten commands ship and
-run today.
+Agent-Ready is **pre-1.0**. The current development version is
+`0.4.0-beta.1`, the first public-preview line. The core contract schema and
+CLI are stable enough for evaluation and daily use. Path A (the adoption
+funnel: `schema` →
+`doctor` → `explain` → `init`) is complete. All eleven commands ship and run
+today, including the v0.4 `upgrade` command for existing contracts.
 
-493 tests pass across 36 test files on every CI run, exercising the full
-pipeline across Ubuntu, Windows, and macOS.
+CI runs 511 automated tests across 39 test files, exercising the full pipeline
+on Ubuntu, Windows, and macOS. Release tags are cut only from a green quality
+gate.
 
 <p align="center">
   <img src="assets/cards/spec-lifecycle.png" alt="Specification lifecycle: Draft → Experimental → Stable → Versioned." width="100%">
@@ -279,12 +291,13 @@ pipeline across Ubuntu, Windows, and macOS.
 
 ## CI Integration
 
-Adopt the same commands in another repository's CI via the reusable
-GitHub composite action:
+Adopt the same commands in another repository's CI via the reusable GitHub
+composite action. The example below targets the planned first preview tag; use
+it after that tag appears in this repository's Releases page:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: AdamEddahmouni/agent-ready@v0.3.0
+- uses: AdamEddahmouni/agent-ready@v0.4.0-beta.1
   with:
     command: verify
     execute: "true"

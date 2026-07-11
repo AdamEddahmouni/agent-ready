@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { MAX_CONTRACT_BYTES, parseYaml } from "../../src/contract/parseYaml.js";
+import {
+  DEFAULT_MAX_YAML_DEPTH,
+  MAX_CONTRACT_BYTES,
+  parseYaml,
+} from "../../src/contract/parseYaml.js";
 
 describe("parseYaml", () => {
   it("parses a valid document into a plain JS value", () => {
@@ -60,6 +64,31 @@ describe("parseYaml", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.locate("/does/not/exist")).toBeUndefined();
+    }
+  });
+
+  it("accepts a document exactly at a configured nesting limit", () => {
+    const result = parseYaml("a:\n  b: 1\n", "/repo/agent-ready.yaml", { maxDepth: 3 });
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects a document deeper than a configured nesting limit", () => {
+    const result = parseYaml("a:\n  b: 1\n", "/repo/agent-ready.yaml", { maxDepth: 2 });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.diagnostics[0]).toMatchObject({
+        code: "YAML_NESTING_TOO_DEEP",
+        metadata: { observedDepth: 3, maxDepth: 2 },
+      });
+    }
+  });
+
+  it("rejects deeply nested non-aliased YAML at the default limit", () => {
+    const nested = `${"{a: ".repeat(DEFAULT_MAX_YAML_DEPTH)}1${"}".repeat(DEFAULT_MAX_YAML_DEPTH)}`;
+    const result = parseYaml(nested, "/repo/agent-ready.yaml");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.diagnostics[0]?.code).toBe("YAML_NESTING_TOO_DEEP");
     }
   });
 });

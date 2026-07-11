@@ -12,6 +12,8 @@ src/
 │       ├── generate.ts        runGenerate(): pipeline -> plan -> optional write -> rendered output.
 │       ├── check.ts           runCheck(): pipeline -> Git diff -> protected-path match -> rendered output.
 │       ├── analyze.ts         runAnalyze(): pipeline -> documentation link analysis -> rendered output.
+│       ├── init.ts            runInit(): repository detection -> starter contract -> optional first write.
+│       ├── upgrade.ts         runUpgrade(): pipeline -> additive migration plan -> optional validated rewrite.
 │       └── verify.ts          runVerify(): pipeline -> ordered plan -> optional execution -> optional evidence write -> rendered output.
 ├── contract/
 │   ├── discovery.ts           Repository-root + contract-file discovery.
@@ -43,7 +45,9 @@ src/
 │   └── fakeCommandRunner.ts     Deterministic test double; no real process ever spawned in tests.
 ├── analyze/
 │   ├── markdownLinks.ts         Bounded Markdown link scanner; pure and deterministic.
-│   └── analyzeDocumentation.ts  Instruction-source target resolution and diagnostics.
+│   └── analyzeDocumentation.ts  Size-bounded instruction-source target resolution and diagnostics.
+├── upgrade/
+│   └── upgrade.ts               Evidence-backed additive migration planner and field-level diff.
 ├── generate/
 │   ├── types.ts                 GeneratedFile, AdapterRenderer, RendererRegistry, plan/output types.
 │   ├── marker.ts                 The managed-file marker banner and detection.
@@ -67,7 +71,7 @@ cli/  --------------------> contract/pipeline.ts --------------------> contract/
 diagnostics/  <----------------------------------------------------  filesystem/ (via injected FileSystem)
 ```
 
-- `cli/` depends on `contract/`, `generate/`, `analyze/`, and `diagnostics/`;
+- `cli/` depends on `contract/`, `generate/`, `analyze/`, `upgrade/`, and `diagnostics/`;
   nothing in those domain modules depends on `cli/` or on
   `commander`.
 - `contract/` and `generate/` depend on `filesystem/` only through the
@@ -109,7 +113,7 @@ test failure during development.
 raw bytes
   |  (contract/discovery.ts, filesystem/nodeFileSystem.ts)
   v
-YAML parse result            <- contract/parseYaml.ts (uniqueKeys, size limit, alias cap)
+YAML parse result            <- contract/parseYaml.ts (uniqueKeys, size/depth limits, alias cap)
   v
 schema-validated contract    <- contract/schema.ts (ajv, draft 2020-12, additionalProperties: false)
   v
@@ -127,12 +131,13 @@ letting them propagate as raw stack traces to the CLI.
 
 ## File-system boundary
 
-All disk access in domain code (`contract/`, `generate/`) goes through
+All disk access in domain code (`contract/`, `generate/`, `analyze/`, `upgrade/`)
+goes through
 the narrow `FileSystem` interface (`readTextFile`, `stat`, `realPath`,
 `cwd`, `writeTextFile`) defined in `filesystem/types.ts`. `writeTextFile`
-is the only write path anywhere in the codebase — added specifically for
-`agent-ready generate --write`, and used by exactly one other command,
-`agent-ready verify --execute --record` (see
+is the only write method anywhere in the codebase. It is used by
+`generate --write`, `init --write`, `upgrade --write`, and
+`verify --execute --record` (see
 [ADR-0010](../decisions/0010-generate-write-boundary.md) and
 [ADR-0015](../decisions/0015-verification-evidence-recording.md));
 `validate` and `inspect` never call it. This means:
@@ -152,12 +157,14 @@ is the only write path anywhere in the codebase — added specifically for
 `src/cli/index.ts` only: parses arguments via `commander`, constructs the
 `NodeFileSystem`, `NodeGitClient`, and `NodeCommandRunner` boundary
 implementations needed by each command, calls `runValidate`/`runInspect`/
-`runGenerate`/`runCheck`/`runAnalyze`/`runVerify`, writes their returned `stdout`/`stderr`
+`runGenerate`/`runCheck`/`runAnalyze`/`runInit`/`runUpgrade`/`runVerify`, writes
+their returned `stdout`/`stderr`
 strings, and sets `process.exitCode`. It
 contains no validation or generation logic itself and never calls
 `process.exit()` from inside a command's business logic — every file in
 `commands/` (`validate.ts`, `inspect.ts`, `generate.ts`, `check.ts`,
-`analyze.ts`, `verify.ts`) is a plain, directly-testable async function that returns a
+`analyze.ts`, `init.ts`, `upgrade.ts`, `verify.ts`) is a plain,
+directly-testable async function that returns a
 `{ exitCode, stdout, stderr }` value rather than performing I/O itself,
 which is what the integration tests in `tests/integration/cli.test.ts`,
 `tests/integration/generateCli.test.ts`, `tests/integration/checkCli.test.ts`,
@@ -180,8 +187,8 @@ call directly.
 - No hosted-service client code, even as a stub.
 - No general-purpose write surface: `writeTextFile` is the only write
   method on `FileSystem`, with no `mkdir`/`unlink`/`chmod` — output paths
-  (adapter output files, and the `verify --execute --record` evidence
-  file) are always Agent-Ready-hardcoded filenames, never
-  contract-supplied.
+  are hardcoded adapter outputs, the canonical/discovered contract path, or the
+  fixed `verify --execute --record` evidence filename — never an arbitrary
+  contract-supplied destination.
 
 See [../../ROADMAP.md](../../ROADMAP.md) for the full non-goals list.

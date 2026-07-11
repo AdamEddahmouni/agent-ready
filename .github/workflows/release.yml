@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: create GitHub release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Package smoke test
+        run: node scripts/package-smoke.mjs
+
+      - name: Verify tag matches version
+        shell: bash
+        run: |
+          VERSION="v$(node -p "require('./package.json').version")"
+          if [ "$VERSION" != "${{ github.ref_name }}" ]; then
+            echo "::error::tag ${{ github.ref_name }} does not match package.json version $VERSION"
+            exit 1
+          fi
+
+      - name: Assemble release assets and notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          mkdir -p release-assets
+          npm pack --pack-destination release-assets
+          tar -czf "release-assets/agent-ready-adapter-compatibility-v1.tgz" compatibility/adapter-output/v1
+          node scripts/extract-release-notes.mjs "$VERSION" release-assets/release-notes.md
+
+      - name: Create GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          PRERELEASE_ARGS=()
+          if [[ "$VERSION" == *-* ]]; then PRERELEASE_ARGS+=(--prerelease); fi
+          gh release create "${{ github.ref_name }}" \
+            release-assets/agent-ready-*.tgz \
+            --verify-tag \
+            --title "Agent-Ready $VERSION" \
+            --notes-file release-assets/release-notes.md \
+            "${PRERELEASE_ARGS[@]}"

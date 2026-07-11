@@ -3,6 +3,43 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
+## 0.4.0-beta.1 - Unreleased
+
+### Added
+
+- `agent-ready init`, a dry-run-first command that inspects a repository and
+  scaffolds a starter `agent-ready.yaml` only when `--write` is supplied.
+- Hand-authored `instructions.content` support across the schema,
+  normalization pipeline, adapters, compatibility corpus, and documentation.
+- Public-project branding and community files, a roadmap to 1.0, CodeQL, and
+  tag-triggered npm publication infrastructure.
+- `agent-ready upgrade`, a dry-run-first, evidence-backed contract
+  modernization command with `--write` opt-in, field-level diffs, and
+  pre-write validation.
+- Five ADRs covering package publication, contract upgrades, YAML depth,
+  immutable Action pins, and instruction-source size limits.
+- GitHub Release automation that attaches the npm tarball and the adapter
+  compatibility corpus, plus post-publish clean-install verification.
+
+### Changed
+
+- Expanded generated adapter output with grouped commands, verification,
+  path rules, and completion guidance.
+- Pinned third-party GitHub Actions to immutable commit SHAs and tightened
+  Dependabot configuration.
+- Prepared package metadata and documentation for the `0.4.0-beta.1` public
+  preview rather than presenting post-`v0.3.0` work as version `0.3.0`.
+- Added an immutable Action-pin check to the local and CI quality gates.
+
+### Fixed
+
+- Corrected composite-action setup and CI expression failures discovered
+  after the `v0.3.0` tag.
+- Made integration-test temporary-directory cleanup retry bounded Windows
+  `EBUSY`/`EPERM` release races.
+- Reject deeply nested YAML before conversion and oversized instruction sources
+  before they are read into memory.
+
 ## 0.3.0 - 2026-07-06
 
 ### Added

@@ -47,10 +47,15 @@ export class InMemoryFileSystem implements FileSystem {
   // eslint-disable-next-line @typescript-eslint/require-await -- interface is async for parity with real I/O
   async stat(absolutePath: string): Promise<FileStat | undefined> {
     if (this.files.has(absolutePath)) {
-      return { isFile: true, isDirectory: false, isSymbolicLink: false };
+      return {
+        isFile: true,
+        isDirectory: false,
+        isSymbolicLink: false,
+        sizeBytes: Buffer.byteLength(this.files.get(absolutePath) ?? "", "utf8"),
+      };
     }
     if (this.directories.has(absolutePath)) {
-      return { isFile: false, isDirectory: true, isSymbolicLink: false };
+      return { isFile: false, isDirectory: true, isSymbolicLink: false, sizeBytes: 0 };
     }
     return undefined;
   }

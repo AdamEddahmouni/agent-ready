@@ -4,6 +4,9 @@ import { FileSystemError } from "../filesystem/types.js";
 import { joinPath } from "../filesystem/pathJoin.js";
 import { extractMarkdownLinks } from "./markdownLinks.js";
 
+/** Maximum size of each declared Markdown instruction source. */
+export const MAX_INSTRUCTION_SOURCE_BYTES = 5_000_000;
+
 export interface DocumentationSourceResult {
   readonly path: string;
   readonly linksChecked: number;
@@ -41,9 +44,42 @@ export async function analyzeDocumentation(
   let linksChecked = 0;
 
   for (const sourcePath of instructionSources) {
+    const absoluteSourcePath = joinPath(repoRoot, sourcePath);
+    try {
+      const sourceStat = await fs.stat(absoluteSourcePath);
+      if (sourceStat?.isFile && sourceStat.sizeBytes > MAX_INSTRUCTION_SOURCE_BYTES) {
+        sources.push({ path: sourcePath, linksChecked: 0 });
+        diagnostics.push({
+          code: "INSTRUCTION_SOURCE_TOO_LARGE",
+          severity: "error",
+          summary: `Instruction source exceeds the analysis size limit: ${sourcePath}`,
+          detail: `The file is ${String(sourceStat.sizeBytes)} bytes, which exceeds the ${String(MAX_INSTRUCTION_SOURCE_BYTES)} byte per-source limit.`,
+          sourcePath,
+          remediation:
+            "Split the document into smaller focused sources or remove it from instructions.sources.",
+          metadata: {
+            sizeBytes: sourceStat.sizeBytes,
+            maxSizeBytes: MAX_INSTRUCTION_SOURCE_BYTES,
+          },
+        });
+        continue;
+      }
+    } catch (error) {
+      sources.push({ path: sourcePath, linksChecked: 0 });
+      diagnostics.push({
+        code: "DOCUMENTATION_SOURCE_READ_FAILED",
+        severity: "error",
+        summary: `Failed to inspect instruction source: ${sourcePath}`,
+        detail: error instanceof FileSystemError ? error.message : "Unknown file-system error.",
+        sourcePath,
+        remediation: "Check that the declared instruction source is a readable text file.",
+      });
+      continue;
+    }
+
     let markdown: string;
     try {
-      markdown = await fs.readTextFile(joinPath(repoRoot, sourcePath));
+      markdown = await fs.readTextFile(absoluteSourcePath);
     } catch (error) {
       sources.push({ path: sourcePath, linksChecked: 0 });
       diagnostics.push({

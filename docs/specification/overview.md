@@ -24,7 +24,8 @@ for the full module-level breakdown):
 1. **Discovery** — find the repository root and the contract file
    ([discovery.md](discovery.md)).
 2. **Parsing** — read the file and parse it as YAML into a plain JS value,
-   with duplicate-key detection and no tag execution.
+   with a 1 MB byte cap, 100-level nesting cap, duplicate-key detection, and
+   no tag execution.
 3. **Schema validation** — validate the parsed value against the public
    JSON Schema; unknown fields are rejected.
 4. **Semantic validation** — cross-field checks JSON Schema cannot express:

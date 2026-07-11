@@ -1,7 +1,7 @@
 name: "Agent-Ready"
 description: >-
   Validate, inspect, generate, check, analyze, schema, doctor, explain, init,
-  and verify a repository's agent-ready.yaml contract, using this repository's own
+  upgrade, and verify a repository's agent-ready.yaml contract, using this repository's own
   CLI built from source. See docs/specification/ci-integration.md.
 author: "Agent-Ready"
 
@@ -9,17 +9,20 @@ inputs:
   command:
     description: >-
       The agent-ready subcommand to run: validate, inspect, generate,
-      check, analyze, schema, doctor, explain, init, or verify.
+      check, analyze, schema, doctor, explain, init, upgrade, or verify.
     required: true
   config:
     description: "Explicit path to the contract file (agent-ready.yaml)."
+    required: false
+  code:
+    description: "(explain) Diagnostic code to explain."
     required: false
   json:
     description: "Print machine-readable JSON output instead of human-readable text."
     required: false
     default: "false"
   write:
-    description: "(generate) Write planned files to disk."
+    description: "(generate/init/upgrade) Write planned files to disk."
     required: false
     default: "false"
   check:
@@ -57,10 +60,10 @@ runs:
   using: composite
   steps:
     - name: Setup pnpm
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: ${{ inputs.node-version }}
         cache: pnpm
@@ -81,6 +84,7 @@ runs:
         ACTION_PATH: ${{ github.action_path }}
         INPUT_COMMAND: ${{ inputs.command }}
         INPUT_CONFIG: ${{ inputs.config }}
+        INPUT_CODE: ${{ inputs.code }}
         INPUT_JSON: ${{ inputs.json }}
         INPUT_WRITE: ${{ inputs.write }}
         INPUT_CHECK: ${{ inputs.check }}
@@ -100,7 +104,7 @@ runs:
         # the two cannot drift. Keep in sync with the `command`
         # input's prose description above; widen both when a new
         # subcommand ships per ADR-0021's ordered Path A rollout.
-        readonly accepted_subcommands='validate|inspect|generate|check|analyze|schema|doctor|explain|init|verify'
+        readonly accepted_subcommands='validate|inspect|generate|check|analyze|schema|doctor|explain|init|upgrade|verify'
 
         case "$INPUT_COMMAND" in
           $accepted_subcommands) ;;
@@ -113,6 +117,7 @@ runs:
         args=("$INPUT_COMMAND")
 
         if [ -n "${INPUT_CONFIG:-}" ]; then args+=("--config" "$INPUT_CONFIG"); fi
+        if [ -n "${INPUT_CODE:-}" ]; then args+=("--code" "$INPUT_CODE"); fi
         if [ "${INPUT_JSON:-false}" = "true" ]; then args+=("--json"); fi
         if [ "${INPUT_WRITE:-false}" = "true" ]; then args+=("--write"); fi
         if [ "${INPUT_CHECK:-false}" = "true" ]; then args+=("--check"); fi

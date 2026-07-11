@@ -35,3 +35,10 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0022](0022-agent-ready-schema-command.md)                    | `agent-ready schema` command (first Path A ship)                |
 | [0023](0023-agent-ready-doctor-command.md)                    | `agent-ready doctor` command (second Path A ship)               |
 | [0024](0024-agent-ready-explain-command.md)                   | `agent-ready explain` command (third Path A ship)               |
+| [0025](0025-agent-ready-init-command.md)                      | `agent-ready init` command (fourth and final Path A ship)       |
+| [0026](0026-instructions-content-field.md)                    | Hand-authored `instructions.content` field                      |
+| [0027](0027-npm-package-publication-strategy.md)              | npm package publication and release strategy                    |
+| [0028](0028-agent-ready-upgrade-command.md)                   | `agent-ready upgrade` safe contract modernization               |
+| [0029](0029-yaml-depth-guard.md)                              | YAML nesting-depth guard                                        |
+| [0030](0030-immutable-github-action-pins.md)                  | Immutable GitHub Action dependency pins                         |
+| [0031](0031-instruction-source-size-cap.md)                   | Instruction-source analysis size cap                            |

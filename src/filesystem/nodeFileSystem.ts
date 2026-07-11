@@ -27,6 +27,7 @@ export class NodeFileSystem implements FileSystem {
         isFile: result.isFile(),
         isDirectory: result.isDirectory(),
         isSymbolicLink: result.isSymbolicLink(),
+        sizeBytes: result.isFile() ? result.size : 0,
       };
     } catch (error) {
       if (isNotFoundError(error)) {

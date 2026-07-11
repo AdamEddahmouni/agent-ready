@@ -12,8 +12,8 @@
 export { loadContract } from "./contract/pipeline.js";
 export type { LoadContractOptions, LoadedContract } from "./contract/pipeline.js";
 
-export { parseYaml, MAX_CONTRACT_BYTES } from "./contract/parseYaml.js";
-export type { ParsedContractSource } from "./contract/parseYaml.js";
+export { parseYaml, MAX_CONTRACT_BYTES, DEFAULT_MAX_YAML_DEPTH } from "./contract/parseYaml.js";
+export type { ParsedContractSource, ParseYamlOptions } from "./contract/parseYaml.js";
 
 export { validateSchema, AGENT_READY_SCHEMA } from "./contract/schema.js";
 

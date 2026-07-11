@@ -58,17 +58,18 @@ known limitations documented in the threat model.
 
 ### v0.4.0 deliverables
 
-#### 1. npm publication- [ ] **ADR-0027: npm package publication strategy.** Justifies the
+#### 1. npm publication
 
-publish-on-tag workflow (already in `publish.yml`), the `files`
-allowlist in `package.json`, provenance attestation via OIDC trusted
-publishing, and the decision to publish `agent-ready` as an
-unscoped package (name verified available on npm as of 2026-07-06).
-**This ADR formally reopens the "automated package publication or
-release" non-goal from ROADMAP.md** — the existing non-goal was
-scoped to the composite action not requiring npm publish (ADR-0016);
-this ADR broadens the project to support publication as a first-class
-distribution channel, while the composite action remains build-from-source.
+- [x] **ADR-0027: npm package publication strategy.** Justifies the
+      publish-on-tag workflow (already in `publish.yml`), the `files` allowlist
+      in `package.json`, provenance attestation via OIDC trusted publishing,
+      and the decision to publish `agent-ready` as an unscoped package (name
+      verified available on npm as of 2026-07-10). **This ADR formally reopens
+      the "automated package publication or release" non-goal from ROADMAP.md**
+      — the existing non-goal was scoped to the composite action not requiring
+      npm publish (ADR-0016); this ADR broadens the project to support
+      publication as a first-class distribution channel, while the composite
+      action remains build-from-source.
 
 - [ ] Configure npm Trusted Publishing on npmjs.com (link the
       `agent-ready` package to this GitHub repo + `publish.yml` workflow).
@@ -76,14 +77,14 @@ distribution channel, while the composite action remains build-from-source.
       `docs/adoption-guide.md` installation instructions to show
       `npm install -D agent-ready` / `npx agent-ready` as the primary path,
       with from-source as the fallback.
-- [ ] Add a `postpublish` smoke verification step to `publish.yml`
+- [x] Add a `postpublish` smoke verification step to `publish.yml`
       that installs the just-published version in a clean temp directory
       and runs `agent-ready --version` + `agent-ready validate --config
 examples/minimal/agent-ready.yaml`.
 
 #### 2. `agent-ready upgrade` command
 
-- [ ] **ADR-0028: `agent-ready upgrade` command.** A read-only-by-default
+- [x] **ADR-0028: `agent-ready upgrade` command.** A read-only-by-default
       command that inspects an existing `agent-ready.yaml`, compares it
       against the current schema version, and reports any deprecated
       fields, renamed fields, or fields that have become recommended since
@@ -114,19 +115,19 @@ examples/minimal/agent-ready.yaml`.
 
 #### 3. Threat model hardening — documented limitations
 
-- [ ] **ADR-0029: YAML depth guard.** Add a configurable nesting-depth
+- [x] **ADR-0029: YAML depth guard.** Add a configurable nesting-depth
       limit (default 100) to `parseYaml.ts`, complementing the existing
       1 MB size cap and `maxAliasCount`. Closes the "deep, non-aliased YAML
       nesting" known limitation in the threat model. New diagnostic:
       `YAML_NESTING_TOO_DEEP`.
-- [ ] **ADR-0030: SHA-pinned GitHub Actions.** Pin all third-party
+- [x] **ADR-0030: SHA-pinned GitHub Actions.** Pin all third-party
       Actions in `ci.yml` and `publish.yml` to immutable commit SHAs
       (with a comment showing the version tag for readability) instead of
       major-version floating tags. Closes the "GitHub Actions pinned to
       major version tags" known limitation. Add a Dependabot config for
       github-actions ecosystem (already present) and a CI check that
       fails if any `uses:` references a tag rather than a SHA.
-- [ ] **ADR-0031: Instruction-source size cap.** Add a per-source
+- [x] **ADR-0031: Instruction-source size cap.** Add a per-source
       file size limit (default 5 MB) to `agent-ready analyze`, preventing
       a pathological instruction source from consuming unbounded memory.
       New diagnostic: `INSTRUCTION_SOURCE_TOO_LARGE`. Closes the
@@ -134,18 +135,21 @@ examples/minimal/agent-ready.yaml`.
 
 #### 4. GitHub Release automation
 
-- [ ] Add a `release.yml` workflow triggered on tag push that creates
+- [x] Add a `release.yml` workflow triggered on tag push that creates
       a GitHub Release with auto-generated release notes (from
       `CHANGELOG.md`), attaches the build artifact, and links the
       compatibility corpus.
 
 ### v0.4.0 exit criteria
 
-- `npm install -D agent-ready` works and produces a working CLI.
-- `agent-ready upgrade --write` safely modernizes a v0.1.0-era contract.
-- All three threat-model known limitations addressed above are closed.
-- All GitHub Actions are SHA-pinned.
-- 500+ tests pass; CI is green on Ubuntu, Windows, and macOS.
+- [ ] `npm install -D agent-ready` works and produces a working CLI. Requires
+      the external public-repository, npm-bootstrap, and tag-publication steps.
+- [x] `agent-ready upgrade --write` safely modernizes a v0.1.0-era contract.
+- [x] All three threat-model known limitations addressed above are closed.
+- [x] All GitHub Actions are SHA-pinned and checked in CI.
+- [ ] 500+ tests pass; CI is green on Ubuntu, Windows, and macOS. Local test
+      count is verified during the final preflight; the cross-platform CI run
+      occurs after the branch is pushed.
 
 ---
 

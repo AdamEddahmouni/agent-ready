@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { analyzeDocumentation } from "../../src/analyze/analyzeDocumentation.js";
+import {
+  analyzeDocumentation,
+  MAX_INSTRUCTION_SOURCE_BYTES,
+} from "../../src/analyze/analyzeDocumentation.js";
 import { InMemoryFileSystem } from "../../src/filesystem/inMemoryFileSystem.js";
 import { FileSystemError } from "../../src/filesystem/types.js";
 
@@ -91,5 +94,36 @@ describe("analyzeDocumentation", () => {
       "DOCUMENTATION_LINK_CHECK_FAILED",
       "DOCUMENTATION_SOURCE_READ_FAILED",
     ]);
+  });
+
+  it("accepts an instruction source exactly at the per-source size limit", async () => {
+    const fs = fileSystem({ README: "x".repeat(MAX_INSTRUCTION_SOURCE_BYTES) });
+    const result = await analyzeDocumentation(fs, "/repo", ["README"]);
+    expect(result.diagnostics).toEqual([]);
+    expect(result.sources).toEqual([{ path: "README", linksChecked: 0 }]);
+  });
+
+  it("rejects an oversized instruction source before reading its content", async () => {
+    class ReadTrackingFileSystem extends InMemoryFileSystem {
+      readAttempted = false;
+
+      override async readTextFile(absolutePath: string): Promise<string> {
+        this.readAttempted = true;
+        return super.readTextFile(absolutePath);
+      }
+    }
+
+    const fs = new ReadTrackingFileSystem("/repo");
+    fs.addFile("/repo/README.md", "x".repeat(MAX_INSTRUCTION_SOURCE_BYTES + 1));
+    const result = await analyzeDocumentation(fs, "/repo", ["README.md"]);
+
+    expect(fs.readAttempted).toBe(false);
+    expect(result.diagnostics[0]).toMatchObject({
+      code: "INSTRUCTION_SOURCE_TOO_LARGE",
+      metadata: {
+        sizeBytes: MAX_INSTRUCTION_SOURCE_BYTES + 1,
+        maxSizeBytes: MAX_INSTRUCTION_SOURCE_BYTES,
+      },
+    });
   });
 });

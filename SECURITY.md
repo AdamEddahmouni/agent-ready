@@ -2,10 +2,13 @@
 
 ## Scope
 
-Agent-Ready's current foundation (Phase 0/1) parses, validates,
-normalizes, and inspects a local `agent-ready.yaml` contract. It does not
-execute repository commands, does not run a network service, and does not
-handle authentication or user accounts. See
+Agent-Ready parses, validates, normalizes, inspects, and generates files from
+a local `agent-ready.yaml` contract. It can inspect Git state, probe declared
+tool versions, and execute the contract's declared verification pipeline only
+when the operator explicitly runs `agent-ready verify --execute`. Other
+commands do not execute contract-declared commands. Agent-Ready does not run a
+network service, perform runtime network requests, or handle authentication or
+user accounts. See
 [docs/security/threat-model.md](docs/security/threat-model.md) for the
 full threat model, trust boundaries, and known limitations.
 
@@ -35,11 +38,14 @@ In scope:
 
 - Path traversal or absolute-path escapes not caught by the validator
   (see [docs/specification/paths-and-globs.md](docs/specification/paths-and-globs.md)).
-- Any way for parsing or validating an `agent-ready.yaml` contract to
-  result in code execution, arbitrary file read/write outside the
-  intended repository boundary, or a crash exploitable for denial of
-  service (e.g. an amplification attack the YAML-safety measures don't
-  catch).
+- Any way for parsing, validating, or otherwise processing an
+  `agent-ready.yaml` contract to cause unexpected command execution;
+  arbitrary file read/write outside the intended repository boundary; or a
+  crash exploitable for denial of service (for example, an amplification
+  attack the YAML-safety measures do not catch).
+- Command-selection or process-termination flaws in `verify --execute` that
+  cause commands outside `verification.required` to run, allow a timed-out
+  process tree to remain active, or execute without explicit opt-in.
 - Dependency vulnerabilities with a demonstrated impact on this project's
   usage of them (not just a CVE ID with no relevant code path — CI runs
   `pnpm audit` and dependency updates are tracked via Dependabot, see
@@ -48,8 +54,9 @@ In scope:
 Out of scope (by design, not oversight — see the threat model for
 rationale):
 
-- "The CLI doesn't execute repository commands" — that's intentional in
-  this phase, not a bug.
+- `verify --execute` running the commands explicitly named by the contract's
+  `verification.required` list. This is intentional, opt-in behavior; report
+  execution outside those boundaries.
 - Issues requiring local, already-privileged filesystem access to exploit
   (this is a local CLI; the threat model assumes the operator controls
   their own machine).

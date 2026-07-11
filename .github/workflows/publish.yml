@@ -21,9 +21,12 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: "22"
+          node-version: "24"
           cache: pnpm
           registry-url: "https://registry.npmjs.org"
+
+      - name: Install npm with Trusted Publishing support
+        run: npm install --global npm@11.5.1
 
       - name: Install dependencies (frozen lockfile)
         run: pnpm install --frozen-lockfile
@@ -49,7 +52,46 @@ jobs:
           fi
 
       - name: Dry-run publish
-        run: npm publish --dry-run
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if [[ "$VERSION" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi
+          npm publish --dry-run --access public --tag "$DIST_TAG"
 
       - name: Publish
-        run: npm publish --provenance --access public
+        env:
+          # Bootstrap only: set this secret for the first package publication,
+          # then revoke/delete it after npm Trusted Publishing is configured.
+          # Subsequent releases authenticate with this job's OIDC token.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if [[ "$VERSION" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi
+          npm publish --provenance --access public --tag "$DIST_TAG"
+
+      - name: Verify published package from a clean install
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+
+          for attempt in 1 2 3 4 5 6; do
+            if npm view "agent-ready@$VERSION" version >/dev/null 2>&1; then break; fi
+            if [ "$attempt" = "6" ]; then
+              echo "::error::agent-ready@$VERSION did not become visible on npm in time"
+              exit 1
+            fi
+            sleep 10
+          done
+
+          TEMP_DIR="$(mktemp -d)"
+          cp examples/minimal/agent-ready.yaml "$TEMP_DIR/agent-ready.yaml"
+          cd "$TEMP_DIR"
+          npm init --yes >/dev/null
+          npm install --ignore-scripts --save-dev "agent-ready@$VERSION"
+
+          INSTALLED_VERSION="$(npx --no-install agent-ready --version)"
+          if [ "$INSTALLED_VERSION" != "$VERSION" ]; then
+            echo "::error::installed version $INSTALLED_VERSION does not match $VERSION"
+            exit 1
+          fi
+          npx --no-install agent-ready validate --config agent-ready.yaml

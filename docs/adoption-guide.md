@@ -8,10 +8,9 @@ one — both paths are real today.
 
 ## Current adoption flow (real today)
 
-1. Install: `pnpm install` and `pnpm build` inside a checkout of this
-   repository (there is no published npm package yet — see
-   [docs/specification/api-stability.md](specification/api-stability.md)
-   and the installation note in [README.md](../README.md)).
+1. Install the public preview with `npm install -D agent-ready@next` once the
+   `0.4.0-beta.1` package is published. Until then, run `pnpm install` and
+   `pnpm build` inside a source checkout; see [README.md](../README.md).
 2. Scaffold a starter contract with `agent-ready init` (review the
    output, then `agent-ready init --write` to write it), or hand-author
    one using [docs/specification/contract-reference.md](specification/contract-reference.md)
@@ -40,19 +39,23 @@ one — both paths are real today.
    contract directly) as the source of truth for repository commands
    and constraints.
 
-## Future flow, once the package is published to npm
+For a repository that already has a valid contract from an earlier release,
+run `agent-ready upgrade` first, review its field-level diff, and opt in with
+`agent-ready upgrade --write` when the additions are appropriate.
+
+## npm preview flow
 
 ```bash
-npm install -D agent-ready
+npm install -D agent-ready@next
 npx agent-ready init
 npx agent-ready validate
 npx agent-ready generate --write
 ```
 
-The package is not yet published to npm — see
-[README.md](../README.md) for the current, from-source installation
-instructions. Once published, `npm install -D agent-ready` and
-`npx agent-ready` will work as shown above.
+The package workflow is ready but the first public preview still requires the
+repository-visibility and npm bootstrap steps in
+[docs/releasing.md](releasing.md). Stable v0.4.0 will use the normal
+`npm install -D agent-ready` command without the `next` tag.
 
 ## What adoption does not require
 

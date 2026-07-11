@@ -38,6 +38,9 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
+      - name: Check immutable GitHub Action pins
+        run: pnpm check:action-pins
+
       - name: Lint
         run: pnpm lint
 
@@ -65,6 +68,9 @@ jobs:
           node dist/cli/index.js analyze --help
           node dist/cli/index.js schema --help
           node dist/cli/index.js doctor --help
+          node dist/cli/index.js explain --help
+          node dist/cli/index.js init --help
+          node dist/cli/index.js upgrade --help
           node dist/cli/index.js verify --help
 
       - name: CLI smoke test - valid examples pass
@@ -218,7 +224,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        command: [validate, inspect, generate, check, analyze, schema, doctor, verify]
+        command:
+          [validate, inspect, generate, check, analyze, schema, doctor, explain, upgrade, verify]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -227,6 +234,7 @@ jobs:
         with:
           command: ${{ matrix.command }}
           config: ${{ matrix.command == 'schema' && '' || 'examples/complete-phase-1/agent-ready.yaml' }}
+          code: ${{ matrix.command == 'explain' && 'CONTRACT_NOT_FOUND' || '' }}
           json: "true"
 
   audit:

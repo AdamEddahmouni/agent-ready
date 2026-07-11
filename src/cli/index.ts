@@ -15,6 +15,7 @@ import { runSchema } from "./commands/schema.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runExplain } from "./commands/explain.js";
 import { runInit } from "./commands/init.js";
+import { runUpgrade } from "./commands/upgrade.js";
 
 interface PackageJson {
   readonly version: string;
@@ -211,6 +212,24 @@ program
   .action(async (opts: { write: boolean; json: boolean }) => {
     const fs = new NodeFileSystem();
     const outcome = await runInit(fs, opts);
+    if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
+    if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
+    process.exitCode = outcome.exitCode;
+  });
+
+program
+  .command("upgrade")
+  .description(
+    "Inspect an existing agent-ready.yaml and propose safe, additive\n" +
+      "modernizations. Defaults to a dry run with a field-level diff;\n" +
+      "nothing is written unless --write is passed.",
+  )
+  .option("--write", "Apply the proposed safe transformations in place.", false)
+  .option("--json", "Print results as machine-readable JSON.", false)
+  .option("--config <path>", "Explicit path to the contract file.")
+  .action(async (opts: { write: boolean; json: boolean; config?: string }) => {
+    const fs = new NodeFileSystem();
+    const outcome = await runUpgrade(fs, opts);
     if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
     if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
     process.exitCode = outcome.exitCode;

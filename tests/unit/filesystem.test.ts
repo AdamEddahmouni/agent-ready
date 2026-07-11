@@ -19,6 +19,11 @@ describe("InMemoryFileSystem.writeTextFile", () => {
     const fs = new InMemoryFileSystem("/repo");
     await fs.writeTextFile("/repo/AGENTS.md", "hello");
     const stat = await fs.stat("/repo/AGENTS.md");
-    expect(stat).toEqual({ isFile: true, isDirectory: false, isSymbolicLink: false });
+    expect(stat).toEqual({
+      isFile: true,
+      isDirectory: false,
+      isSymbolicLink: false,
+      sizeBytes: 5,
+    });
   });
 });

@@ -19,6 +19,8 @@ commands:
     run: pnpm install --frozen-lockfile
   format:
     run: pnpm format:check
+  action-pins:
+    run: pnpm check:action-pins
   lint:
     run: pnpm lint
   typecheck:
@@ -31,6 +33,7 @@ commands:
 verification:
   required:
     - format
+    - action-pins
     - lint
     - typecheck
     - test

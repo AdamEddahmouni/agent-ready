@@ -71,6 +71,15 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
       fix: "1. Find the duplicate key at the reported location.\n2. Merge the content of both occurrences into a single entry, or rename one of them if they were meant to be distinct.",
     },
   ],
+  [
+    "YAML_NESTING_TOO_DEEP",
+    {
+      what: "The contract's YAML structure is nested more deeply than Agent-Ready's configured safety limit.",
+      why: "Extremely deep non-aliased YAML can exhaust the JavaScript call stack or consume disproportionate parser time even when the file is small. Agent-Ready checks AST depth before converting YAML to plain objects.",
+      fix: "1. Flatten deeply nested mappings or sequences.\n2. Move long-form guidance into files listed under instructions.sources.\n3. Keep the contract focused on repository metadata, commands, paths, and adapter declarations.",
+      fields: ["/"],
+    },
+  ],
 
   // ── schema ────────────────────────────────────────────────────────────
   [
@@ -370,6 +379,16 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
       related: ["DOCUMENTATION_LINK_BROKEN"],
     },
   ],
+  [
+    "INSTRUCTION_SOURCE_TOO_LARGE",
+    {
+      what: "A file listed in instructions.sources is larger than the per-source analysis limit, so agent-ready analyze refused to read it into memory.",
+      why: "Instruction-source analysis is intentionally bounded. A single pathological or accidentally generated Markdown file should not be able to consume unbounded memory.",
+      fix: "1. Split the document into smaller focused Markdown files.\n2. List the smaller files under instructions.sources.\n3. Remove generated or binary-like content from instruction sources.",
+      fields: ["/instructions/sources"],
+      related: ["DOCUMENTATION_SOURCE_READ_FAILED"],
+    },
+  ],
 
   // ── init ──────────────────────────────────────────────────────────────
   [
@@ -378,6 +397,37 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
       what: "`agent-ready init` was asked to scaffold a starter agent-ready.yaml but one already exists at the repository root. `init` never overwrites an existing contract file.",
       why: "The contract is the repository's source of truth for agent-ready configuration — it is hand-authored and version-controlled. Unlike generated adapter output, a lost contract cannot be reproduced from source.",
       fix: "1. If you want a fresh starter contract, delete or rename the existing file: mv agent-ready.yaml agent-ready.yaml.bak\\n2. Re-run `agent-ready init --write`.\\n3. Review the generated contract and merge back any customizations from your backup.",
+      fields: ["/"],
+    },
+  ],
+
+  // ── upgrade ───────────────────────────────────────────────────────────
+  [
+    "UPGRADE_NO_CHANGES_NEEDED",
+    {
+      what: "agent-ready upgrade inspected the contract and found no safe automatic modernizations to propose.",
+      why: "Upgrade is conservative and additive. It reports this warning when the contract already includes all evidence-backed v0.4 recommendations.",
+      fix: "No action is required. Review any separate UPGRADE_MANUAL_REVIEW_REQUIRED warnings.",
+      fields: ["/"],
+      related: ["UPGRADE_MANUAL_REVIEW_REQUIRED"],
+    },
+  ],
+  [
+    "UPGRADE_MANUAL_REVIEW_REQUIRED",
+    {
+      what: "agent-ready upgrade found a possible modernization that requires maintainer judgment and deliberately did not apply it.",
+      why: "Runtime support ranges and unreadable repository evidence cannot be changed safely from syntax alone. Upgrade never replaces a maintainer-declared policy value automatically.",
+      fix: "Read the diagnostic detail, confirm the repository's actual policy or file state, then make the suggested change manually if appropriate.",
+      fields: ["/environment/runtimes/node"],
+      related: ["UPGRADE_NO_CHANGES_NEEDED"],
+    },
+  ],
+  [
+    "UPGRADE_WRITE_FAILED",
+    {
+      what: "agent-ready upgrade produced and validated a safe proposal but could not write it back to agent-ready.yaml.",
+      why: "The filesystem rejected the write, usually because of permissions, a read-only mount, or insufficient disk space. The original contract remains intact.",
+      fix: "Check file permissions and available disk space, inspect the dry-run diff again, then retry with --write.",
       fields: ["/"],
     },
   ],
