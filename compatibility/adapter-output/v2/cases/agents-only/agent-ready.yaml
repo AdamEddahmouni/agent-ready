@@ -1,0 +1,13 @@
+version: 1
+project:
+  name: agents-only
+agents:
+  disallowed_actions:
+    - Install packages without approval.
+  approval_required_for:
+    - Changes to CI configuration.
+  context_files:
+    - docs/context.md
+adapters:
+  agentsMd:
+    enabled: true

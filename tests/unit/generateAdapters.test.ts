@@ -101,6 +101,21 @@ const contentAndSourcesRaw: RawContract = {
   adapters: { agentsMd: { enabled: true } },
 };
 
+const architectureAndAgentsRaw: RawContract = {
+  version: 1,
+  project: { name: "guided-example" },
+  architecture: {
+    boundaries: ["src/contract/ must not import from src/cli/"],
+    invariants: ["All stages return DiagnosticResult<T>."],
+    key_decisions: [{ file: "docs/decisions/0001-runtime.md", summary: "ESM-only package." }],
+  },
+  agents: {
+    disallowed_actions: ["Install packages without explicit approval."],
+    approval_required_for: ["Changes to CI configuration."],
+    context_files: ["docs/architecture/overview.md"],
+  },
+};
+
 describe.each([
   { name: "agentsMd", render: renderAgentsMd, relativePath: "AGENTS.md" },
   { name: "claude", render: renderClaude, relativePath: "CLAUDE.md" },
@@ -233,6 +248,25 @@ describe.each([
     expect(file.content).toContain("Prefer `const` over `let`");
     expect(file.content).toContain("[README.md](README.md)");
     expect(file.content).toContain("[CONTRIBUTING.md](CONTRIBUTING.md)");
+  });
+
+  it("renders architecture and agent guidance through every adapter with Markdown-safe text", () => {
+    const contract = normalizeContract(architectureAndAgentsRaw);
+    const file = render(contract);
+    expect(file.content).toContain("## Architecture");
+    expect(file.content).toContain("### Boundaries (must not)");
+    expect(file.content).toContain("src/contract/ must not import from src/cli/");
+    expect(file.content).toContain("### Invariants (always)");
+    expect(file.content).toContain("DiagnosticResult\\<T\\>.");
+    expect(file.content).toContain(
+      "[docs/decisions/0001-runtime.md](docs/decisions/0001-runtime.md)",
+    );
+    expect(file.content).toContain("## Agent Constraints");
+    expect(file.content).toContain("### Do Not");
+    expect(file.content).toContain("### Ask Before");
+    expect(file.content).toContain(
+      "[docs/architecture/overview.md](docs/architecture/overview.md)",
+    );
   });
 
   it("renders sources without content exactly as before", () => {

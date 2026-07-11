@@ -1,4 +1,7 @@
-import { analyzeDocumentation } from "../../analyze/analyzeDocumentation.js";
+import {
+  analyzeDeclaredMarkdownFiles,
+  analyzeDocumentation,
+} from "../../analyze/analyzeDocumentation.js";
 import { loadContract } from "../../contract/pipeline.js";
 import { resolveExitCode } from "../../diagnostics/exitCodes.js";
 import { renderDiagnosticsHuman } from "../../diagnostics/humanRender.js";
@@ -30,13 +33,30 @@ export async function runAnalyze(
 
   const { contract, contractPath, repoRoot } = result.value;
   const analysis = await analyzeDocumentation(fs, repoRoot, contract.instructions.sources);
-  const diagnostics: Diagnostic[] = [...result.diagnostics, ...analysis.diagnostics];
+  const declaredFiles = await analyzeDeclaredMarkdownFiles(fs, repoRoot, [
+    ...contract.architecture.keyDecisions.map((decision, index) => ({
+      kind: "architecture-decision" as const,
+      path: decision.file,
+      field: `/architecture/key_decisions/${String(index)}/file`,
+    })),
+    ...contract.agents.contextFiles.map((path, index) => ({
+      kind: "agent-context" as const,
+      path,
+      field: `/agents/context_files/${String(index)}`,
+    })),
+  ]);
+  const diagnostics: Diagnostic[] = [
+    ...result.diagnostics,
+    ...analysis.diagnostics,
+    ...declaredFiles.diagnostics,
+  ];
   return finish(args, diagnostics, {
     contractPath,
     repoRoot,
     sources: analysis.sources,
     linksChecked: analysis.linksChecked,
     findings: analysis.findings,
+    declaredFiles: declaredFiles.files,
   });
 }
 
@@ -53,6 +73,7 @@ interface AnalyzeContext {
     line: number;
     column: number;
   }[];
+  readonly declaredFiles?: readonly { kind: string; path: string; exists: boolean }[];
 }
 
 function finish(
@@ -75,6 +96,7 @@ function finish(
             ...(context.sources !== undefined && { sources: context.sources }),
             ...(context.linksChecked !== undefined && { linksChecked: context.linksChecked }),
             ...(context.findings !== undefined && { findings: context.findings }),
+            ...(context.declaredFiles !== undefined && { declaredFiles: context.declaredFiles }),
             diagnostics: renderDiagnosticsJson(diagnostics),
           },
           null,
@@ -89,6 +111,7 @@ function finish(
       "No documentation drift found.",
       `  instruction sources checked: ${String(context.sources?.length ?? 0)}`,
       `  local links checked: ${String(context.linksChecked ?? 0)}`,
+      `  declared architecture/context files checked: ${String(context.declaredFiles?.length ?? 0)}`,
     ];
     if (diagnostics.length > 0) lines.push("", renderDiagnosticsHuman(diagnostics));
     return { exitCode, stdout: lines.join("\n") + "\n", stderr: "" };

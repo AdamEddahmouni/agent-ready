@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for v0.5.0; not implemented
+Implemented in v0.5.0
 
 ## Context
 

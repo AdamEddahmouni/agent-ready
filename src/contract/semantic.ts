@@ -30,8 +30,108 @@ export async function validateSemantics(
   validatePackageManager(raw, diagnostics);
   validatePathCategories(raw, diagnostics);
   await validateInstructionSources(raw, context, diagnostics);
+  validateArchitecture(raw, diagnostics);
+  validateAgents(raw, diagnostics);
 
   return diagnostics;
+}
+
+function validateArchitecture(raw: RawContract, diagnostics: Diagnostic[]): void {
+  const decisions = raw.architecture?.key_decisions;
+  if (decisions === undefined) return;
+
+  const seen = new Set<string>();
+  for (let index = 0; index < decisions.length; index++) {
+    const decision = decisions[index];
+    if (decision === undefined) continue;
+    const field = `/architecture/key_decisions/${String(index)}/file`;
+    const result = normalizePathPattern(decision.file, field, { allowGlob: false });
+    if ("diagnostics" in result) {
+      diagnostics.push(...result.diagnostics);
+      continue;
+    }
+    if (!isMarkdownPath(result.normalized)) {
+      diagnostics.push(
+        invalidDeclaredMarkdownFile(
+          "ARCHITECTURE_DECISION_INVALID",
+          field,
+          `Architecture decision "${decision.file}" is not a Markdown file.`,
+          "Architecture decision files must use the .md extension.",
+          "Reference a repository-relative Markdown decision file.",
+        ),
+      );
+      continue;
+    }
+    if (seen.has(result.normalized)) {
+      diagnostics.push(
+        invalidDeclaredMarkdownFile(
+          "ARCHITECTURE_DECISION_INVALID",
+          field,
+          `Duplicate architecture decision "${decision.file}".`,
+          `"${result.normalized}" is listed more than once in architecture.key_decisions.`,
+          "List each architecture decision file exactly once.",
+        ),
+      );
+      continue;
+    }
+    seen.add(result.normalized);
+  }
+}
+
+function validateAgents(raw: RawContract, diagnostics: Diagnostic[]): void {
+  const contextFiles = raw.agents?.context_files;
+  if (contextFiles === undefined) return;
+
+  const seen = new Set<string>();
+  for (let index = 0; index < contextFiles.length; index++) {
+    const contextFile = contextFiles[index];
+    if (contextFile === undefined) continue;
+    const field = `/agents/context_files/${String(index)}`;
+    const result = normalizePathPattern(contextFile, field, { allowGlob: false });
+    if ("diagnostics" in result) {
+      diagnostics.push(...result.diagnostics);
+      continue;
+    }
+    if (!isMarkdownPath(result.normalized)) {
+      diagnostics.push(
+        invalidDeclaredMarkdownFile(
+          "AGENT_CONTEXT_FILE_INVALID",
+          field,
+          `Agent context file "${contextFile}" is not a Markdown file.`,
+          "Agent context files must use the .md extension.",
+          "Reference a repository-relative Markdown context file.",
+        ),
+      );
+      continue;
+    }
+    if (seen.has(result.normalized)) {
+      diagnostics.push(
+        invalidDeclaredMarkdownFile(
+          "AGENT_CONTEXT_FILE_INVALID",
+          field,
+          `Duplicate agent context file "${contextFile}".`,
+          `"${result.normalized}" is listed more than once in agents.context_files.`,
+          "List each agent context file exactly once.",
+        ),
+      );
+      continue;
+    }
+    seen.add(result.normalized);
+  }
+}
+
+function isMarkdownPath(path: string): boolean {
+  return path.toLowerCase().endsWith(".md");
+}
+
+function invalidDeclaredMarkdownFile(
+  code: "ARCHITECTURE_DECISION_INVALID" | "AGENT_CONTEXT_FILE_INVALID",
+  field: string,
+  summary: string,
+  detail: string,
+  remediation: string,
+): Diagnostic {
+  return { code, severity: "error", field, summary, detail, remediation };
 }
 
 function validateVersion(raw: RawContract, diagnostics: Diagnostic[]): void {

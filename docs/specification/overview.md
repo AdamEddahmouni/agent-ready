@@ -30,7 +30,8 @@ for the full module-level breakdown):
    JSON Schema; unknown fields are rejected.
 4. **Semantic validation** — cross-field checks JSON Schema cannot express:
    command-reference resolution, path safety, semver validation,
-   instruction-source existence, and path-category conflicts.
+   instruction-source existence, architecture/agent reference safety, and
+   path-category conflicts.
 5. **Normalization** — produce a deterministic, strongly-typed
    `NormalizedContract`, with defaults resolved and stable ordering
    applied.
@@ -53,6 +54,10 @@ semantics. In summary:
   references.
 - **Paths** — `paths.protected`, `paths.generated`, `paths.ignored`.
 - **Instruction sources** — `instructions.sources`.
+- **Architecture guidance** — `architecture.boundaries`,
+  `architecture.invariants`, and `architecture.key_decisions`.
+- **Agent guidance** — `agents.disallowed_actions`,
+  `agents.approval_required_for`, and `agents.context_files`.
 - **Adapter declarations** — `adapters`; all five declared adapters drive
   `agent-ready generate` when enabled.
 

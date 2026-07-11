@@ -46,6 +46,23 @@ export interface RawInstructions {
   readonly content?: string;
 }
 
+export interface RawArchitectureDecision {
+  readonly file: string;
+  readonly summary: string;
+}
+
+export interface RawArchitecture {
+  readonly boundaries?: readonly string[];
+  readonly invariants?: readonly string[];
+  readonly key_decisions?: readonly RawArchitectureDecision[];
+}
+
+export interface RawAgents {
+  readonly disallowed_actions?: readonly string[];
+  readonly approval_required_for?: readonly string[];
+  readonly context_files?: readonly string[];
+}
+
 export interface RawAdapterDeclaration {
   readonly enabled: boolean;
 }
@@ -61,6 +78,8 @@ export interface RawContract {
   readonly verification?: RawVerification;
   readonly paths?: RawPaths;
   readonly instructions?: RawInstructions;
+  readonly architecture?: RawArchitecture;
+  readonly agents?: RawAgents;
   readonly adapters?: Partial<Readonly<Record<AdapterName, RawAdapterDeclaration>>>;
 }
 
@@ -100,6 +119,23 @@ export interface NormalizedAdapter {
   readonly enabled: boolean;
 }
 
+export interface NormalizedArchitectureDecision {
+  readonly file: string;
+  readonly summary: string;
+}
+
+export interface NormalizedArchitecture {
+  readonly boundaries: readonly string[];
+  readonly invariants: readonly string[];
+  readonly keyDecisions: readonly NormalizedArchitectureDecision[];
+}
+
+export interface NormalizedAgents {
+  readonly disallowedActions: readonly string[];
+  readonly approvalRequiredFor: readonly string[];
+  readonly contextFiles: readonly string[];
+}
+
 /**
  * Fully validated, defaulted, and deterministically ordered contract.
  * Independent of CLI presentation and of any parser-specific types.
@@ -121,5 +157,7 @@ export interface NormalizedContract {
     readonly sources: readonly string[];
     readonly content?: string;
   };
+  readonly architecture: NormalizedArchitecture;
+  readonly agents: NormalizedAgents;
   readonly adapters: readonly NormalizedAdapter[];
 }

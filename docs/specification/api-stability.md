@@ -7,7 +7,7 @@ Quick reference:
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `schemas/v1/agent-ready.schema.json`          | Additive changes only within contract `version: 1`.                                              |
 | Diagnostic codes (`src/diagnostics/codes.ts`) | Stable identifiers; new codes may be added. Message _text_ is not covered.                       |
-| `NormalizedContract` shape                    | Additive changes only, mirroring the schema.                                                     |
+| `NormalizedContract` shape                    | Additive changes only, mirroring the schema (including v0.5 `architecture` and `agents`).        |
 | CLI `--json` output                           | Additive changes only.                                                                           |
 | CLI human-readable (non-JSON) output          | **Not** covered by any compatibility guarantee — do not script against it.                       |
 | Everything exported from `src/index.ts`       | Public but **experimental** pre-1.0; may change between minor versions, noted in `CHANGELOG.md`. |

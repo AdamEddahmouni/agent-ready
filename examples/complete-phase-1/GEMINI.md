@@ -82,6 +82,35 @@ These paths are out of scope for agent operations:
 - `dist/**`
 - `node_modules/**`
 
+## Architecture
+
+### Boundaries (must not)
+
+- Features must not import another feature directly.
+
+### Invariants (always)
+
+- Shared utilities remain dependency-light.
+
+### Key Decisions
+
+- [docs/decisions/0001-modular-features.md](docs/decisions/0001-modular-features.md) — Features communicate through the shared layer.
+
+## Agent Constraints
+
+### Do Not
+
+- Modify generated files by hand.
+
+### Ask Before
+
+- Changes to CI configuration.
+
+### Context Files
+
+- [docs/architecture.md](docs/architecture.md)
+- [docs/decisions/0001-modular-features.md](docs/decisions/0001-modular-features.md)
+
 ## Further Context
 
 See these files for detailed project documentation. If you need deeper

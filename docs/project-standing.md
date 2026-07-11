@@ -5,7 +5,7 @@ This document is the honest, current-state entry point for anyone asking
 because Agent-Ready's direction is easy to over- or under-state: the
 project is neither a documentation-only proposal nor a finished product.
 
-## What exists today (v0.4.0 stable line, pre-1.0)
+## What exists today (v0.5.0 stable line, pre-1.0)
 
 Agent-Ready already ships a real, installable-from-source CLI and
 TypeScript package, not just a specification document:
@@ -46,7 +46,7 @@ install && pnpm build` and every command above is real.
 
 ## What does not exist yet
 
-- **No v1.0 compatibility commitment.** `0.4.0` is the stable npm package,
+- **No v1.0 compatibility commitment.** `0.5.0` is the stable npm package,
   while the project remains pre-1.0 under the documented compatibility policy.
   The composite GitHub Action remains build-from-source and does not depend on
   npm publication.
@@ -55,11 +55,11 @@ install && pnpm build` and every command above is real.
   evidence `verify --execute --record` already writes today. See
   [docs/specification/evidence.md](specification/evidence.md) for the
   distinction between what's recorded now and what's proposed.
-- **No schema fields for `agents:`, `quality_gates:`, `handoff:`, or
-  `architecture:` blocks yet.** `architecture` and `agents` have accepted
-  v0.5.0 designs (ADR-0032 and ADR-0033), but remain invalid until their
-  implementation ships. `quality_gates` and `handoff` remain non-normative
-  ideas in [docs/specification/config-evolution-draft.md](specification/config-evolution-draft.md).
+- **No `quality_gates:` or `handoff:` schema blocks.** The v0.5
+  `architecture:` and `agents:` blocks are implemented as declarative,
+  generated guidance; they are not runtime enforcement. `quality_gates` and
+  `handoff` remain non-normative ideas in
+  [docs/specification/config-evolution-draft.md](specification/config-evolution-draft.md).
 - **No community/plugin adapter mechanism.** The five adapters are a
   fixed, hardcoded registry (`generate/generate.ts`'s `RendererRegistry`)
   by design at this phase — see
@@ -89,7 +89,7 @@ integration, or a hosted product to be worth adopting today.
 The contract format was the harder design problem and is now
 reasonably stable (Phases 0–10, an ADR per consequential decision, a
 stated pre-1.0 compatibility policy). The Path A adoption commands are now
-complete: `schema`, `doctor`, `explain`, and `init` all ship. The v0.4 source
+complete: `schema`, `doctor`, `explain`, and `init` all ship. The v0.5 source
 tree also includes safe contract upgrades, bounded YAML/source analysis, and
 release automation. The remaining problem is proving the distribution and
 onboarding path in public repositories: publish the preview package and

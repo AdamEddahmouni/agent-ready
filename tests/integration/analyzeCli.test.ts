@@ -21,7 +21,7 @@ describe("agent-ready analyze (CLI composition)", () => {
     });
     try {
       const outcome = await runAnalyze(new NodeFileSystem(), { json: false }, repo.root);
-      expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
+      expect(outcome.exitCode, outcome.stdout || outcome.stderr).toBe(ExitCode.SUCCESS);
       expect(outcome.stdout).toContain("No documentation drift found.");
       expect(outcome.stdout).toContain("instruction sources checked: 1");
       expect(outcome.stdout).toContain("local links checked: 1");
@@ -75,6 +75,39 @@ describe("agent-ready analyze (CLI composition)", () => {
         linksChecked: number;
       };
       expect(body).toMatchObject({ ok: true, sources: [], linksChecked: 0 });
+    } finally {
+      await repo.cleanup();
+    }
+  });
+
+  it("checks declared architecture decisions and agent context files", async () => {
+    const repo = await createTestRepo({
+      "agent-ready.yaml": [
+        "version: 1",
+        "project:",
+        "  name: rich-context",
+        "architecture:",
+        "  key_decisions:",
+        "    - file: docs/decisions/0001.md",
+        "      summary: Use ESM.",
+        "agents:",
+        "  context_files:",
+        "    - docs/context.md",
+        "",
+      ].join("\n"),
+      "docs/decisions/0001.md": "# Decision\n",
+      "docs/context.md": "# Context\n",
+    });
+    try {
+      const outcome = await runAnalyze(new NodeFileSystem(), { json: true }, repo.root);
+      expect(outcome.exitCode, outcome.stdout || outcome.stderr).toBe(ExitCode.SUCCESS);
+      const body = JSON.parse(outcome.stdout) as {
+        declaredFiles: { kind: string; path: string; exists: boolean }[];
+      };
+      expect(body.declaredFiles).toEqual([
+        { kind: "architecture-decision", path: "docs/decisions/0001.md", exists: true },
+        { kind: "agent-context", path: "docs/context.md", exists: true },
+      ]);
     } finally {
       await repo.cleanup();
     }

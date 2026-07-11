@@ -120,4 +120,40 @@ describe("loadContract (real file system)", () => {
       expect(result.diagnostics.some((d) => d.code === "INSTRUCTION_SOURCE_INVALID")).toBe(true);
     }
   });
+
+  it("loads ordered architecture and agent guidance additively", async () => {
+    const { root } = await repo({
+      "agent-ready.yaml": [
+        "version: 1",
+        "project:",
+        "  name: v0-5-example",
+        "architecture:",
+        "  boundaries:",
+        "    - second",
+        "    - first",
+        "  key_decisions:",
+        "    - file: docs/decisions/0001.md",
+        "      summary: Keep it simple.",
+        "agents:",
+        "  approval_required_for:",
+        "    - second approval",
+        "    - first approval",
+        "  context_files:",
+        "    - docs/context.md",
+        "",
+      ].join("\n"),
+    });
+    const result = await loadContract({ fs: new NodeFileSystem(), startDir: root });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.contract.architecture.boundaries).toEqual(["second", "first"]);
+      expect(result.value.contract.architecture.keyDecisions).toEqual([
+        { file: "docs/decisions/0001.md", summary: "Keep it simple." },
+      ]);
+      expect(result.value.contract.agents.approvalRequiredFor).toEqual([
+        "second approval",
+        "first approval",
+      ]);
+    }
+  });
 });

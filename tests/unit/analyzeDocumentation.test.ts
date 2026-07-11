@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  analyzeDeclaredMarkdownFiles,
   analyzeDocumentation,
   MAX_INSTRUCTION_SOURCE_BYTES,
 } from "../../src/analyze/analyzeDocumentation.js";
@@ -125,5 +126,44 @@ describe("analyzeDocumentation", () => {
         maxSizeBytes: MAX_INSTRUCTION_SOURCE_BYTES,
       },
     });
+  });
+
+  it("checks declared architecture decisions and agent context files without parsing their links", async () => {
+    const fs = fileSystem({
+      "docs/decisions/0001.md": "[unrelated broken link](missing.md)",
+      "docs/context.md": "# Context\n",
+    });
+    const result = await analyzeDeclaredMarkdownFiles(fs, "/repo", [
+      {
+        kind: "architecture-decision",
+        path: "docs/decisions/0001.md",
+        field: "/architecture/key_decisions/0/file",
+      },
+      { kind: "agent-context", path: "docs/context.md", field: "/agents/context_files/0" },
+    ]);
+    expect(result.files).toEqual([
+      { kind: "architecture-decision", path: "docs/decisions/0001.md", exists: true },
+      { kind: "agent-context", path: "docs/context.md", exists: true },
+    ]);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("reports missing declared architecture and agent-context files with stable codes", async () => {
+    const result = await analyzeDeclaredMarkdownFiles(fileSystem({}), "/repo", [
+      {
+        kind: "architecture-decision",
+        path: "docs/decisions/missing.md",
+        field: "/architecture/key_decisions/0/file",
+      },
+      {
+        kind: "agent-context",
+        path: "docs/context-missing.md",
+        field: "/agents/context_files/0",
+      },
+    ]);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+      "ARCHITECTURE_DECISION_INVALID",
+      "AGENT_CONTEXT_FILE_INVALID",
+    ]);
   });
 });

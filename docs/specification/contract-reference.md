@@ -104,6 +104,36 @@ instructions:
     - docs/architecture.md
 ```
 
+## Architecture (optional object)
+
+Architecture guidance is additive, ordered, and rendered into every enabled
+adapter. It is declarative guidance in v0.5.0: Agent-Ready does not enforce
+import boundaries or runtime policy from these strings.
+
+| Field         | Type                                  | Notes                                                                     |
+| ------------- | ------------------------------------- | ------------------------------------------------------------------------- |
+| boundaries    | array of strings, 1–500 chars         | Ordered must-not guidance; Markdown-escaped in generated output.          |
+| invariants    | array of strings, 1–500 chars         | Ordered always guidance; Markdown-escaped in generated output.            |
+| key_decisions | ordered array of file/summary objects | file is a unique, literal repo-relative .md path; summary is 1–300 chars. |
+
+Decision paths are syntax- and duplicate-checked by validate; analyze checks
+that they exist as regular files. Invalid entries use
+ARCHITECTURE_DECISION_INVALID.
+
+## Agents (optional object)
+
+Agent guidance is declarative, not a runtime permission system.
+
+| Field                 | Type                           | Notes                                                                              |
+| --------------------- | ------------------------------ | ---------------------------------------------------------------------------------- |
+| disallowed_actions    | array of strings, 1–300 chars  | Ordered Do Not guidance, Markdown-escaped in generated output.                     |
+| approval_required_for | array of strings, 1–300 chars  | Ordered Ask Before guidance, Markdown-escaped in generated output.                 |
+| context_files         | ordered array of literal paths | Unique repo-relative .md paths rendered as links and existence-checked by analyze. |
+
+Invalid context-file entries use AGENT_CONTEXT_FILE_INVALID. The block does
+not define allowed tools, default instructions, quality gates, or handoff
+semantics.
+
 ## `adapters` (optional, object)
 
 Recognized keys: `agentsMd`, `claude`, `cursor`, `copilot`, `gemini`.
@@ -146,7 +176,6 @@ for a contract using every field above, and
 for the smallest valid contract. [examples/invalid/](../../examples/invalid/)
 contains contracts that intentionally fail, one per common mistake.
 
-Ideas for possible future fields (`agents`, `quality_gates`,
-`architecture`, `handoff`) are sketched, non-normatively, in
-[config-evolution-draft.md](config-evolution-draft.md). None of them
-are valid input against this schema today.
+`quality_gates` and `handoff` remain future ideas in
+[config-evolution-draft.md](config-evolution-draft.md); they are not valid
+input against this schema today.

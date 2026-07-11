@@ -1,0 +1,44 @@
+{
+  "version": 2,
+  "cases": [
+    {
+      "name": "architecture-only",
+      "contract": "cases/architecture-only/agent-ready.yaml",
+      "files": [{ "path": "docs/decisions/0001.md", "content": "# Decision\n" }],
+      "outputs": [
+        {
+          "adapter": "agentsMd",
+          "path": "AGENTS.md",
+          "fixture": "cases/architecture-only/expected/AGENTS.md"
+        }
+      ]
+    },
+    {
+      "name": "agents-only",
+      "contract": "cases/agents-only/agent-ready.yaml",
+      "files": [{ "path": "docs/context.md", "content": "# Context\n" }],
+      "outputs": [
+        {
+          "adapter": "agentsMd",
+          "path": "AGENTS.md",
+          "fixture": "cases/agents-only/expected/AGENTS.md"
+        }
+      ]
+    },
+    {
+      "name": "combined-adversarial",
+      "contract": "cases/combined-adversarial/agent-ready.yaml",
+      "files": [
+        { "path": "docs/decision (draft).md", "content": "# Decision\n" },
+        { "path": "docs/context (ops).md", "content": "# Context\n" }
+      ],
+      "outputs": [
+        {
+          "adapter": "agentsMd",
+          "path": "AGENTS.md",
+          "fixture": "cases/combined-adversarial/expected/AGENTS.md"
+        }
+      ]
+    }
+  ]
+}

@@ -137,6 +137,60 @@ export function renderContractSections(contract: NormalizedContract): string {
   }
 
   // ── Further context ────────────────────────────────────────────────
+  const hasArchitecture =
+    contract.architecture.boundaries.length > 0 ||
+    contract.architecture.invariants.length > 0 ||
+    contract.architecture.keyDecisions.length > 0;
+  if (hasArchitecture) {
+    lines.push("", "## Architecture");
+    if (contract.architecture.boundaries.length > 0) {
+      lines.push("", "### Boundaries (must not)");
+      for (const boundary of contract.architecture.boundaries) {
+        lines.push("- " + escapeMarkdownText(boundary));
+      }
+    }
+    if (contract.architecture.invariants.length > 0) {
+      lines.push("", "### Invariants (always)");
+      for (const invariant of contract.architecture.invariants) {
+        lines.push("- " + escapeMarkdownText(invariant));
+      }
+    }
+    if (contract.architecture.keyDecisions.length > 0) {
+      lines.push("", "### Key Decisions");
+      for (const decision of contract.architecture.keyDecisions) {
+        lines.push(
+          "- " + renderMarkdownLink(decision.file) + " — " + escapeMarkdownText(decision.summary),
+        );
+      }
+    }
+  }
+
+  const hasAgentConstraints =
+    contract.agents.disallowedActions.length > 0 ||
+    contract.agents.approvalRequiredFor.length > 0 ||
+    contract.agents.contextFiles.length > 0;
+  if (hasAgentConstraints) {
+    lines.push("", "## Agent Constraints");
+    if (contract.agents.disallowedActions.length > 0) {
+      lines.push("", "### Do Not");
+      for (const action of contract.agents.disallowedActions) {
+        lines.push("- " + escapeMarkdownText(action));
+      }
+    }
+    if (contract.agents.approvalRequiredFor.length > 0) {
+      lines.push("", "### Ask Before");
+      for (const action of contract.agents.approvalRequiredFor) {
+        lines.push("- " + escapeMarkdownText(action));
+      }
+    }
+    if (contract.agents.contextFiles.length > 0) {
+      lines.push("", "### Context Files");
+      for (const path of contract.agents.contextFiles) {
+        lines.push("- " + renderMarkdownLink(path));
+      }
+    }
+  }
+
   const hasContent = contract.instructions.content !== undefined;
   const hasSources = contract.instructions.sources.length > 0;
 

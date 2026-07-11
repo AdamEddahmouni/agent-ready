@@ -3,6 +3,25 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
+## 0.5.0 - 2026-07-11
+
+### Added
+
+- Optional, additive `architecture` contract guidance: ordered boundaries,
+  invariants, and linked Markdown decision summaries.
+- Optional, additive `agents` guidance: disallowed actions, approval points,
+  and linked Markdown context files.
+- Analysis of declared architecture-decision and agent-context file existence,
+  with stable diagnostics and `--json` declared-file results.
+- Adapter-output compatibility corpus v2, including architecture-only,
+  agents-only, and combined adversarial rendering cases while retaining v1.
+
+### Changed
+
+- Every generated adapter now renders Architecture and Agent Constraints
+  sections when the corresponding contract blocks are declared.
+- The release asset now bundles every adapter compatibility corpus version.
+
 ## 0.4.0 - 2026-07-11
 
 ### Added

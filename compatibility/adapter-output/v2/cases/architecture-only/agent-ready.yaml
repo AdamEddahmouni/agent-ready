@@ -1,0 +1,14 @@
+version: 1
+project:
+  name: architecture-only
+architecture:
+  boundaries:
+    - src/domain/ must not import from src/cli/
+  invariants:
+    - Domain errors are returned as diagnostics.
+  key_decisions:
+    - file: docs/decisions/0001.md
+      summary: Keep the package ESM-only.
+adapters:
+  agentsMd:
+    enabled: true

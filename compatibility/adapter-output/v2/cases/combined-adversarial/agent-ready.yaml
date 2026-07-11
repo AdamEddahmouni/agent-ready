@@ -1,0 +1,21 @@
+version: 1
+project:
+  name: combined-adversarial
+architecture:
+  boundaries:
+    - "# Not a heading"
+  invariants:
+    - "Always <escape> this"
+  key_decisions:
+    - file: docs/decision (draft).md
+      summary: "*Escaped* summary"
+agents:
+  disallowed_actions:
+    - "- not a list"
+  approval_required_for:
+    - "Use `deploy` only after review."
+  context_files:
+    - docs/context (ops).md
+adapters:
+  agentsMd:
+    enabled: true

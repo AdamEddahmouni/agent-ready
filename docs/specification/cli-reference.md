@@ -93,7 +93,7 @@ byte-identical output.
 
 Non-JSON output is a deliberately designed, human-readable summary (not a
 raw object dump) grouped by section: Project, Environment, Commands,
-Verification, Paths, Instruction sources, Adapters.
+Verification, Paths, Architecture, Agent Constraints, Instruction sources, Adapters.
 
 ## `agent-ready generate`
 
@@ -232,7 +232,11 @@ destinations. It is read-only: it never invokes Git, executes contract commands,
 follows remote links, or rewrites documentation. See
 [ADR-0020](../decisions/0020-instruction-source-link-analysis.md). Each
 declared source is inspected before reading and must not exceed 5,000,000
-bytes; larger files fail with `INSTRUCTION_SOURCE_TOO_LARGE`.
+bytes; larger files fail with `INSTRUCTION_SOURCE_TOO_LARGE`. It also checks
+that every `architecture.key_decisions[].file` and `agents.context_files[]`
+reference exists as a regular file. Those references are not parsed for links;
+they are bounded context references only. JSON output adds `declaredFiles`,
+each with `kind`, `path`, and `exists`.
 
 ```bash
 agent-ready analyze

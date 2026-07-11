@@ -64,6 +64,8 @@ This file defines how agents should work inside the project. It carries:
 - **Verification** — ordered pipeline of commands that must pass before work is complete
 - **Paths** — protected files (never modify), generated files (never hand-edit), ignored paths
 - **Instructions** — hand-authored Markdown content and links to documentation
+- **Architecture** — ordered boundaries, invariants, and durable decision links
+- **Agent guidance** — actions to avoid, approval points, and essential context files
 - **Adapters** — which agent instruction files to generate (AGENTS.md, CLAUDE.md, .cursorrules, Copilot, Gemini)
 
 <p align="center">
@@ -128,6 +130,23 @@ instructions:
     - README.md
     - docs/architecture.md
 
+architecture:
+  boundaries:
+    - Features must not import each other directly.
+  invariants:
+    - Shared utilities remain dependency-light.
+  key_decisions:
+    - file: docs/decisions/0001-modular-features.md
+      summary: Features communicate through the shared layer.
+
+agents:
+  disallowed_actions:
+    - Install packages without explicit approval.
+  approval_required_for:
+    - Changes to CI configuration.
+  context_files:
+    - docs/architecture.md
+
 adapters:
   agentsMd:
     enabled: true
@@ -164,7 +183,7 @@ The CLI ships **eleven real commands** — not documentation placeholders:
 | `inspect`  | Print the fully normalized contract                                                |
 | `generate` | Generate AGENTS.md, CLAUDE.md, .cursorrules, Copilot, and Gemini instruction files |
 | `check`    | Enforce protected paths against real Git changes                                   |
-| `analyze`  | Check instruction-source Markdown links for breakage                               |
+| `analyze`  | Check instruction links plus declared architecture and agent-context files         |
 | `schema`   | Print the bundled contract JSON Schema                                             |
 | `doctor`   | Inspect the host environment against contract requirements                         |
 | `explain`  | Print extended plain-language explanations of diagnostic codes                     |
@@ -272,11 +291,11 @@ reporting what they ran, what passed, and what changed.
 
 ## Project Status
 
-Agent-Ready is **pre-1.0**. The current stable release is `0.4.0`. The core contract schema and
+Agent-Ready is **pre-1.0**. The current stable release is `0.5.0`. The core contract schema and
 CLI are stable enough for evaluation and daily use. Path A (the adoption
 funnel: `schema` →
 `doctor` → `explain` → `init`) is complete. All eleven commands ship and run
-today, including the v0.4 `upgrade` command for existing contracts.
+today, including the v0.4 `upgrade` command and v0.5 architecture and agent-guidance blocks.
 
 CI runs 512 automated tests across 39 test files, exercising the full pipeline
 on Ubuntu, Windows, and macOS. Release tags are cut only from a green quality
@@ -293,7 +312,7 @@ composite action. The example below targets the current stable tag:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: AdamEddahmouni/agent-ready@v0.4.0
+- uses: AdamEddahmouni/agent-ready@v0.5.0
   with:
     command: verify
     execute: "true"
@@ -318,7 +337,7 @@ for the full reference.
 - [Architecture Decision Records](docs/decisions/README.md)
 - [Project standing](docs/project-standing.md)
 - [Roadmap](ROADMAP.md) — completed phase history and current non-goals
-- [Roadmap to 1.0](ROADMAP-TO-1.0.md) — forward release plan from v0.4.0 to v1.0.0
+- [Roadmap to 1.0](ROADMAP-TO-1.0.md) — forward release plan from v0.5.0 to v1.0.0
 - [Adoption guide](docs/adoption-guide.md)
 - [Threat model](docs/security/threat-model.md)
 

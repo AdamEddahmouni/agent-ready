@@ -32,6 +32,8 @@ function codeForInstancePath(instancePath: string): DiagnosticCode {
   if (instancePath.startsWith("/environment/packageManager")) return "PACKAGE_MANAGER_INVALID";
   if (instancePath.startsWith("/paths")) return "PATH_PATTERN_INVALID";
   if (instancePath.startsWith("/instructions")) return "INSTRUCTION_SOURCE_INVALID";
+  if (instancePath.startsWith("/architecture")) return "ARCHITECTURE_DECISION_INVALID";
+  if (instancePath.startsWith("/agents")) return "AGENT_CONTEXT_FILE_INVALID";
   if (instancePath.startsWith("/adapters")) return "ADAPTER_DECLARATION_INVALID";
   return "CONTRACT_SCHEMA_INVALID";
 }

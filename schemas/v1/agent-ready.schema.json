@@ -148,6 +148,44 @@
         }
       }
     },
+    "architecture": {
+      "description": "Optional structured repository architecture guidance. These declarations are rendered for agents but are not executable policy in contract version 1.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "boundaries": { "$ref": "#/$defs/architectureGuidanceList" },
+        "invariants": { "$ref": "#/$defs/architectureGuidanceList" },
+        "key_decisions": {
+          "description": "Ordered repository-relative Markdown decision references with concise summaries.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["file", "summary"],
+            "properties": {
+              "file": { "type": "string", "minLength": 1 },
+              "summary": { "type": "string", "minLength": 1, "maxLength": 300 }
+            }
+          }
+        }
+      }
+    },
+    "agents": {
+      "description": "Optional structured operating guidance for agents. These declarations are rendered as guidance and are not runtime enforcement.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "disallowed_actions": { "$ref": "#/$defs/agentGuidanceList" },
+        "approval_required_for": { "$ref": "#/$defs/agentGuidanceList" },
+        "context_files": {
+          "description": "Ordered repository-relative Markdown files that provide essential context.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
     "adapters": {
       "description": "Declarations of which downstream adapters may eventually be enabled. Configuration only: this phase does not generate adapter output.",
       "type": "object",
@@ -162,6 +200,16 @@
     }
   },
   "$defs": {
+    "architectureGuidanceList": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1, "maxLength": 500 }
+    },
+    "agentGuidanceList": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1, "maxLength": 300 }
+    },
     "pathPatternList": {
       "type": "array",
       "minItems": 1,

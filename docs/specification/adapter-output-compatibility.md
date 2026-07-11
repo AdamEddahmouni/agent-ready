@@ -13,7 +13,9 @@ execution.
 Within a corpus version, existing cases and expected bytes are immutable. New
 cases may be added when they clarify behavior without changing an existing
 expectation. An intentional output change requires a new corpus version and a
-changelog entry.
+changelog entry. v2 adds architecture-only, agents-only, and combined
+adversarial cases; v1 remains in the package and is run unchanged as the
+byte-identity proof for v0.4 contracts.
 
 The corpus is shipped in the npm package and tested by the reference
 implementation in `tests/compatibility/adapterOutput.test.ts`.

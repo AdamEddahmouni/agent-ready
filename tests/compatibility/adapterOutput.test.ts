@@ -31,50 +31,53 @@ interface CorpusManifest {
   readonly cases: readonly CorpusCase[];
 }
 
-const corpusRoot = join(
+const corpusBase = join(
   dirname(fileURLToPath(import.meta.url)),
   "..",
   "..",
   "compatibility",
   "adapter-output",
-  "v1",
 );
-const manifest = JSON.parse(
-  await readFile(join(corpusRoot, "manifest.json"), "utf8"),
-) as CorpusManifest;
 
-describe(`adapter output compatibility corpus v${String(manifest.version)}`, () => {
-  for (const corpusCase of manifest.cases) {
-    it(`matches every byte for ${corpusCase.name}`, async () => {
-      const files: Record<string, string> = {
-        "agent-ready.yaml": await readFile(join(corpusRoot, corpusCase.contract), "utf8"),
-      };
-      for (const input of corpusCase.files) {
-        files[input.path] =
-          input.source === undefined
-            ? (input.content ?? "")
-            : await readFile(join(corpusRoot, input.source), "utf8");
-      }
+for (const version of [1, 2]) {
+  const corpusRoot = join(corpusBase, `v${String(version)}`);
+  const manifest = JSON.parse(
+    await readFile(join(corpusRoot, "manifest.json"), "utf8"),
+  ) as CorpusManifest;
 
-      const testRepo = await createTestRepo(files);
-      try {
-        const outcome = await runGenerate(
-          new NodeFileSystem(),
-          { json: false, write: true, check: false, force: false },
-          testRepo.root,
-        );
-        expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
-
-        for (const output of corpusCase.outputs) {
-          const [actual, expected] = await Promise.all([
-            readFile(join(testRepo.root, output.path), "utf8"),
-            readFile(join(corpusRoot, output.fixture), "utf8"),
-          ]);
-          expect(actual, `${corpusCase.name}/${output.adapter}`).toBe(expected);
+  describe(`adapter output compatibility corpus v${String(manifest.version)}`, () => {
+    for (const corpusCase of manifest.cases) {
+      it(`matches every byte for ${corpusCase.name}`, async () => {
+        const files: Record<string, string> = {
+          "agent-ready.yaml": await readFile(join(corpusRoot, corpusCase.contract), "utf8"),
+        };
+        for (const input of corpusCase.files) {
+          files[input.path] =
+            input.source === undefined
+              ? (input.content ?? "")
+              : await readFile(join(corpusRoot, input.source), "utf8");
         }
-      } finally {
-        await testRepo.cleanup();
-      }
-    });
-  }
-});
+
+        const testRepo = await createTestRepo(files);
+        try {
+          const outcome = await runGenerate(
+            new NodeFileSystem(),
+            { json: false, write: true, check: false, force: false },
+            testRepo.root,
+          );
+          expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
+
+          for (const output of corpusCase.outputs) {
+            const [actual, expected] = await Promise.all([
+              readFile(join(testRepo.root, output.path), "utf8"),
+              readFile(join(corpusRoot, output.fixture), "utf8"),
+            ]);
+            expect(actual, `${corpusCase.name}/${output.adapter}`).toBe(expected);
+          }
+        } finally {
+          await testRepo.cleanup();
+        }
+      });
+    }
+  });
+}

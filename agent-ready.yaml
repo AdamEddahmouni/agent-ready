@@ -55,6 +55,30 @@ instructions:
     - docs/architecture/overview.md
     - docs/security/threat-model.md
 
+architecture:
+  boundaries:
+    - src/contract/ must not depend on CLI presentation modules.
+    - Generated adapters must not depend on a concrete filesystem implementation.
+  invariants:
+    - Every pipeline stage returns structured diagnostics instead of throwing for contract errors.
+    - Agent-Ready remains deterministic and makes no LLM or network calls at runtime.
+  key_decisions:
+    - file: docs/decisions/0032-architecture-contract-block.md
+      summary: Architecture guidance is additive and declarative in contract version 1.
+    - file: docs/decisions/0033-agents-contract-block.md
+      summary: Agent constraints are generated guidance, not runtime enforcement.
+
+agents:
+  disallowed_actions:
+    - Modify protected paths without explicit approval.
+    - Add a network or LLM runtime dependency.
+  approval_required_for:
+    - Changes to release or publishing workflows.
+    - Changes to the public contract schema.
+  context_files:
+    - docs/architecture/overview.md
+    - docs/security/threat-model.md
+
 adapters:
   agentsMd:
     enabled: false

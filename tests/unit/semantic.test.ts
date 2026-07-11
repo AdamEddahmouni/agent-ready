@@ -22,6 +22,49 @@ describe("validateSemantics", () => {
     expect(diagnostics).toEqual([]);
   });
 
+  it("accepts valid architecture decisions and agent context files without requiring them to exist", async () => {
+    const diagnostics = await validateSemantics(
+      baseContract({
+        architecture: {
+          key_decisions: [{ file: "docs/decisions/0001-example.md", summary: "A durable choice." }],
+        },
+        agents: { context_files: ["docs/architecture.md"] },
+      }),
+      context(),
+    );
+    expect(diagnostics).toEqual([]);
+  });
+
+  it("rejects duplicate and non-Markdown architecture decision files", async () => {
+    const diagnostics = await validateSemantics(
+      baseContract({
+        architecture: {
+          key_decisions: [
+            { file: "docs/decision.txt", summary: "Not Markdown." },
+            { file: "docs/choice.md", summary: "One." },
+            { file: "docs/choice.md", summary: "Two." },
+          ],
+        },
+      }),
+      context(),
+    );
+    expect(
+      diagnostics.filter((diagnostic) => diagnostic.code === "ARCHITECTURE_DECISION_INVALID"),
+    ).toHaveLength(2);
+  });
+
+  it("rejects duplicate and non-Markdown agent context files", async () => {
+    const diagnostics = await validateSemantics(
+      baseContract({
+        agents: { context_files: ["docs/context.txt", "docs/guide.md", "docs/guide.md"] },
+      }),
+      context(),
+    );
+    expect(
+      diagnostics.filter((diagnostic) => diagnostic.code === "AGENT_CONTEXT_FILE_INVALID"),
+    ).toHaveLength(2);
+  });
+
   it("rejects an unsupported contract version", async () => {
     const diagnostics = await validateSemantics(baseContract({ version: 2 }), context());
     expect(diagnostics.some((d) => d.code === "CONTRACT_VERSION_UNSUPPORTED")).toBe(true);

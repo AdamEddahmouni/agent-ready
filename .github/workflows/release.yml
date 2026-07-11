@@ -46,7 +46,7 @@ jobs:
           VERSION="$(node -p "require('./package.json').version")"
           mkdir -p release-assets
           npm pack --pack-destination release-assets
-          tar -czf "release-assets/agent-ready-adapter-compatibility-v1.tgz" compatibility/adapter-output/v1
+          tar -czf "release-assets/agent-ready-adapter-compatibility-corpora.tgz" compatibility/adapter-output
           node scripts/extract-release-notes.mjs "$VERSION" release-assets/release-notes.md
 
       - name: Create GitHub release
@@ -56,7 +56,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="$(node -p "require('./package.json').version")"
-          PACKAGE_TARBALL="$(find release-assets -maxdepth 1 -type f -name '*.tgz' ! -name 'agent-ready-adapter-compatibility-v1.tgz' -print -quit)"
+          PACKAGE_TARBALL="$(find release-assets -maxdepth 1 -type f -name '*.tgz' ! -name 'agent-ready-adapter-compatibility-corpora.tgz' -print -quit)"
           if [ -z "$PACKAGE_TARBALL" ]; then
             echo "::error::npm package tarball was not created"
             exit 1
@@ -65,7 +65,7 @@ jobs:
           if [[ "$VERSION" == *-* ]]; then PRERELEASE_ARGS+=(--prerelease); fi
           gh release create "${{ github.ref_name }}" \
             "$PACKAGE_TARBALL" \
-            release-assets/agent-ready-adapter-compatibility-v1.tgz \
+            release-assets/agent-ready-adapter-compatibility-corpora.tgz \
             --verify-tag \
             --title "Agent-Ready $VERSION" \
             --notes-file release-assets/release-notes.md \

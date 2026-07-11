@@ -7,10 +7,10 @@ interchangeably:
 
 | Identifier                   | Example                      | Purpose                                                                                |
 | ---------------------------- | ---------------------------- | -------------------------------------------------------------------------------------- |
-| Package version and Git tag  | `0.4.0-rc.1` / `v0.4.0-rc.1` | The immutable, published Agent-Ready release.                                          |
+| Package version and Git tag  | `0.5.0` / `v0.5.0` | The immutable, published Agent-Ready release.                                          |
 | npm dist-tag                 | `next` or `latest`           | The moving installation channel: prereleases use `next`; stable releases use `latest`. |
 | Contract schema version      | `version: 1`                 | The compatibility shape of `agent-ready.yaml`; independent of package releases.        |
-| Adapter compatibility corpus | `adapter-output/v1`          | The independently versioned expected-output fixture format.                            |
+| Adapter compatibility corpus | `adapter-output/v1` and `v2` | Independently versioned expected-output fixture formats, archived together per release. |
 | Roadmap milestone            | `M1`                         | A planning grouping, not a release number.                                             |
 | ADR and GitHub issue         | `ADR-0040`, `#123`           | A durable decision record and a trackable work item.                                   |
 

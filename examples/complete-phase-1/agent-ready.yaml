@@ -58,6 +58,24 @@ instructions:
     Shared utilities live in `src/shared/`. Never import across
     feature boundaries except through the shared layer.
 
+architecture:
+  boundaries:
+    - Features must not import another feature directly.
+  invariants:
+    - Shared utilities remain dependency-light.
+  key_decisions:
+    - file: docs/decisions/0001-modular-features.md
+      summary: Features communicate through the shared layer.
+
+agents:
+  disallowed_actions:
+    - Modify generated files by hand.
+  approval_required_for:
+    - Changes to CI configuration.
+  context_files:
+    - docs/architecture.md
+    - docs/decisions/0001-modular-features.md
+
 adapters:
   agentsMd:
     enabled: true

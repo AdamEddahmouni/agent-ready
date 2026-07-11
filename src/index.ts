@@ -37,6 +37,9 @@ export type {
   RawVerification,
   RawPaths,
   RawInstructions,
+  RawArchitecture,
+  RawArchitectureDecision,
+  RawAgents,
   RawAdapterDeclaration,
   AdapterName,
   NormalizedContract,
@@ -45,6 +48,9 @@ export type {
   NormalizedEnvironment,
   NormalizedPaths,
   NormalizedAdapter,
+  NormalizedArchitecture,
+  NormalizedArchitectureDecision,
+  NormalizedAgents,
 } from "./contract/types.js";
 
 // Diagnostics

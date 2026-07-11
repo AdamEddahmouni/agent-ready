@@ -60,10 +60,33 @@ export function normalizeContract(raw: RawContract): NormalizedContract {
       sources: normalizePatternList(raw.instructions?.sources, { allowGlob: false, sort: false }),
       ...(raw.instructions?.content !== undefined && { content: raw.instructions.content }),
     },
+    architecture: {
+      boundaries: [...(raw.architecture?.boundaries ?? [])],
+      invariants: [...(raw.architecture?.invariants ?? [])],
+      keyDecisions: (raw.architecture?.key_decisions ?? []).map((decision) => ({
+        file: normalizeLiteralPath(decision.file),
+        summary: decision.summary,
+      })),
+    },
+    agents: {
+      disallowedActions: [...(raw.agents?.disallowed_actions ?? [])],
+      approvalRequiredFor: [...(raw.agents?.approval_required_for ?? [])],
+      contextFiles: (raw.agents?.context_files ?? []).map(normalizeLiteralPath),
+    },
     adapters: ADAPTER_NAMES.filter((name) => raw.adapters?.[name] !== undefined)
       .map((name) => ({ name, enabled: raw.adapters?.[name]?.enabled ?? false }))
       .sort((a, b) => a.name.localeCompare(b.name)),
   };
+}
+
+function normalizeLiteralPath(path: string): string {
+  const result = normalizePathPattern(path, "", { allowGlob: false });
+  if ("diagnostics" in result) {
+    throw new NormalizationError(
+      `Invariant violated: literal path "${path}" failed normalization after validation.`,
+    );
+  }
+  return result.normalized;
 }
 
 function normalizeCommands(raw: RawContract): NormalizedCommand[] {

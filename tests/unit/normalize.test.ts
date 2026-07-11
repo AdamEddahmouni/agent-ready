@@ -13,6 +13,8 @@ describe("normalizeContract", () => {
       verification: { required: [] },
       paths: { protected: [], generated: [], ignored: [] },
       instructions: { sources: [] },
+      architecture: { boundaries: [], invariants: [], keyDecisions: [] },
+      agents: { disallowedActions: [], approvalRequiredFor: [], contextFiles: [] },
       adapters: [],
     });
   });
@@ -60,6 +62,39 @@ describe("normalizeContract", () => {
     };
     const result = normalizeContract(raw);
     expect(result.instructions.sources).toEqual(["docs/b.md", "docs/a.md"]);
+  });
+
+  it("preserves architecture and agent guidance order while normalizing their file paths", () => {
+    const result = normalizeContract({
+      version: 1,
+      project: { name: "example" },
+      architecture: {
+        boundaries: ["second", "first"],
+        invariants: ["always second", "always first"],
+        key_decisions: [
+          { file: "docs/./second.md", summary: "Second" },
+          { file: "docs/first.md", summary: "First" },
+        ],
+      },
+      agents: {
+        disallowed_actions: ["second action", "first action"],
+        approval_required_for: ["second approval", "first approval"],
+        context_files: ["docs/./context.md", "docs/other.md"],
+      },
+    });
+    expect(result.architecture).toEqual({
+      boundaries: ["second", "first"],
+      invariants: ["always second", "always first"],
+      keyDecisions: [
+        { file: "docs/second.md", summary: "Second" },
+        { file: "docs/first.md", summary: "First" },
+      ],
+    });
+    expect(result.agents).toEqual({
+      disallowedActions: ["second action", "first action"],
+      approvalRequiredFor: ["second approval", "first approval"],
+      contextFiles: ["docs/context.md", "docs/other.md"],
+    });
   });
 
   it("sorts adapters alphabetically and only includes declared ones", () => {

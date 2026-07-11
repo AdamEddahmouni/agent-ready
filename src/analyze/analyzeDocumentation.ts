@@ -28,6 +28,23 @@ export interface DocumentationAnalysisResult {
   readonly diagnostics: readonly Diagnostic[];
 }
 
+export interface DeclaredMarkdownFile {
+  readonly kind: "architecture-decision" | "agent-context";
+  readonly path: string;
+  readonly field: string;
+}
+
+export interface DeclaredMarkdownFileResult {
+  readonly kind: DeclaredMarkdownFile["kind"];
+  readonly path: string;
+  readonly exists: boolean;
+}
+
+export interface DeclaredMarkdownFileAnalysisResult {
+  readonly files: readonly DeclaredMarkdownFileResult[];
+  readonly diagnostics: readonly Diagnostic[];
+}
+
 /**
  * Checks local Markdown links in declared instruction sources. This is a
  * read-only, deterministic analysis; remote/root-relative links and anchors are
@@ -166,6 +183,70 @@ export async function analyzeDocumentation(
   }
 
   return { sources, linksChecked, findings, diagnostics };
+}
+
+/**
+ * Checks the bounded file-existence portion of v0.5's declared Markdown
+ * references. Unlike instruction sources, these files are not parsed for
+ * links: architecture decisions and agent context are references, not an
+ * additional documentation-link-analysis surface.
+ */
+export async function analyzeDeclaredMarkdownFiles(
+  fs: FileSystem,
+  repoRoot: string,
+  files: readonly DeclaredMarkdownFile[],
+): Promise<DeclaredMarkdownFileAnalysisResult> {
+  const results: DeclaredMarkdownFileResult[] = [];
+  const diagnostics: Diagnostic[] = [];
+
+  for (const file of files) {
+    try {
+      const stat = await fs.stat(joinPath(repoRoot, file.path));
+      const exists = stat?.isFile === true;
+      results.push({ kind: file.kind, path: file.path, exists });
+      if (!exists) {
+        diagnostics.push(
+          declaredFileDiagnostic(
+            file,
+            `Declared ${file.kind.replace("-", " ")} file does not exist: ${file.path}`,
+            `No readable file was found at "${file.path}" relative to the repository root.`,
+            "Create the referenced Markdown file, or remove it from the contract.",
+          ),
+        );
+      }
+    } catch (error) {
+      results.push({ kind: file.kind, path: file.path, exists: false });
+      diagnostics.push(
+        declaredFileDiagnostic(
+          file,
+          `Failed to inspect declared ${file.kind.replace("-", " ")} file: ${file.path}`,
+          error instanceof FileSystemError ? error.message : "Unknown file-system error.",
+          "Check filesystem permissions and retry the analysis.",
+        ),
+      );
+    }
+  }
+
+  return { files: results, diagnostics };
+}
+
+function declaredFileDiagnostic(
+  file: DeclaredMarkdownFile,
+  summary: string,
+  detail: string,
+  remediation: string,
+): Diagnostic {
+  return {
+    code:
+      file.kind === "architecture-decision"
+        ? "ARCHITECTURE_DECISION_INVALID"
+        : "AGENT_CONTEXT_FILE_INVALID",
+    severity: "error",
+    field: file.field,
+    summary,
+    detail,
+    remediation,
+  };
 }
 
 type DestinationResolution =

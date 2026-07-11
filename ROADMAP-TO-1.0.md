@@ -169,8 +169,8 @@ verification matrix are defined in
 
 #### 1. `architecture` block
 
-- [x] **ADR-0032: `architecture` schema block.** Accepted; implementation
-      remains pending for v0.5.0. Adds an optional
+- [x] **ADR-0032: `architecture` schema block.** Implemented in v0.5.0.
+      Adds an optional
       `architecture` top-level block to the contract, letting a repository
       declare structured architectural invariants that flow into generated
       agent instructions:
@@ -192,8 +192,8 @@ verification matrix are defined in
   - `boundaries` and `invariants` are arrays of non-empty strings
     (1–500 chars each), Markdown-escaped in adapter output.
   - `key_decisions` is an array of `{ file, summary }` objects; `file`
-    must be a literal repo-relative path that exists
-    (`ARCHITECTURE_DECISION_FILE_NOT_FOUND`), `summary` is 1–300 chars.
+    must be a unique literal repo-relative Markdown path
+    (`ARCHITECTURE_DECISION_INVALID`), `summary` is 1–300 chars.
   - `agent-ready analyze` gains a check: each `key_decisions[].file`
     must exist and be a valid Markdown file (extends the existing
     link-analysis pipeline, not a new one).
@@ -205,8 +205,8 @@ verification matrix are defined in
 
 #### 2. `agents` block (refined from config-evolution draft)
 
-- [x] **ADR-0033: `agents` schema block.** Accepted; implementation remains
-      pending for v0.5.0. Adds an optional `agents`
+- [x] **ADR-0033: `agents` schema block.** Implemented in v0.5.0. Adds an
+      optional `agents`
       top-level block for structured agent-operating guidance that flows into
       generated instructions without runtime enforcement:
 
@@ -251,14 +251,14 @@ verification matrix are defined in
 
 ### v0.5.0 exit criteria
 
-- `architecture` and `agents` blocks are valid schema fields, fully
-  validated, and flow through `generate` into all five adapters.
-- `agent-ready analyze` checks `architecture.key_decisions[].file` and
-  `agents.context_files[]` paths.
-- Golden fixtures updated; compatibility corpus bumped to reflect new
-  output sections.
-- Existing contracts without these blocks validate identically to v0.4.0
-  (additive-only proof).
+- [x] `architecture` and `agents` blocks are valid schema fields, fully
+      validated, and flow through `generate` into all five adapters.
+- [x] `agent-ready analyze` checks `architecture.key_decisions[].file` and
+      `agents.context_files[]` paths.
+- [x] Golden fixtures updated; compatibility corpus bumped to reflect new
+      output sections.
+- [x] Existing contracts without these blocks validate identically to v0.4.0
+      (additive-only proof).
 
 ### v0.6.0 — Handoff evidence & verification enhancements
 

@@ -229,6 +229,26 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
 
   // ── generate ──────────────────────────────────────────────────────────
   [
+    "ARCHITECTURE_DECISION_INVALID",
+    {
+      what: "An architecture.key_decisions entry is malformed, duplicated, not a repository-relative Markdown path, or its referenced file is missing when analyzed.",
+      why: "Architecture decisions are rendered as safe, durable links in generated instructions, so Agent-Ready keeps them bounded to unique local Markdown files.",
+      fix: "1. Use a unique repository-relative .md path.\n2. Create the referenced decision file.\n3. Re-run validate and analyze.",
+      fields: ["/architecture/key_decisions"],
+      related: ["PATH_PATTERN_INVALID", "PATH_TRAVERSAL_DISALLOWED"],
+    },
+  ],
+  [
+    "AGENT_CONTEXT_FILE_INVALID",
+    {
+      what: "An agents.context_files entry is malformed, duplicated, not a repository-relative Markdown path, or its referenced file is missing when analyzed.",
+      why: "Context files are rendered as safe links for agents, so the contract only accepts unique local Markdown references.",
+      fix: "1. Use a unique repository-relative .md path.\n2. Create the referenced context file.\n3. Re-run validate and analyze.",
+      fields: ["/agents/context_files"],
+      related: ["PATH_PATTERN_INVALID", "PATH_TRAVERSAL_DISALLOWED"],
+    },
+  ],
+  [
     "GENERATE_TARGET_UNMANAGED",
     {
       what: "`agent-ready generate --write` found an existing file at a planned output path (e.g. AGENTS.md) that was not originally created by Agent-Ready, so it refused to overwrite it.",
