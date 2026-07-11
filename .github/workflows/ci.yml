@@ -233,7 +233,7 @@ jobs:
         uses: ./
         with:
           command: ${{ matrix.command }}
-          config: ${{ matrix.command == 'schema' && '' || 'examples/complete-phase-1/agent-ready.yaml' }}
+          config: ${{ matrix.command != 'schema' && 'examples/complete-phase-1/agent-ready.yaml' || '' }}
           code: ${{ matrix.command == 'explain' && 'CONTRACT_NOT_FOUND' || '' }}
           json: "true"
 

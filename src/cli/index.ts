@@ -31,7 +31,7 @@ program
   .name("agent-ready")
   .description(
     "Validate, inspect, generate, check, analyze, schema, doctor, explain,\n" +
-      "init, verify, and inspect the bundled contract JSON Schema. This CLI never modifies the repository\n" +
+      "init, upgrade, verify, and inspect the bundled contract JSON Schema. This CLI never modifies the repository\n" +
       "unless `generate --write`, `init --write`, or `verify --execute` is used.\n" +
       "Never executes repository commands unless `verify --execute` is used.",
   )
