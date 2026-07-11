@@ -24,8 +24,9 @@ package to exist before a publisher relationship can be configured.
 
 ## Decision
 
-- Publish the unscoped public package `agent-ready`; the name was verified
-  available on 2026-07-10.
+- Publish the scoped public package `@adameddahmouni/agent-ready`; npm rejected
+  the unscoped `agent-ready` name because of its similarity to an existing
+  package.
 - Keep `package.json#files` as the package-content allowlist. Build and run the
   package smoke test before every publish.
 - Publish only from immutable `v*` tags whose name exactly matches
@@ -53,8 +54,8 @@ package and release workflows while preserving ADR-0016's independence.
   reproducibility, provenance, and tag/package consistency.
 - **A permanent npm automation token:** rejected because a long-lived secret
   has broader compromise and rotation risk than OIDC.
-- **Scoped package name:** rejected for the preview because the unscoped name
-  matches the CLI and is available; reconsider if namespace ownership changes.
+- **Unscoped package name:** rejected because npm's similarity protection
+  blocked `agent-ready`; the scoped name preserves a clear, owned identity.
 - **Make npm mandatory for the composite action:** rejected; source builds are
   a useful independent distribution path.
 

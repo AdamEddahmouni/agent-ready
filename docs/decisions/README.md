@@ -42,3 +42,4 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0029](0029-yaml-depth-guard.md)                              | YAML nesting-depth guard                                        |
 | [0030](0030-immutable-github-action-pins.md)                  | Immutable GitHub Action dependency pins                         |
 | [0031](0031-instruction-source-size-cap.md)                   | Instruction-source analysis size cap                            |
+| [0040](0040-release-and-version-taxonomy.md)                  | Release and version taxonomy                                    |

@@ -1,5 +1,24 @@
 # Releasing Agent-Ready
 
+## Release taxonomy
+
+The following identifiers describe different things and must not be used
+interchangeably:
+
+| Identifier                   | Example                      | Purpose                                                                                |
+| ---------------------------- | ---------------------------- | -------------------------------------------------------------------------------------- |
+| Package version and Git tag  | `0.4.0-rc.1` / `v0.4.0-rc.1` | The immutable, published Agent-Ready release.                                          |
+| npm dist-tag                 | `next` or `latest`           | The moving installation channel: prereleases use `next`; stable releases use `latest`. |
+| Contract schema version      | `version: 1`                 | The compatibility shape of `agent-ready.yaml`; independent of package releases.        |
+| Adapter compatibility corpus | `adapter-output/v1`          | The independently versioned expected-output fixture format.                            |
+| Roadmap milestone            | `M1`                         | A planning grouping, not a release number.                                             |
+| ADR and GitHub issue         | `ADR-0040`, `#123`           | A durable decision record and a trackable work item.                                   |
+
+Release progression is `alpha.N` for early feature previews, `beta.N` for
+public previews, `rc.N` for feature-frozen release candidates, then the stable
+version with no prerelease suffix. Every Git tag exactly matches the package
+version with a leading `v`.
+
 Release steps:
 
 1. Update `CHANGELOG.md` and the version in `package.json`.
@@ -24,13 +43,15 @@ Release steps:
    tarball plus the standalone adapter compatibility corpus.
 
 The composite action and npm package are reproducible from the same tagged
-commit. Normal publishing uses npm Trusted Publishing (OIDC), Node 24, and npm
-11.5.1. No long-lived publish token is retained.
+commit. Publishing uses npm Trusted Publishing (OIDC), Node 24, and npm 11.5.1.
+No long-lived publish token is retained.
 
-## First-publication bootstrap
+## Historical first-publication bootstrap
 
-npm requires a package to exist before a Trusted Publisher can be attached to
-it. For the first publication only:
+npm required a package to exist before a Trusted Publisher could be attached.
+The one-time bootstrap used for the initial preview is complete; the token and
+GitHub secret were revoked immediately afterward. This is retained only as a
+historical record, not as an active release procedure.
 
 1. Make the GitHub repository public so npm provenance can link to the public
    source commit.

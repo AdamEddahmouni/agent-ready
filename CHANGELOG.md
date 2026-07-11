@@ -3,7 +3,17 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
-## 0.4.0-beta.4 - Unreleased
+## 0.4.0-rc.1 - Unreleased
+
+### Changed
+
+- Established a release taxonomy that distinguishes package releases, npm
+  channels, contract-schema versions, compatibility-corpus versions,
+  roadmap milestones, ADRs, and GitHub issues.
+- Removed the completed first-publication token fallback; all future npm
+  releases use GitHub Actions OIDC Trusted Publishing only.
+
+## 0.4.0-beta.4 - 2026-07-11
 
 ### Fixed
 

@@ -8,7 +8,7 @@ one — both paths are real today.
 
 ## Current adoption flow (real today)
 
-1. Install the public preview with
+1. Install the current release candidate with
    `npm install -D @adameddahmouni/agent-ready@next`.
 2. Scaffold a starter contract with `agent-ready init` (review the
    output, then `agent-ready init --write` to write it), or hand-author
@@ -42,7 +42,7 @@ For a repository that already has a valid contract from an earlier release,
 run `agent-ready upgrade` first, review its field-level diff, and opt in with
 `agent-ready upgrade --write` when the additions are appropriate.
 
-## npm preview flow
+## npm release-candidate flow
 
 ```bash
 npm install -D @adameddahmouni/agent-ready@next

@@ -71,9 +71,9 @@ known limitations documented in the threat model.
       publication as a first-class distribution channel, while the composite
       action remains build-from-source.
 
-- [ ] Configure npm Trusted Publishing on npmjs.com (link the
+- [x] Configure npm Trusted Publishing on npmjs.com (link the
       `@adameddahmouni/agent-ready` package to this GitHub repo + `publish.yml` workflow).
-- [ ] Tag `v0.4.0` and publish. Update `README.md` and
+- [ ] Promote the validated release candidate as `v0.4.0` and update `README.md` and
       `docs/adoption-guide.md` installation instructions to show
       `npm install -D @adameddahmouni/agent-ready` / `npx agent-ready` as the primary path,
       with from-source as the fallback.
@@ -142,14 +142,12 @@ examples/minimal/agent-ready.yaml`.
 
 ### v0.4.0 exit criteria
 
-- [ ] `npm install -D @adameddahmouni/agent-ready` works and produces a working CLI. Requires
-      the external public-repository, npm-bootstrap, and tag-publication steps.
+- [ ] `npm install -D @adameddahmouni/agent-ready` works and produces a working CLI from
+      npm's `latest` tag. The preview line is validated on `next`; stable promotion remains.
 - [x] `agent-ready upgrade --write` safely modernizes a v0.1.0-era contract.
 - [x] All three threat-model known limitations addressed above are closed.
 - [x] All GitHub Actions are SHA-pinned and checked in CI.
-- [ ] 500+ tests pass; CI is green on Ubuntu, Windows, and macOS. Local test
-      count is verified during the final preflight; the cross-platform CI run
-      occurs after the branch is pushed.
+- [x] 500+ tests pass; CI is green on Ubuntu, Windows, and macOS.
 
 ---
 

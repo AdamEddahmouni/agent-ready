@@ -5,7 +5,7 @@ This document is the honest, current-state entry point for anyone asking
 because Agent-Ready's direction is easy to over- or under-state: the
 project is neither a documentation-only proposal nor a finished product.
 
-## What exists today (v0.4.0-beta.4 development line, pre-1.0)
+## What exists today (v0.4.0-rc.1 release-candidate line, pre-1.0)
 
 Agent-Ready already ships a real, installable-from-source CLI and
 TypeScript package, not just a specification document:
@@ -37,7 +37,7 @@ TypeScript package, not just a specification document:
   embedding the validation pipeline in another tool — see
   [docs/specification/api-stability.md](specification/api-stability.md).
 - Unit and integration tests, a CI pipeline
-  (`.github/workflows/ci.yml`), 31 Architecture Decision Records
+  (`.github/workflows/ci.yml`), 32 Architecture Decision Records
   (`docs/decisions/`), a threat model, and a stated pre-1.0
   compatibility policy.
 
@@ -47,7 +47,7 @@ install && pnpm build` and every command above is real.
 ## What does not exist yet
 
 - **No stable npm release.** The source tree is installable and package-smoke
-  tested, while `0.4.0-beta.4` is the current public-preview package line.
+  tested, while `0.4.0-rc.1` is the current release-candidate package line.
   The composite GitHub Action remains build-from-source and does not depend on
   npm publication.
 - **No richer, structured "handoff evidence"** (summary, assumptions,

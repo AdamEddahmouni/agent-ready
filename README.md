@@ -202,7 +202,7 @@ One repository contract. Any agent. Write the instructions once.
 
 ## Installation
 
-The public preview is available under npm's `next` tag. Install it with:
+The release candidate is available under npm's `next` tag. Install it with:
 
 ```bash
 npm install --save-dev @adameddahmouni/agent-ready@next
@@ -211,8 +211,7 @@ pnpm add --save-dev @adameddahmouni/agent-ready@next
 ```
 
 Then run the local binary with `npx agent-ready` or `pnpm exec agent-ready`.
-Until the preview is published, use the source setup below. Agent-Ready
-requires Node.js `>=20.0.0`.
+Agent-Ready requires Node.js `>=20.0.0`.
 
 ### Development Setup
 
@@ -228,7 +227,7 @@ pnpm build
 
 ## Quick start
 
-The commands below assume the npm preview is installed. From a source checkout,
+The commands below assume the npm release candidate is installed. From a source checkout,
 replace `agent-ready` with `pnpm cli --`.
 
 ```bash
@@ -273,14 +272,14 @@ reporting what they ran, what passed, and what changed.
 
 ## Project Status
 
-Agent-Ready is **pre-1.0**. The current development version is
-`0.4.0-beta.4`, the current public-preview line. The core contract schema and
+Agent-Ready is **pre-1.0**. The current release candidate is
+`0.4.0-rc.1`, on the path to the first stable release. The core contract schema and
 CLI are stable enough for evaluation and daily use. Path A (the adoption
 funnel: `schema` →
 `doctor` → `explain` → `init`) is complete. All eleven commands ship and run
 today, including the v0.4 `upgrade` command for existing contracts.
 
-CI runs 511 automated tests across 39 test files, exercising the full pipeline
+CI runs 512 automated tests across 39 test files, exercising the full pipeline
 on Ubuntu, Windows, and macOS. Release tags are cut only from a green quality
 gate.
 
@@ -291,12 +290,11 @@ gate.
 ## CI Integration
 
 Adopt the same commands in another repository's CI via the reusable GitHub
-composite action. The example below targets the planned first preview tag; use
-it after that tag appears in this repository's Releases page:
+composite action. The example below targets the current release-candidate tag:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: AdamEddahmouni/agent-ready@v0.4.0-beta.4
+- uses: AdamEddahmouni/agent-ready@v0.4.0-rc.1
   with:
     command: verify
     execute: "true"

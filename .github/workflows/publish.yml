@@ -58,11 +58,6 @@ jobs:
           npm publish --dry-run --access public --tag "$DIST_TAG"
 
       - name: Publish
-        env:
-          # Bootstrap only: set this secret for the first package publication,
-          # then revoke/delete it after npm Trusted Publishing is configured.
-          # Subsequent releases authenticate with this job's OIDC token.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           VERSION="$(node -p "require('./package.json').version")"
           if [[ "$VERSION" == *-* ]]; then DIST_TAG="next"; else DIST_TAG="latest"; fi
