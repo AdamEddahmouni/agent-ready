@@ -363,6 +363,36 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
       fields: ["/"],
     },
   ],
+  [
+    "HANDOFF_FILE_INVALID",
+    {
+      fields: [],
+      what: "The JSON file passed to `verify --execute --handoff` could not be read or does not have the required closed object shape.",
+      why: "Handoff evidence is validated before repository commands run so malformed evidence cannot be recorded.",
+      fix: "Provide summary, filesChanged, commandsRun, assumptions, knownIssues, and requiresManualReview with the documented JSON types.",
+      related: ["HANDOFF_FIELD_TOO_LONG"],
+    },
+  ],
+  [
+    "HANDOFF_FIELD_TOO_LONG",
+    {
+      fields: [],
+      what: "A handoff summary or array entry exceeds its public size limit.",
+      why: "Evidence is deliberately bounded for predictable storage and agent-to-human review.",
+      fix: "Limit summary to 2000 characters and each array entry to 500 characters.",
+      related: ["HANDOFF_FILE_INVALID"],
+    },
+  ],
+  [
+    "GENERATED_FILES_OUT_OF_DATE",
+    {
+      fields: ["/adapters"],
+      what: "The `verify --execute --check-generate` preflight found missing or stale generated instruction output.",
+      why: "Verification stops before repository commands so those commands never run against stale agent instructions.",
+      fix: "Run `agent-ready generate --write`, review the generated files, and re-run verification.",
+      related: ["GENERATE_TARGET_UNMANAGED"],
+    },
+  ],
 
   // ── analyze ───────────────────────────────────────────────────────────
   [

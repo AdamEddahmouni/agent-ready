@@ -6,6 +6,7 @@ import type { Diagnostic } from "../../diagnostics/types.js";
 import { FileSystemError } from "../../filesystem/types.js";
 import type { FileSystem } from "../../filesystem/types.js";
 import { planGeneration, resolvePlannedOutputs } from "../../generate/generate.js";
+import { checkGeneratedFiles } from "../../generate/check.js";
 import type { PlannedOutputStatus } from "../../generate/types.js";
 import type { CliOutcome } from "./validate.js";
 
@@ -74,9 +75,13 @@ export async function runGenerate(
 
   const { contract, repoRoot, contractPath } = result.value;
   const plan = planGeneration(contract, repoRoot);
-  const planned = await resolvePlannedOutputs(fs, plan.entries);
+  const checked = mode === "check" ? await checkGeneratedFiles(fs, contract, repoRoot) : undefined;
+  const planned = checked?.files ?? (await resolvePlannedOutputs(fs, plan.entries));
 
-  const diagnostics: Diagnostic[] = [...result.diagnostics, ...plan.diagnostics];
+  const diagnostics: Diagnostic[] = [
+    ...result.diagnostics,
+    ...(checked?.diagnostics ?? plan.diagnostics),
+  ];
   const reports: GenerateFileReport[] = [];
   let checkDrift = false;
 

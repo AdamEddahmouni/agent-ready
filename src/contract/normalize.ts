@@ -96,6 +96,7 @@ function normalizeCommands(raw: RawContract): NormalizedCommand[] {
       name,
       run: command.run,
       ...(command.description !== undefined && { description: command.description }),
+      ...(command.timeout !== undefined && { timeout: command.timeout }),
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }

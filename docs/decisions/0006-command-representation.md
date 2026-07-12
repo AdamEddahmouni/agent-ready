@@ -1,5 +1,8 @@
 # ADR-0006: Command representation and safety boundary
 
+> v0.6.0 note: ADR-0035 uses this object representation's additive extension
+> point for the bounded optional `timeout` field.
+
 ## Status
 
 Accepted

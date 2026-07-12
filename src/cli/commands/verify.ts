@@ -8,6 +8,10 @@ import { FileSystemError } from "../../filesystem/types.js";
 import type { FileSystem } from "../../filesystem/types.js";
 import type { CommandOutcome, CommandOutcomeStatus, CommandRunner } from "../../verify/types.js";
 import type { CliOutcome } from "./validate.js";
+import { checkGeneratedFiles } from "../../generate/check.js";
+import type { GenerateCheckFile } from "../../generate/check.js";
+import { readHandoff } from "../../verify/handoff.js";
+import type { HandoffEvidence } from "../../verify/handoff.js";
 
 export const DEFAULT_VERIFY_TIMEOUT_SECONDS = 900;
 
@@ -25,6 +29,8 @@ export interface VerifyArgs {
   readonly execute: boolean;
   readonly timeoutSeconds?: number;
   readonly record?: boolean;
+  readonly handoffPath?: string;
+  readonly checkGenerate?: boolean;
 }
 
 type VerifyMode = "dry-run" | "execute";
@@ -35,13 +41,21 @@ interface CommandReport {
   readonly status: CommandOutcomeStatus | "planned";
   readonly exitCode: number | null;
   readonly durationMs: number;
+  readonly timeoutSeconds?: number;
 }
 
 interface FinishContext {
   readonly contractPath?: string;
   readonly repoRoot?: string;
   readonly reports?: readonly CommandReport[];
+  readonly handoff?: HandoffEvidence;
+  readonly generatePreflight?: {
+    readonly ok: boolean;
+    readonly files: readonly PreflightFile[];
+  };
 }
+
+type PreflightFile = Omit<GenerateCheckFile, "content">;
 
 /**
  * Runs the contract's `verification.required` commands, in declared order.
@@ -75,6 +89,21 @@ export async function runVerify(
       stderr: `agent-ready verify: ${message}\n`,
     };
   }
+  if ((args.handoffPath !== undefined || args.checkGenerate === true) && !args.execute) {
+    const option = args.handoffPath !== undefined ? "--handoff" : "--check-generate";
+    const message = `${option} requires --execute.`;
+    return args.json
+      ? {
+          exitCode: ExitCode.VALIDATION_FAILED,
+          stdout: JSON.stringify({ ok: false, error: message }, null, 2) + "\n",
+          stderr: "",
+        }
+      : {
+          exitCode: ExitCode.VALIDATION_FAILED,
+          stdout: "",
+          stderr: `agent-ready verify: ${message}\n`,
+        };
+  }
 
   const result = await loadContract({
     fs,
@@ -88,6 +117,21 @@ export async function runVerify(
 
   const { contract, repoRoot, contractPath } = result.value;
   const diagnostics: Diagnostic[] = [...result.diagnostics];
+  let handoff: HandoffEvidence | undefined;
+  if (args.handoffPath !== undefined) {
+    const handoffPath = isAbsolutePath(args.handoffPath)
+      ? args.handoffPath
+      : joinPath(fs.cwd, args.handoffPath);
+    const handoffResult = await readHandoff(fs, handoffPath);
+    if (!handoffResult.ok) {
+      return finish(fs, mode, args, now, [...diagnostics, ...handoffResult.diagnostics], {
+        contractPath,
+        repoRoot,
+        reports: [],
+      });
+    }
+    handoff = handoffResult.value;
+  }
 
   const commandsById = new Map(contract.commands.map((c) => [c.name, c]));
   const toRun = contract.verification.required.map((id) => {
@@ -96,10 +140,22 @@ export async function runVerify(
     // verification.required entry that doesn't reference a declared
     // command (COMMAND_REFERENCE_INVALID), so loadContract would have
     // failed above otherwise.
-    return { id, run: command?.run ?? "", description: command?.description };
+    return {
+      id,
+      run: command?.run ?? "",
+      description: command?.description,
+      timeout: command?.timeout,
+    };
   });
 
   if (toRun.length === 0) {
+    let emptyPreflight: FinishContext["generatePreflight"];
+    if (mode === "execute" && args.checkGenerate === true) {
+      const checked = await checkGeneratedFiles(fs, contract, repoRoot);
+      diagnostics.push(...checked.diagnostics);
+      emptyPreflight = { ok: checked.ok, files: toPreflightFiles(checked.files) };
+      if (!checked.ok) diagnostics.push(generateDriftDiagnostic());
+    }
     diagnostics.push({
       code: "VERIFICATION_NOT_DECLARED",
       severity: "warning",
@@ -107,7 +163,13 @@ export async function runVerify(
       remediation:
         "Add a verification.required list to agent-ready.yaml to enable `agent-ready verify`.",
     });
-    return finish(fs, mode, args, now, diagnostics, { contractPath, repoRoot, reports: [] });
+    return finish(fs, mode, args, now, diagnostics, {
+      contractPath,
+      repoRoot,
+      reports: [],
+      ...(emptyPreflight && { generatePreflight: emptyPreflight }),
+      ...(handoff && { handoff }),
+    });
   }
 
   if (mode === "dry-run") {
@@ -121,24 +183,54 @@ export async function runVerify(
     return finish(fs, mode, args, now, diagnostics, { contractPath, repoRoot, reports });
   }
 
-  const timeoutMs = (args.timeoutSeconds ?? DEFAULT_VERIFY_TIMEOUT_SECONDS) * 1000;
+  let generatePreflight: FinishContext["generatePreflight"];
+  if (args.checkGenerate === true) {
+    const checked = await checkGeneratedFiles(fs, contract, repoRoot);
+    diagnostics.push(...checked.diagnostics);
+    generatePreflight = { ok: checked.ok, files: toPreflightFiles(checked.files) };
+    if (!checked.ok) {
+      diagnostics.push(generateDriftDiagnostic());
+      const skipped = toRun.map((command) => ({
+        id: command.id,
+        run: command.run,
+        status: "skipped" as const,
+        exitCode: null,
+        durationMs: 0,
+        timeoutSeconds: command.timeout ?? args.timeoutSeconds ?? DEFAULT_VERIFY_TIMEOUT_SECONDS,
+      }));
+      return finish(fs, mode, args, now, diagnostics, {
+        contractPath,
+        repoRoot,
+        reports: skipped,
+        generatePreflight,
+        ...(handoff && { handoff }),
+      });
+    }
+  }
   const reports: CommandReport[] = [];
   let stopped = false;
 
   for (const command of toRun) {
     if (stopped) {
+      const timeoutSeconds =
+        command.timeout ?? args.timeoutSeconds ?? DEFAULT_VERIFY_TIMEOUT_SECONDS;
       reports.push({
         id: command.id,
         run: command.run,
         status: "skipped",
         exitCode: null,
         durationMs: 0,
+        timeoutSeconds,
       });
       continue;
     }
 
-    const outcome = await commandRunner.run(command, { cwd: repoRoot, timeoutMs });
-    reports.push(outcome);
+    const timeoutSeconds = command.timeout ?? args.timeoutSeconds ?? DEFAULT_VERIFY_TIMEOUT_SECONDS;
+    const outcome = await commandRunner.run(command, {
+      cwd: repoRoot,
+      timeoutMs: timeoutSeconds * 1000,
+    });
+    reports.push({ ...outcome, timeoutSeconds });
 
     if (outcome.status !== "passed") {
       stopped = true;
@@ -146,7 +238,13 @@ export async function runVerify(
     }
   }
 
-  return finish(fs, mode, args, now, diagnostics, { contractPath, repoRoot, reports });
+  return finish(fs, mode, args, now, diagnostics, {
+    contractPath,
+    repoRoot,
+    reports,
+    ...(generatePreflight && { generatePreflight }),
+    ...(handoff && { handoff }),
+  });
 }
 
 function diagnosticForOutcome(outcome: CommandOutcome): Diagnostic {
@@ -206,7 +304,12 @@ async function finish(
         status: r.status,
         exitCode: r.exitCode,
         durationMs: r.durationMs,
+        ...(r.timeoutSeconds !== undefined && { timeoutSeconds: r.timeoutSeconds }),
       })),
+      ...(context.generatePreflight !== undefined && {
+        generatePreflight: context.generatePreflight,
+      }),
+      ...(context.handoff !== undefined && { handoff: context.handoff }),
       diagnostics: renderDiagnosticsJson(diagnostics),
     };
     try {
@@ -240,7 +343,11 @@ async function finish(
           status: r.status,
           exitCode: r.exitCode,
           durationMs: r.durationMs,
+          ...(r.timeoutSeconds !== undefined && { timeoutSeconds: r.timeoutSeconds }),
         })),
+      }),
+      ...(context.generatePreflight !== undefined && {
+        generatePreflight: context.generatePreflight,
       }),
       ...(recordedTo !== undefined && { recordedTo }),
       diagnostics: renderDiagnosticsJson(diagnostics),
@@ -275,4 +382,27 @@ async function finish(
     lines.push("", renderDiagnosticsHuman(diagnostics));
   }
   return { exitCode, stdout: lines.join("\n") + "\n", stderr: "" };
+}
+
+function isAbsolutePath(path: string): boolean {
+  return /^([A-Za-z]:[/\\]|[/\\])/.test(path);
+}
+
+function generateDriftDiagnostic(): Diagnostic {
+  return {
+    code: "GENERATED_FILES_OUT_OF_DATE",
+    severity: "error",
+    summary: "Generated instruction files are out of date.",
+    detail: "Verification commands were not executed because the generate preflight failed.",
+    remediation: "Run `agent-ready generate --write`, review the changes, then verify again.",
+  };
+}
+
+function toPreflightFiles(files: readonly GenerateCheckFile[]): PreflightFile[] {
+  return files.map(({ adapter, relativePath, absolutePath, status }) => ({
+    adapter,
+    relativePath,
+    absolutePath,
+    status,
+  }));
 }

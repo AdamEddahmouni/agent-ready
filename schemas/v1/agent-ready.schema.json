@@ -91,6 +91,12 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 300
+            },
+            "timeout": {
+              "description": "Maximum execution time for this command in seconds. Overrides verify --timeout.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
             }
           }
         }
