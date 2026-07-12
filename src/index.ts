@@ -76,6 +76,8 @@ export type { FileStat, FileSystem } from "./filesystem/types.js";
 
 // Agent-instruction generation
 export { planGeneration, resolvePlannedOutputs } from "./generate/generate.js";
+export { checkGeneratedFiles } from "./generate/check.js";
+export type { GenerateCheckFile, GenerateCheckResult } from "./generate/check.js";
 export { renderAgentsMd } from "./generate/adapters/agentsMd.js";
 export { renderClaude } from "./generate/adapters/claude.js";
 export { renderCursor } from "./generate/adapters/cursor.js";
@@ -102,3 +104,10 @@ export type {
   CommandRunner,
   RunCommandOptions,
 } from "./verify/types.js";
+export {
+  readHandoff,
+  MAX_HANDOFF_BYTES,
+  MAX_HANDOFF_SUMMARY_LENGTH,
+  MAX_HANDOFF_ENTRY_LENGTH,
+} from "./verify/handoff.js";
+export type { HandoffEvidence } from "./verify/handoff.js";

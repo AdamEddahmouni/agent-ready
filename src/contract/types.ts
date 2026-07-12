@@ -19,6 +19,7 @@ export const ADAPTER_NAMES: readonly AdapterName[] = [
 export interface RawCommand {
   readonly run: string;
   readonly description?: string;
+  readonly timeout?: number;
 }
 
 export interface RawPackageManager {
@@ -96,6 +97,7 @@ export interface NormalizedCommand {
   readonly name: string;
   readonly run: string;
   readonly description?: string;
+  readonly timeout?: number;
 }
 
 export interface NormalizedRuntime {

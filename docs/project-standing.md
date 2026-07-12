@@ -50,11 +50,10 @@ install && pnpm build` and every command above is real.
   while the project remains pre-1.0 under the documented compatibility policy.
   The composite GitHub Action remains build-from-source and does not depend on
   npm publication.
-- **No richer, structured "handoff evidence"** (summary, assumptions,
-  known issues, risks) beyond the command-level pass/fail/timeout
-  evidence `verify --execute --record` already writes today. See
-  [docs/specification/evidence.md](specification/evidence.md) for the
-  distinction between what's recorded now and what's proposed.
+- **Structured handoff evidence is optional and local.** v0.6.0 validates
+  `verify --execute --handoff <path>` and includes it with `--record`; it does
+  not infer claims or verify their truth. See
+  [docs/specification/evidence.md](specification/evidence.md).
 - **No `quality_gates:` or `handoff:` schema blocks.** The v0.5
   `architecture:` and `agents:` blocks are implemented as declarative,
   generated guidance; they are not runtime enforcement. `quality_gates` and

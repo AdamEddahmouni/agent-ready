@@ -264,7 +264,7 @@ verification matrix are defined in
 
 #### 1. Structured handoff evidence
 
-- [ ] **ADR-0034: Structured handoff evidence model.** Extends
+- [x] **ADR-0034: Structured handoff evidence model.** Extends
       `verify --execute --record` to produce a richer evidence file that
       includes the structured fields proposed in
       [docs/specification/evidence.md](docs/specification/evidence.md):
@@ -305,7 +305,7 @@ verification matrix are defined in
 
 #### 2. Per-command timeout & environment declarations
 
-- [ ] **ADR-0035: Per-command metadata fields.** Adds optional fields
+- [x] **ADR-0035: Per-command metadata fields.** Adds optional fields
       to each command declaration for verification-relevant metadata:
 
   ```yaml
@@ -335,7 +335,7 @@ verification matrix are defined in
 
 #### 3. `generate --check` integration with `verify`
 
-- [ ] **ADR-0036: `verify --execute --check-generate` flag.** When
+- [x] **ADR-0036: `verify --execute --check-generate` flag.** When
       passed, `verify` runs `generate --check` as an implicit first
       verification step — if generated instruction files have drifted from
       what the contract would produce, verification fails before any

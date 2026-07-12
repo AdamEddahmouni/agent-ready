@@ -267,6 +267,7 @@ agent-ready generate --write
 
 # Run verification
 agent-ready verify --execute
+agent-ready verify --execute --check-generate --handoff handoff.json --record
 ```
 
 ## Specification Goals

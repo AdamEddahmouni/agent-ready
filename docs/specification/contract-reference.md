@@ -45,10 +45,11 @@ data**: nothing in this phase executes them (see
   `COMMAND_IDENTIFIER_INVALID`.
 - **Command declaration**:
 
-  | Field         | Required | Type                | Notes                                                           |
-  | ------------- | -------- | ------------------- | --------------------------------------------------------------- |
-  | `run`         | yes      | non-empty string    | The literal command line. Never parsed, tokenized, or executed. |
-  | `description` | no       | string, 1–300 chars |                                                                 |
+  | Field         | Required | Type                    | Notes                                                           |
+  | ------------- | -------- | ----------------------- | --------------------------------------------------------------- |
+  | `run`         | yes      | non-empty string        | The literal command line. Never parsed, tokenized, or executed. |
+  | `timeout`     | no       | integer, 1 through 3600 | Seconds; overrides `verify --timeout` for this command.         |
+  | `description` | no       | string, 1–300 chars     |                                                                 |
 
 Example:
 
@@ -58,6 +59,7 @@ commands:
     run: pnpm lint
   test:
     run: pnpm test
+    timeout: 1800
     description: Runs the unit test suite.
 ```
 

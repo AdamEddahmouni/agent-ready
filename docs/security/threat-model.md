@@ -81,6 +81,14 @@ boundary" above and ADR-0014.
 | Repository escape via documentation links (`agent-ready analyze`)                         | Local link destinations are resolved lexically from their declared instruction source; traversal above the repository root is rejected before any filesystem lookup. URI-scheme, protocol-relative, and root-relative destinations are ignored, so analysis performs no network requests or host-root probes. See [ADR-0020](../decisions/0020-instruction-source-link-analysis.md).                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Oversized instruction sources (`agent-ready analyze`)                                     | Each declared source is statted before reading and rejected above 5,000,000 bytes (`INSTRUCTION_SOURCE_TOO_LARGE`), bounding per-source memory use. See [ADR-0031](../decisions/0031-instruction-source-size-cap.md).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
+Additional v0.6.0 controls:
+
+- `--handoff` is capped at 64 KiB and parsed as a closed, length-bounded JSON
+  object before repository commands run. Its claims are never treated as
+  verified facts.
+- Opt-in `--check-generate` reuses the read-only generation drift calculation
+  and skips every declared command when generated instructions are stale.
+
 ## Known limitations (accepted for this phase)
 
 - **Symlinked contract files and `.git` markers are followed

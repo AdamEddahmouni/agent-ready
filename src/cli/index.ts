@@ -258,6 +258,15 @@ program
     `With --execute, write a JSON evidence file (${VERIFICATION_RECORD_FILENAME}) to the repo root.`,
     false,
   )
+  .option(
+    "--handoff <path>",
+    "Validate structured handoff JSON and include it in recorded evidence.",
+  )
+  .option(
+    "--check-generate",
+    "Check generated instruction files before running any verification command.",
+    false,
+  )
   .option("--json", "Print results as machine-readable JSON.", false)
   .option("--config <path>", "Explicit path to the contract file.")
   .action(
@@ -267,6 +276,8 @@ program
       record: boolean;
       json: boolean;
       config?: string;
+      handoff?: string;
+      checkGenerate: boolean;
     }) => {
       const fs = new NodeFileSystem();
       const commandRunner = new NodeCommandRunner();
@@ -276,6 +287,8 @@ program
         record: opts.record,
         ...(opts.config !== undefined && { config: opts.config }),
         ...(opts.timeout !== undefined && { timeoutSeconds: opts.timeout }),
+        ...(opts.handoff !== undefined && { handoffPath: opts.handoff }),
+        checkGenerate: opts.checkGenerate,
       });
       if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
       if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);

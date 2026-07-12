@@ -3,6 +3,17 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
+## 0.6.0 - 2026-07-11
+
+### Added
+
+- Optional `commands.<name>.timeout` with per-command precedence and recorded
+  execution bounds.
+- Validated structured handoff evidence through `verify --execute --handoff`.
+- `verify --execute --check-generate`, a generated-instruction drift preflight
+  that skips every repository command on failure.
+- Stable handoff and generated-drift diagnostics with `explain` entries.
+
 ## 0.5.0 - 2026-07-11
 
 ### Added

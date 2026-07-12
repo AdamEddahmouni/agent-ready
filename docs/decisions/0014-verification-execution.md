@@ -1,5 +1,8 @@
 # ADR-0014: Verification execution and the command-execution trust boundary
 
+> v0.6.0 note: ADR-0035 narrowly reopens the deferred per-command-timeout
+> decision. `commands.<name>.timeout` now overrides the global CLI fallback.
+
 ## Status
 
 Accepted

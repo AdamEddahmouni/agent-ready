@@ -13,12 +13,14 @@ export interface FakeCommandRunnerOptions {
  */
 export class FakeCommandRunner implements CommandRunner {
   readonly calls: CommandToRun[] = [];
+  readonly optionsSeen: RunCommandOptions[] = [];
 
   constructor(private readonly options: FakeCommandRunnerOptions = {}) {}
 
   // eslint-disable-next-line @typescript-eslint/require-await -- interface is async for parity with real I/O
-  async run(command: CommandToRun, _options: RunCommandOptions): Promise<CommandOutcome> {
+  async run(command: CommandToRun, options: RunCommandOptions): Promise<CommandOutcome> {
     this.calls.push(command);
+    this.optionsSeen.push(options);
     const status = this.options.statusById?.[command.id] ?? "passed";
     const exitCode =
       status === "passed" ? 0 : status === "spawn-failed" || status === "timed-out" ? null : 1;

@@ -787,14 +787,18 @@ agent-ready verify                         # dry run: print the ordered plan, ex
 agent-ready verify --execute               # actually run the commands
 agent-ready verify --execute --timeout 60  # override the per-command timeout (seconds; default 900)
 agent-ready verify --execute --record      # also write a JSON evidence file to the repo root
+agent-ready verify --execute --handoff handoff.json
+agent-ready verify --execute --check-generate
 agent-ready verify --json
 ```
 
 | Option                | Description                                                                                                                                              |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--execute`           | Actually run the commands. Without this flag, nothing is spawned.                                                                                        |
-| `--timeout <seconds>` | Per-command timeout in seconds (default: 900). Applies uniformly to every command in the run.                                                            |
+| `--timeout <seconds>` | Fallback timeout in seconds (default: 900); `commands.<name>.timeout` takes precedence.                                                                  |
 | `--record`            | Requires `--execute`. Write a JSON evidence file (`agent-ready-verify-result.json`) to the repository root. See "Recording verification evidence" below. |
+| `--handoff <path>`    | Requires `--execute`. Validate structured handoff JSON and include it when recording.                                                                    |
+| `--check-generate`    | Requires `--execute`. Reject generated-file drift before commands run. CLI-only in v0.6.0.                                                               |
 | `--json`              | Print results as machine-readable JSON.                                                                                                                  |
 | `--config <path>`     | Explicit path to the contract file.                                                                                                                      |
 

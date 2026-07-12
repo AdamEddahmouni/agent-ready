@@ -44,4 +44,7 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0031](0031-instruction-source-size-cap.md)                   | Instruction-source analysis size cap                            |
 | [0032](0032-architecture-contract-block.md)                   | `architecture` contract block                                   |
 | [0033](0033-agents-contract-block.md)                         | `agents` contract block                                         |
+| [0034](0034-structured-handoff-evidence.md)                   | Structured handoff evidence                                     |
+| [0035](0035-per-command-timeout.md)                           | Per-command verification timeout                                |
+| [0036](0036-verify-generate-preflight.md)                     | Generated-file drift preflight for verify                       |
 | [0040](0040-release-and-version-taxonomy.md)                  | Release and version taxonomy                                    |
