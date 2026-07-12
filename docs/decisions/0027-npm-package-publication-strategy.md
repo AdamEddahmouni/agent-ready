@@ -1,5 +1,9 @@
 # ADR-0027: npm package publication and release strategy
 
+> Security hardening note (v0.6.1): publication additionally requires a
+> GitHub-verified signed tag reachable from `main` and approval through a
+> protected deployment environment.
+
 ## Status
 
 Accepted. Implemented for the v0.4 line by `package.json`,

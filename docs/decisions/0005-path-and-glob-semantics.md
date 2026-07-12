@@ -1,5 +1,8 @@
 # ADR-0005: Path and glob semantics
 
+> Security hardening note (v0.6.1): write targets reject symbolic links and
+> must have a real parent directory contained by the repository root.
+
 ## Status
 
 Accepted
@@ -95,9 +98,8 @@ character).
   this stage deliberately avoids for glob patterns.
 - **Symlinks are not specially resolved for path patterns** (they are
   never touched at all, being pure strings); for `instructions.sources`
-  existence checks, ordinary `fs.stat` semantics apply (symlinks are
-  followed transparently), consistent with ADR-0004's discovery symlink
-  policy.
+  existence checks, `lstat` semantics require a regular, non-symlink file,
+  consistent with ADR-0004's v0.6.1 security hardening.
 
 ## Consequences
 

@@ -1,3 +1,10 @@
-# Default owner for the entire repository.
-# Update as the contributor base grows.
 * @AdamEddahmouni
+/.github/workflows/ @AdamEddahmouni
+/action.yml @AdamEddahmouni
+/package.json @AdamEddahmouni
+/pnpm-lock.yaml @AdamEddahmouni
+/schemas/ @AdamEddahmouni
+/src/filesystem/ @AdamEddahmouni
+/src/verify/ @AdamEddahmouni
+/SECURITY.md @AdamEddahmouni
+/docs/security/ @AdamEddahmouni

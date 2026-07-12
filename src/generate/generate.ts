@@ -88,6 +88,11 @@ export async function resolvePlannedOutputs(
       continue;
     }
 
+    if (!stat.isFile || stat.isSymbolicLink) {
+      results.push({ ...entry, status: "unmanaged" });
+      continue;
+    }
+
     const existing = await fs.readTextFile(entry.absolutePath);
     if (existing === entry.content) {
       results.push({ ...entry, status: "up-to-date" });

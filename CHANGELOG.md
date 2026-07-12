@@ -3,6 +3,23 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
+## 0.6.1 - 2026-07-12
+
+### Security
+
+- Refuse symbolic-link write targets and repository-root escapes across every
+  CLI write path; discovery now uses `lstat` semantics.
+- Escalate timed-out POSIX process groups from `SIGTERM` to `SIGKILL`, confirm
+  termination, and report a distinct failure when cleanup cannot be proven.
+- Require bounded CLI timeouts from 1 through 3600 seconds.
+- Gate releases on a main-reachable, GitHub-verified signed tag and protected
+  deployment environments; make high-severity production audits blocking.
+
+### Changed
+
+- Harden public Action examples and dependency installation against mutable
+  references and lifecycle-script execution.
+
 ## 0.6.0 - 2026-07-11
 
 ### Added

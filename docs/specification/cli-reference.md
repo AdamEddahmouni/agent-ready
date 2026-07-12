@@ -814,14 +814,15 @@ expect these commands to run in).
 
 **Per-command status values:**
 
-| Status         | Meaning                                                                  |
-| -------------- | ------------------------------------------------------------------------ |
-| `planned`      | Dry-run only: this command would run at this position, but did not.      |
-| `passed`       | The command exited with status 0.                                        |
-| `failed`       | The command exited with a non-zero status.                               |
-| `timed-out`    | The command exceeded `--timeout` and was killed.                         |
-| `spawn-failed` | The command's process could not be started at all (e.g. missing binary). |
-| `skipped`      | Execution had already stopped due to an earlier non-passing command.     |
+| Status               | Meaning                                                                           |
+| -------------------- | --------------------------------------------------------------------------------- |
+| `planned`            | Dry-run only: this command would run at this position, but did not.               |
+| `passed`             | The command exited with status 0.                                                 |
+| `failed`             | The command exited with a non-zero status.                                        |
+| `timed-out`          | The command exceeded `--timeout` and was killed.                                  |
+| `termination-failed` | The timeout elapsed but complete process-tree termination could not be confirmed. |
+| `spawn-failed`       | The command's process could not be started at all (e.g. missing binary).          |
+| `skipped`            | Execution had already stopped due to an earlier non-passing command.              |
 
 **JSON output** (`--json`):
 

@@ -1,6 +1,9 @@
 import { spawn } from "node:child_process";
 import type { CommandOutcome, CommandRunner, CommandToRun, RunCommandOptions } from "./types.js";
 
+const TERMINATION_GRACE_MS = 2_000;
+const TERMINATION_POLL_MS = 50;
+
 /**
  * Real CommandRunner backed by `node:child_process.spawn`. Invokes the
  * command's `run` string through the platform's native shell (`shell:
@@ -34,7 +37,8 @@ export class NodeCommandRunner implements CommandRunner {
       });
 
       let timedOut = false;
-      let termination: Promise<void> | undefined;
+      let termination: Promise<boolean> | undefined;
+      let settled = false;
       const timer = setTimeout(() => {
         timedOut = true;
         // Do not leave taskkill as an unobserved, pipe-owning child process.
@@ -47,6 +51,8 @@ export class NodeCommandRunner implements CommandRunner {
 
       child.once("error", () => {
         clearTimeout(timer);
+        if (settled) return;
+        settled = true;
         resolve({
           id: command.id,
           run: command.run,
@@ -65,12 +71,20 @@ export class NodeCommandRunner implements CommandRunner {
         // The shell may emit `close` while taskkill is still walking its
         // descendants. Waiting here prevents callers from treating the cwd as
         // reusable while a descendant still has it open on Windows.
-        await termination;
+        const terminationConfirmed = (await termination) ?? true;
+        if (settled) return;
+        settled = true;
         const durationMs = Date.now() - startedAt;
         resolve({
           id: command.id,
           run: command.run,
-          status: timedOut ? "timed-out" : code === 0 ? "passed" : "failed",
+          status: timedOut
+            ? terminationConfirmed
+              ? "timed-out"
+              : "termination-failed"
+            : code === 0
+              ? "passed"
+              : "failed",
           exitCode: timedOut ? null : code,
           durationMs,
         });
@@ -89,9 +103,9 @@ export class NodeCommandRunner implements CommandRunner {
  *   leader of its own process group; signalling the negative pid signals
  *   the whole group.
  */
-async function killTree(pid: number | undefined, killShell: () => boolean): Promise<void> {
+async function killTree(pid: number | undefined, killShell: () => boolean): Promise<boolean> {
   if (pid === undefined) {
-    return;
+    return false;
   }
   if (process.platform === "win32") {
     const killedTree = await new Promise<boolean>((resolve) => {
@@ -112,11 +126,46 @@ async function killTree(pid: number | undefined, killShell: () => boolean): Prom
       // taskkill itself is unavailable or rejected.
       killShell();
     }
-    return;
+    return killedTree;
   }
   try {
     process.kill(-pid, "SIGTERM");
   } catch {
     // Process group already exited between the timeout firing and the kill.
+    return true;
   }
+  if (await waitForProcessGroupExit(pid, TERMINATION_GRACE_MS)) return true;
+  try {
+    process.kill(-pid, "SIGKILL");
+  } catch {
+    return true;
+  }
+  return waitForProcessGroupExit(pid, TERMINATION_GRACE_MS);
+}
+
+async function waitForProcessGroupExit(pid: number, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!processGroupExists(pid)) return true;
+    await new Promise<void>((resolve) => setTimeout(resolve, TERMINATION_POLL_MS));
+  }
+  return !processGroupExists(pid);
+}
+
+function processGroupExists(pid: number): boolean {
+  try {
+    process.kill(-pid, 0);
+    return true;
+  } catch (error) {
+    return !isNoSuchProcessError(error);
+  }
+}
+
+function isNoSuchProcessError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { readonly code?: unknown }).code === "ESRCH"
+  );
 }

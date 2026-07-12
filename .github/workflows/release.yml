@@ -4,15 +4,24 @@ on:
   push:
     tags: ["v*"]
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   release:
     name: create GitHub release
     runs-on: ubuntu-latest
+    environment: github-release
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
@@ -22,7 +31,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Build
         run: pnpm build
@@ -32,10 +41,31 @@ jobs:
 
       - name: Verify tag matches version
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           VERSION="v$(node -p "require('./package.json').version")"
           if [ "$VERSION" != "${{ github.ref_name }}" ]; then
             echo "::error::tag ${{ github.ref_name }} does not match package.json version $VERSION"
+            exit 1
+          fi
+
+          git fetch --no-tags origin main
+          RELEASE_COMMIT="$(git rev-list -n 1 "${{ github.ref }}")"
+          if ! git merge-base --is-ancestor "$RELEASE_COMMIT" origin/main; then
+            echo "::error::Release tag must point to a commit reachable from origin/main"
+            exit 1
+          fi
+
+          TAG_TYPE="$(gh api "repos/${{ github.repository }}/git/ref/tags/${{ github.ref_name }}" --jq .object.type)"
+          if [ "$TAG_TYPE" != "tag" ]; then
+            echo "::error::Release tag must be an annotated, cryptographically signed tag"
+            exit 1
+          fi
+          TAG_SHA="$(gh api "repos/${{ github.repository }}/git/ref/tags/${{ github.ref_name }}" --jq .object.sha)"
+          if [ "$(gh api "repos/${{ github.repository }}/git/tags/$TAG_SHA" --jq .verification.verified)" != "true" ]; then
+            echo "::error::Release tag signature is not verified by GitHub"
             exit 1
           fi
 

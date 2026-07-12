@@ -89,7 +89,7 @@ export async function runUpgrade(
       });
     } else {
       try {
-        await fs.writeTextFile(contractPath, plan.proposedText);
+        await fs.writeTextFile(contractPath, plan.proposedText, { allowedRoot: repoRoot });
         written = true;
       } catch (error) {
         diagnostics.push({

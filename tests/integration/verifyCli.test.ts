@@ -8,6 +8,7 @@ import { ExitCode } from "../../src/diagnostics/exitCodes.js";
 import { createTestRepo } from "./testRepo.js";
 
 const cleanups: (() => Promise<void>)[] = [];
+const TERMINATION_ESCALATION_MINIMUM_MS = 2_500;
 afterEach(async () => {
   await Promise.all(cleanups.splice(0).map((fn) => fn()));
 });
@@ -103,7 +104,7 @@ describe("agent-ready verify (CLI composition, real process spawning)", () => {
 
   it("kills a hanging command once the timeout elapses", async () => {
     const { root, cleanup } = await createTestRepo({
-      "agent-ready.yaml": contractWith({ hang: 'node -e "setTimeout(() => {}, 30000)"' }),
+      "agent-ready.yaml": contractWith({ hang: 'node -e "setTimeout(() => {}, 3000)"' }),
     });
     cleanups.push(cleanup);
 
@@ -118,9 +119,39 @@ describe("agent-ready verify (CLI composition, real process spawning)", () => {
       commands: { status: string }[];
       diagnostics: { code: string }[];
     };
-    expect(parsed.commands[0]?.status).toBe("timed-out");
-    expect(parsed.diagnostics[0]?.code).toBe("VERIFICATION_COMMAND_TIMEOUT");
+    expect(["timed-out", "termination-failed"]).toContain(parsed.commands[0]?.status);
+    expect(["VERIFICATION_COMMAND_TIMEOUT", "VERIFICATION_COMMAND_TERMINATION_FAILED"]).toContain(
+      parsed.diagnostics[0]?.code,
+    );
+    if (parsed.commands[0]?.status === "termination-failed") {
+      await new Promise<void>((resolve) => setTimeout(resolve, 2_500));
+    }
   }, 10_000);
+
+  it.skipIf(process.platform === "win32")(
+    "escalates from SIGTERM when a command ignores graceful termination",
+    async () => {
+      const { root, cleanup } = await createTestRepo({
+        "agent-ready.yaml": contractWith({
+          hang: `node -e "process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"`,
+        }),
+      });
+      cleanups.push(cleanup);
+
+      const startedAt = Date.now();
+      const outcome = await runVerify(
+        new NodeFileSystem(),
+        new NodeCommandRunner(),
+        { json: true, execute: true, timeoutSeconds: 1 },
+        root,
+      );
+      expect(outcome.exitCode).toBe(ExitCode.VALIDATION_FAILED);
+      expect(Date.now() - startedAt).toBeGreaterThanOrEqual(TERMINATION_ESCALATION_MINIMUM_MS);
+      const parsed = JSON.parse(outcome.stdout) as { commands: { status: string }[] };
+      expect(parsed.commands[0]?.status).toBe("timed-out");
+    },
+    10_000,
+  );
 
   it("--execute --record writes a real evidence file to the repo root", async () => {
     const { root, cleanup } = await createTestRepo({

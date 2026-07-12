@@ -45,13 +45,11 @@ directory; a missing or non-file path produces `CONTRACT_NOT_FOUND`.
 
 ## Symlinks
 
-Both the `agent-ready.yaml` and `.git` existence checks use standard
-`stat` semantics, which follow symlinks transparently — the same as
-ordinary file access. Agent-Ready does not apply special symlink-boundary
-enforcement to the contract file itself, since this phase only ever reads
-the contract as inert text and never executes anything based on its
-location. See [../security/threat-model.md](../security/threat-model.md)
-for the full reasoning and this decision's accepted risk.
+Filesystem metadata checks use `lstat` semantics. A symbolic-link
+`agent-ready.yaml` is not accepted as the repository contract, preventing
+contract reads, upgrades, or verification execution from being redirected
+outside the discovered repository. A symbolic-link `.git` entry still stops
+ancestor traversal because any entry marks the repository boundary.
 
 ## What is not supported
 
