@@ -23,7 +23,11 @@ export class FakeCommandRunner implements CommandRunner {
     this.optionsSeen.push(options);
     const status = this.options.statusById?.[command.id] ?? "passed";
     const exitCode =
-      status === "passed" ? 0 : status === "spawn-failed" || status === "timed-out" ? null : 1;
+      status === "passed"
+        ? 0
+        : status === "spawn-failed" || status === "timed-out" || status === "termination-failed"
+          ? null
+          : 1;
     return {
       id: command.id,
       run: command.run,

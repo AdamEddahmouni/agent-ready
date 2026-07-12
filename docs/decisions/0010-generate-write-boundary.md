@@ -96,10 +96,9 @@ rather than an incremental feature to fill in.
 - A user with a hand-written `AGENTS.md` predating Agent-Ready adoption
   is protected by default: `--write` fails loudly with a clear
   remediation (`--force`) instead of silently discarding their content.
-- Symlink write-through is not specially defended against (see
-  `docs/security/threat-model.md`) — consistent with this project's
-  existing discovery-time symlink policy, and low-risk here specifically
-  because output filenames are never contract-supplied.
+- Write targets are protected against symlink/reparse-point escape by the
+  shared filesystem boundary: target symlinks are refused and real parent
+  directories must remain within the repository root.
 
 ## Reconsideration trigger
 

@@ -28,7 +28,16 @@ export interface FileSystem {
    * `agent-ready upgrade --write`, and `agent-ready verify --execute --record`
    * (see ADR-0015).
    */
-  writeTextFile(absolutePath: string, content: string): Promise<void>;
+  writeTextFile(
+    absolutePath: string,
+    content: string,
+    options?: WriteTextFileOptions,
+  ): Promise<void>;
+}
+
+export interface WriteTextFileOptions {
+  /** Reject writes whose real parent directory is outside this root. */
+  readonly allowedRoot?: string;
 }
 
 export class FileSystemError extends Error {

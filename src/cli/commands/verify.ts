@@ -73,6 +73,26 @@ export async function runVerify(
 ): Promise<CliOutcome> {
   const mode: VerifyMode = args.execute ? "execute" : "dry-run";
 
+  if (
+    args.timeoutSeconds !== undefined &&
+    (!Number.isInteger(args.timeoutSeconds) ||
+      args.timeoutSeconds < 1 ||
+      args.timeoutSeconds > 3600)
+  ) {
+    const message = "--timeout must be an integer from 1 through 3600 seconds.";
+    return args.json
+      ? {
+          exitCode: ExitCode.VALIDATION_FAILED,
+          stdout: JSON.stringify({ ok: false, error: message }, null, 2) + "\n",
+          stderr: "",
+        }
+      : {
+          exitCode: ExitCode.VALIDATION_FAILED,
+          stdout: "",
+          stderr: `agent-ready verify: ${message}\n`,
+        };
+  }
+
   if (args.record === true && !args.execute) {
     const message = "--record requires --execute (there is nothing to record from a dry run).";
     if (args.json) {
@@ -248,6 +268,17 @@ export async function runVerify(
 }
 
 function diagnosticForOutcome(outcome: CommandOutcome): Diagnostic {
+  if (outcome.status === "termination-failed") {
+    return {
+      code: "VERIFICATION_COMMAND_TERMINATION_FAILED",
+      severity: "error",
+      summary: `Command "${outcome.id}" exceeded its timeout and termination could not be confirmed.`,
+      detail: `"${outcome.run}" may still have descendants running.`,
+      field: `/verification/required/${outcome.id}`,
+      remediation:
+        "Stop the remaining process tree manually before continuing, then investigate why termination failed.",
+    };
+  }
   if (outcome.status === "timed-out") {
     return {
       code: "VERIFICATION_COMMAND_TIMEOUT",
@@ -313,7 +344,9 @@ async function finish(
       diagnostics: renderDiagnosticsJson(diagnostics),
     };
     try {
-      await fs.writeTextFile(evidencePath, JSON.stringify(evidenceBody, null, 2) + "\n");
+      await fs.writeTextFile(evidencePath, JSON.stringify(evidenceBody, null, 2) + "\n", {
+        allowedRoot: context.repoRoot,
+      });
       recordedTo = evidencePath;
     } catch (error) {
       diagnostics.push({

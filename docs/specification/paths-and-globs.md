@@ -89,5 +89,4 @@ pairs; only exact, post-normalization string equality is checked.
 Glob patterns are pure strings in this phase — never resolved against the
 real file system, so symlink and file-vs-directory distinctions do not
 apply to `paths.*`. For `instructions.sources`, the existence check uses
-ordinary `stat` semantics (symlinks followed transparently) and requires
-the target to be a regular file.
+`lstat` semantics and requires a regular file; symbolic links are rejected.

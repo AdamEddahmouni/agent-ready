@@ -487,7 +487,7 @@ async function doWrite(
   }
 
   try {
-    await fs.writeTextFile(contractPath, yaml);
+    await fs.writeTextFile(contractPath, yaml, { allowedRoot: repoRoot });
   } catch (error) {
     const diag: Diagnostic = {
       code: "INTERNAL_INVARIANT_VIOLATION",

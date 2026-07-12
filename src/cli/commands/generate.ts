@@ -119,7 +119,7 @@ export async function runGenerate(
     }
 
     try {
-      await fs.writeTextFile(output.absolutePath, output.content);
+      await fs.writeTextFile(output.absolutePath, output.content, { allowedRoot: repoRoot });
       reports.push(toReport(output, "written"));
     } catch (error) {
       diagnostics.push({
