@@ -32,8 +32,7 @@ describe("readHandoff", () => {
     "knownIssues",
     "requiresManualReview",
   ])("rejects missing required field %s", async (field) => {
-    const value = { ...valid } as Record<string, unknown>;
-    delete value[field];
+    const value = Object.fromEntries(Object.entries(valid).filter(([key]) => key !== field));
     expect(await diagnosticFor(value)).toBe("HANDOFF_FILE_INVALID");
   });
 
@@ -45,9 +44,7 @@ describe("readHandoff", () => {
     ["knownIssues", {}],
     ["requiresManualReview", "false"],
   ])("rejects the wrong type for %s", async (field, wrong) => {
-    expect(await diagnosticFor({ ...valid, [field as string]: wrong })).toBe(
-      "HANDOFF_FILE_INVALID",
-    );
+    expect(await diagnosticFor({ ...valid, [field]: wrong })).toBe("HANDOFF_FILE_INVALID");
   });
 
   it("rejects malformed JSON, unknown fields, unreadable paths, and oversized files", async () => {
