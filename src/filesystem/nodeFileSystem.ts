@@ -1,5 +1,8 @@
-import { readFile, realpath, stat, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import { lstat, open, readFile, realpath } from "node:fs/promises";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import type { FileStat, FileSystem } from "./types.js";
+import type { WriteTextFileOptions } from "./types.js";
 import { FileSystemError } from "./types.js";
 
 /**
@@ -22,7 +25,7 @@ export class NodeFileSystem implements FileSystem {
 
   async stat(absolutePath: string): Promise<FileStat | undefined> {
     try {
-      const result = await stat(absolutePath);
+      const result = await lstat(absolutePath);
       return {
         isFile: result.isFile(),
         isDirectory: result.isDirectory(),
@@ -49,15 +52,64 @@ export class NodeFileSystem implements FileSystem {
     }
   }
 
-  async writeTextFile(absolutePath: string, content: string): Promise<void> {
+  async writeTextFile(
+    absolutePath: string,
+    content: string,
+    options: WriteTextFileOptions = {},
+  ): Promise<void> {
     try {
-      await writeFile(absolutePath, content, "utf8");
+      const targetStat = await lstatIfPresent(absolutePath);
+      if (targetStat?.isSymbolicLink() === true) {
+        throw new Error("Refusing to write through a symbolic link.");
+      }
+
+      if (options.allowedRoot !== undefined) {
+        const [rootRealPath, parentRealPath] = await Promise.all([
+          realpath(options.allowedRoot),
+          realpath(dirname(absolutePath)),
+        ]);
+        if (!isWithinRoot(rootRealPath, parentRealPath)) {
+          throw new Error(`Refusing to write outside the allowed root: ${options.allowedRoot}`);
+        }
+      }
+
+      // O_NOFOLLOW closes the lstat/open race on platforms that support it.
+      // Windows does not expose O_NOFOLLOW in Node, so the immediately preceding
+      // lstat plus real-parent containment check is the strongest portable guard.
+      const noFollow =
+        (constants as Readonly<Record<string, number | undefined>>)["O_NOFOLLOW"] ?? 0;
+      const handle = await open(
+        absolutePath,
+        constants.O_WRONLY | constants.O_CREAT | noFollow,
+        0o666,
+      );
+      try {
+        await handle.truncate(0);
+        await handle.writeFile(content, "utf8");
+      } finally {
+        await handle.close();
+      }
     } catch (error) {
-      throw new FileSystemError(`Failed to write file: ${absolutePath}`, absolutePath, {
+      const reason = error instanceof Error ? ` ${error.message}` : "";
+      throw new FileSystemError(`Failed to write file: ${absolutePath}.${reason}`, absolutePath, {
         cause: error,
       });
     }
   }
+}
+
+async function lstatIfPresent(absolutePath: string) {
+  try {
+    return await lstat(absolutePath);
+  } catch (error) {
+    if (isNotFoundError(error)) return undefined;
+    throw error;
+  }
+}
+
+function isWithinRoot(root: string, candidate: string): boolean {
+  const pathFromRoot = relative(resolve(root), resolve(candidate));
+  return pathFromRoot === "" || (!pathFromRoot.startsWith("..") && !isAbsolute(pathFromRoot));
 }
 
 function isNotFoundError(error: unknown): boolean {

@@ -102,6 +102,28 @@ describe("runVerify", () => {
     expect(parsed.diagnostics[0]?.code).toBe("VERIFICATION_COMMAND_TIMEOUT");
   });
 
+  it("reports VERIFICATION_COMMAND_TERMINATION_FAILED and stops", async () => {
+    const fs = contractFs();
+    const runner = new FakeCommandRunner({ statusById: { install: "termination-failed" } });
+    const outcome = await runVerify(fs, runner, { json: true, execute: true }, "/repo");
+    expect(outcome.exitCode).toBe(ExitCode.VALIDATION_FAILED);
+    expect(outcome.stdout).toContain("VERIFICATION_COMMAND_TERMINATION_FAILED");
+  });
+
+  it.each([0, -1, 1.5, 3601, Number.NaN])(
+    "rejects unsafe CLI timeout %s",
+    async (timeoutSeconds) => {
+      const outcome = await runVerify(
+        contractFs(),
+        new FakeCommandRunner(),
+        { json: true, execute: true, timeoutSeconds },
+        "/repo",
+      );
+      expect(outcome.exitCode).toBe(ExitCode.VALIDATION_FAILED);
+      expect(outcome.stdout).toContain("--timeout must be an integer from 1 through 3600");
+    },
+  );
+
   it("reports VERIFICATION_COMMAND_SPAWN_FAILED with exit code 2", async () => {
     const fs = contractFs();
     const runner = new FakeCommandRunner({ statusById: { install: "spawn-failed" } });
