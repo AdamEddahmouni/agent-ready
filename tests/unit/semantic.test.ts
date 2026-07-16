@@ -53,6 +53,79 @@ describe("validateSemantics", () => {
     ).toHaveLength(2);
   });
 
+  it("accepts well-formed architecture boundary rules without requiring the paths to exist", async () => {
+    const diagnostics = await validateSemantics(
+      baseContract({
+        architecture: {
+          boundary_rules: [
+            { from: "src/contract", must_not_import: ["src/cli", "src/generate"] },
+            { from: "src/generate/adapters", must_not_import: ["src/filesystem/node.ts"] },
+          ],
+        },
+      }),
+      context(),
+    );
+    expect(diagnostics).toEqual([]);
+  });
+
+  it("rejects a boundary rule whose origin is declared more than once", async () => {
+    const diagnostics = await validateSemantics(
+      baseContract({
+        architecture: {
+          boundary_rules: [
+            { from: "src/contract", must_not_import: ["src/cli"] },
+            { from: "src/./contract", must_not_import: ["src/generate"] },
+          ],
+        },
+      }),
+      context(),
+    );
+    expect(diagnostics.filter((d) => d.code === "ARCHITECTURE_BOUNDARY_RULE_INVALID")).toHaveLength(
+      1,
+    );
+  });
+
+  it("rejects duplicate disallowed imports within one boundary rule", async () => {
+    const diagnostics = await validateSemantics(
+      baseContract({
+        architecture: {
+          boundary_rules: [{ from: "src/contract", must_not_import: ["src/cli", "src/./cli"] }],
+        },
+      }),
+      context(),
+    );
+    expect(diagnostics.filter((d) => d.code === "ARCHITECTURE_BOUNDARY_RULE_INVALID")).toHaveLength(
+      1,
+    );
+  });
+
+  it("rejects a boundary rule that forbids its own origin", async () => {
+    const diagnostics = await validateSemantics(
+      baseContract({
+        architecture: {
+          boundary_rules: [{ from: "src/contract", must_not_import: ["src/contract/inner"] }],
+        },
+      }),
+      context(),
+    );
+    expect(diagnostics.filter((d) => d.code === "ARCHITECTURE_BOUNDARY_RULE_INVALID")).toHaveLength(
+      1,
+    );
+  });
+
+  it("rejects glob syntax and traversal in boundary rule paths", async () => {
+    const diagnostics = await validateSemantics(
+      baseContract({
+        architecture: {
+          boundary_rules: [{ from: "src/**", must_not_import: ["../outside"] }],
+        },
+      }),
+      context(),
+    );
+    expect(diagnostics.some((d) => d.code === "PATH_PATTERN_INVALID")).toBe(true);
+    expect(diagnostics.some((d) => d.code === "PATH_TRAVERSAL_DISALLOWED")).toBe(true);
+  });
+
   it("rejects duplicate and non-Markdown agent context files", async () => {
     const diagnostics = await validateSemantics(
       baseContract({

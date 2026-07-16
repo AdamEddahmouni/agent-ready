@@ -73,6 +73,13 @@ architecture:
   boundaries:
     - src/contract/ must not depend on CLI presentation modules.
     - Generated adapters must not depend on a concrete filesystem implementation.
+  boundary_rules:
+    - from: src/contract
+      must_not_import:
+        - src/cli
+    - from: src/generate/adapters
+      must_not_import:
+        - src/filesystem/nodeFileSystem.ts
   invariants:
     - Every pipeline stage returns structured diagnostics instead of throwing for contract errors.
     - Agent-Ready remains deterministic and makes no LLM or network calls at runtime.

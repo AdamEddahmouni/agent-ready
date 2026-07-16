@@ -9,6 +9,7 @@ Agent-Ready. Each entry is a candidate for brain memory curation.
 | ---------- | ---------- | -------------------------------------------------------- | --------- |
 | 2026-07-13 | LESSON-001 | Brain integration follows startup/completion protocol    | candidate |
 | 2026-07-16 | LESSON-002 | A roadmap written before a field ships can contradict it | candidate |
+| 2026-07-16 | LESSON-003 | An ADR is a hypothesis until the boundary is checked     | candidate |
 
 ---
 
@@ -69,3 +70,49 @@ ADR number from `docs/decisions/`, never from a plan document.
 `boundary_rules` as an additive sibling; both of this repository's prose
 boundaries are expressible as structured rules, making the v0.7.0 exit
 criterion meetable.
+
+---
+
+## LESSON-003 — An ADR is a hypothesis until the boundary is checked
+
+**Date:** 2026-07-16
+**Status:** candidate
+
+**Finding:** ADR-0037 was written against the contract and the roadmap, and it
+specified a directory-scoped rule (`from: src/contract`) without checking
+whether the `FileSystem` interface could enumerate a directory. It cannot — the
+interface exposes `cwd`, `readTextFile`, `stat`, `realPath`, and
+`writeTextFile`, and nothing else, by design. The gap only surfaced when
+implementation started, and it forced a real decision (widen a deliberately
+narrow, publicly exported boundary) that the ADR had silently assumed away.
+
+A second instance of the same shape: the ADR said analysis would exclude
+`paths.ignored` and `paths.generated`, which sound like prefixes but are globs
+(`dist/**`). Prefix comparison would have silently excluded nothing.
+
+**How to apply:** Before an ADR is accepted, check every interface it implies a
+call against, not just the contract fields it adds. Ask "what does this need
+from the boundaries it does not own?" — file system, git, process, matcher. In
+this repository the narrow interfaces in `filesystem/`, `git/`, and `verify/`
+are the ones most likely to lack what a new feature assumes.
+
+**Corollary:** Amend the ADR when the gap is found, before the code lands.
+ADR-0037 was still unmerged, so the FileSystem change went into its Decision and
+Consequences sections rather than being discovered later as undocumented drift.
+An ADR that describes what was built is worth more than one that describes what
+was planned.
+
+**Also verified:** A clean analysis run proves nothing on its own. `analyze
+--architecture` reported zero violations on this repository's real rules, which
+is indistinguishable from a scanner that scans nothing. Detection was confirmed
+separately by declaring a rule known to be violated (`src/contract` must not
+import `src/diagnostics`) and checking that every crossing import was reported
+with file, line, and column. This is the same reasoning that motivates
+`ARCHITECTURE_ANALYSIS_SCAN_FAILED` existing at all.
+
+**Applied in:** `docs/decisions/0037-architecture-dependency-analysis.md`,
+`src/filesystem/types.ts`, `src/analyze/analyzeArchitecture.ts`
+
+**Verification:** 586 tests pass; `pnpm format:check`, `lint`, `typecheck`, and
+`build` are green; the CLI dogfoods its own two boundaries with zero findings
+and correctly reports a deliberately introduced violation.

@@ -241,13 +241,46 @@ each with `kind`, `path`, and `exists`.
 ```bash
 agent-ready analyze
 agent-ready analyze --json
+agent-ready analyze --architecture
 agent-ready analyze --config path/to/agent-ready.yaml
 ```
 
 | Option            | Description                                                                                            |
 | ----------------- | ------------------------------------------------------------------------------------------------------ |
 | `--json`          | Print structured source counts, findings, and diagnostics.                                             |
+| `--architecture`  | Also check `architecture.boundary_rules` against the repository's import graph.                        |
 | `--config <path>` | Use this exact contract file instead of discovery; see [discovery.md](discovery.md#explicit---config). |
+
+### `--architecture`
+
+Opt-in import-graph boundary checking
+([ADR-0037](../decisions/0037-architecture-dependency-analysis.md)). Without the
+flag, `analyze` behaves exactly as it did before the flag existed and reads no
+source files. The check remains read-only and never modifies source.
+
+For each `architecture.boundary_rules` entry, every `.ts`/`.js`/`.mjs`/`.cjs`
+file under `from` is scanned for `import`/`export ... from`, and `import()`/
+`require()` with a literal argument. Repository-relative specifiers are resolved
+against the importing file and matched against `must_not_import`; a match is
+reported as `ARCHITECTURE_BOUNDARY_VIOLATED`.
+
+Bounded by design, and documented as such rather than approximated:
+
+- Bare module specifiers (`commander`, `node:fs/promises`) are ignored.
+- Non-literal dynamic specifiers (`import(name)`) are ignored, never guessed.
+- Comments and string literals are masked before scanning, so import-shaped
+  prose is not a finding.
+- Symlinked entries are never followed; `paths.generated` and `paths.ignored`
+  are excluded; each file is capped at 5,000,000 bytes.
+- Anything that could not be scanned reports
+  `ARCHITECTURE_ANALYSIS_SCAN_FAILED` rather than passing silently.
+
+There is no suppression mechanism: a violation is always reported, and the fix
+is to change either the code or the declaration.
+
+JSON output adds an `architecture` object with `rules` (per-rule `from`,
+`filesScanned`, `importsChecked`), repository-wide `filesScanned` and
+`importsChecked`, and `boundaryFindings`.
 
 The bounded scanner recognizes inline links, image destinations, and reference
 definitions. Fenced code, inline code, URI-scheme links, protocol-relative

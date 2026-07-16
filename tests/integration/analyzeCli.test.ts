@@ -112,4 +112,80 @@ describe("agent-ready analyze (CLI composition)", () => {
       await repo.cleanup();
     }
   });
+
+  it("checks boundary rules against the import graph only when --architecture is passed", async () => {
+    const repo = await createTestRepo({
+      "agent-ready.yaml": [
+        "version: 1",
+        "project:",
+        "  name: boundary-example",
+        "architecture:",
+        "  boundary_rules:",
+        "    - from: src/contract",
+        "      must_not_import:",
+        "        - src/cli",
+        "",
+      ].join("\n"),
+      "src/contract/pipeline.ts": 'import { render } from "../cli/render.js";\n',
+      "src/cli/render.ts": "export const render = () => {};\n",
+    });
+    try {
+      const withoutFlag = await runAnalyze(new NodeFileSystem(), { json: false }, repo.root);
+      expect(withoutFlag.exitCode, withoutFlag.stderr).toBe(ExitCode.SUCCESS);
+      expect(withoutFlag.stdout).not.toContain("boundary");
+
+      const withFlag = await runAnalyze(
+        new NodeFileSystem(),
+        { json: false, architecture: true },
+        repo.root,
+      );
+      expect(withFlag.exitCode).not.toBe(ExitCode.SUCCESS);
+      expect(withFlag.stderr).toContain("ARCHITECTURE_BOUNDARY_VIOLATED");
+      expect(withFlag.stderr).toContain("src/contract/pipeline.ts");
+    } finally {
+      await repo.cleanup();
+    }
+  });
+
+  it("reports boundary scan counts and findings in JSON", async () => {
+    const repo = await createTestRepo({
+      "agent-ready.yaml": [
+        "version: 1",
+        "project:",
+        "  name: boundary-json",
+        "architecture:",
+        "  boundary_rules:",
+        "    - from: src/contract",
+        "      must_not_import:",
+        "        - src/cli",
+        "",
+      ].join("\n"),
+      "src/contract/ok.ts": 'import { helper } from "./helper.js";\n',
+      "src/contract/helper.ts": "export const helper = 1;\n",
+    });
+    try {
+      const outcome = await runAnalyze(
+        new NodeFileSystem(),
+        { json: true, architecture: true },
+        repo.root,
+      );
+      expect(outcome.exitCode, outcome.stdout).toBe(ExitCode.SUCCESS);
+      const payload = JSON.parse(outcome.stdout) as {
+        ok: boolean;
+        architecture: {
+          rules: { from: string; filesScanned: number; importsChecked: number }[];
+          filesScanned: number;
+          importsChecked: number;
+          boundaryFindings: unknown[];
+        };
+      };
+      expect(payload.ok).toBe(true);
+      expect(payload.architecture.filesScanned).toBe(2);
+      expect(payload.architecture.importsChecked).toBe(1);
+      expect(payload.architecture.boundaryFindings).toEqual([]);
+      expect(payload.architecture.rules[0]?.from).toBe("src/contract");
+    } finally {
+      await repo.cleanup();
+    }
+  });
 });

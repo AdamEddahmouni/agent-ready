@@ -109,18 +109,62 @@ instructions:
 ## Architecture (optional object)
 
 Architecture guidance is additive, ordered, and rendered into every enabled
-adapter. It is declarative guidance in v0.5.0: Agent-Ready does not enforce
-import boundaries or runtime policy from these strings.
+adapter. `boundaries` and `invariants` are declarative prose: Agent-Ready never
+parses them and never derives findings from them. `boundary_rules` is the one
+executable member of this block — see below.
 
-| Field         | Type                                  | Notes                                                                     |
-| ------------- | ------------------------------------- | ------------------------------------------------------------------------- |
-| boundaries    | array of strings, 1–500 chars         | Ordered must-not guidance; Markdown-escaped in generated output.          |
-| invariants    | array of strings, 1–500 chars         | Ordered always guidance; Markdown-escaped in generated output.            |
-| key_decisions | ordered array of file/summary objects | file is a unique, literal repo-relative .md path; summary is 1–300 chars. |
+| Field          | Type                                  | Notes                                                                     |
+| -------------- | ------------------------------------- | ------------------------------------------------------------------------- |
+| boundaries     | array of strings, 1–500 chars         | Ordered must-not guidance; Markdown-escaped in generated output.          |
+| invariants     | array of strings, 1–500 chars         | Ordered always guidance; Markdown-escaped in generated output.            |
+| boundary_rules | ordered array of rule objects         | Machine-checked import boundaries; see below.                             |
+| key_decisions  | ordered array of file/summary objects | file is a unique, literal repo-relative .md path; summary is 1–300 chars. |
 
 Decision paths are syntax- and duplicate-checked by validate; analyze checks
 that they exist as regular files. Invalid entries use
 ARCHITECTURE_DECISION_INVALID.
+
+### `boundary_rules` (optional array)
+
+Each rule declares an origin directory and the repository-relative paths that
+nothing under it may import. Unlike `boundaries`, these are checked against the
+repository's real import graph by
+[`agent-ready analyze --architecture`](cli-reference.md) (see
+[ADR-0037](../decisions/0037-architecture-dependency-analysis.md)).
+
+```yaml
+architecture:
+  boundaries:
+    - "src/contract/ must not depend on CLI presentation modules."
+  boundary_rules:
+    - from: "src/contract"
+      must_not_import:
+        - "src/cli"
+```
+
+| Field           | Type                                    | Notes                                                               |
+| --------------- | --------------------------------------- | ------------------------------------------------------------------- |
+| from            | literal repo-relative path, 1–200 chars | Required. Unique across rules. No globs, no traversal.              |
+| must_not_import | array of literal repo-relative paths    | Required, at least one. Unique within the rule, and outside `from`. |
+
+Semantics:
+
+- Both fields are **literal path prefixes**, not globs. `src/cli` matches
+  `src/cli/render.ts` but not `src/cli-legacy/render.ts` — matching is
+  segment-aware, never a raw string prefix.
+- Only **repository-relative** imports are checked. Bare module specifiers
+  (`commander`, `node:fs/promises`) are ignored in this release.
+- `.ts`, `.js`, `.mjs`, and `.cjs` files under `from` are scanned. Paths matching
+  `paths.generated` or `paths.ignored` are excluded, and symlinked entries are
+  never followed.
+- Declaring both a prose `boundaries` entry and its `boundary_rules` equivalent
+  is supported; both render, and the redundancy is the author's choice.
+- Rule shape is validated by `validate` (`ARCHITECTURE_BOUNDARY_RULE_INVALID`).
+  Violations are reported only by `analyze --architecture`
+  (`ARCHITECTURE_BOUNDARY_VIOLATED`); a boundary that could not be scanned
+  reports `ARCHITECTURE_ANALYSIS_SCAN_FAILED` rather than passing silently.
+- A violation is always reported. There is no suppression or inline-ignore
+  mechanism: either the code or the declaration changes.
 
 ## Agents (optional object)
 

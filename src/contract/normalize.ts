@@ -63,6 +63,10 @@ export function normalizeContract(raw: RawContract): NormalizedContract {
     architecture: {
       boundaries: [...(raw.architecture?.boundaries ?? [])],
       invariants: [...(raw.architecture?.invariants ?? [])],
+      boundaryRules: (raw.architecture?.boundary_rules ?? []).map((rule) => ({
+        from: normalizeLiteralPath(rule.from),
+        mustNotImport: rule.must_not_import.map(normalizeLiteralPath),
+      })),
       keyDecisions: (raw.architecture?.key_decisions ?? []).map((decision) => ({
         file: normalizeLiteralPath(decision.file),
         summary: decision.summary,

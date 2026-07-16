@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted. Targeted at v0.7.0; not yet implemented.
+Implemented in v0.7.0.
 
 ## Context
 
@@ -48,9 +48,9 @@ architecture:
   boundaries:
     - "src/contract/ must not depend on CLI presentation modules."
   boundary_rules:
-    - from: "src/contract/"
+    - from: "src/contract"
       must_not_import:
-        - "src/cli/"
+        - "src/cli"
 ```
 
 ### Contract surface
@@ -92,7 +92,8 @@ architecture:
 - Relative specifiers are resolved against the importing file into a
   repository-relative path and prefix-matched against `must_not_import`. A match
   is reported as `ARCHITECTURE_BOUNDARY_VIOLATED` with the importing file, the
-  resolved target, and the source position.
+  resolved target, and the source position. Matching is segment-aware:
+  `src/contracts-legacy` is not within `src/contract`.
 - Bare module specifiers (`commander`, `node:fs/promises`) are **not** matched in
   v0.7.0. Only repository-relative imports participate. This bounds the first
   ship to the case the project can dogfood; see the reconsideration trigger.
@@ -100,14 +101,44 @@ architecture:
   violation is always reported. There is no heuristic suppression and no
   inline-ignore mechanism. The user changes either the code or the declaration.
 
+### File-system boundary
+
+Directory-scoped rules require enumerating the files under each `from` prefix,
+which the `FileSystem` interface ([ADR-0010](0010-generate-write-boundary.md))
+does not expose. This ADR therefore widens that interface with a single
+read-only method:
+
+```ts
+readDirectory(absolutePath: string): Promise<readonly DirectoryEntry[] | undefined>;
+```
+
+- It returns each entry's name and kind (file, directory, symbolic link), or
+  `undefined` when nothing exists at the path — mirroring `stat`. It never
+  recurses; recursion is the scanner's business, so the boundary stays as dumb
+  as the rest of the interface.
+- It is read-only. `writeTextFile` remains the only write method anywhere in the
+  interface; this addition does not weaken the write boundary ADR-0010
+  established, and it adds no `mkdir`/`unlink`/`chmod` surface.
+- Both `NodeFileSystem` and `InMemoryFileSystem` implement it, preserving the
+  property that domain code never imports `node:fs` and that tests run against
+  in-memory state.
+- Symlinked directory entries are reported as such and are **not** followed
+  during a scan, consistent with v0.6.1's refusal to follow symlinked write
+  targets. A symlink cycle therefore cannot hang the scanner.
+
+The alternatives were enumerating from the CLI layer with `node:fs` directly
+(rejected: `nodeFileSystem.ts` is the only file permitted to perform real I/O,
+per the architecture overview) and requiring `boundary_rules` to enumerate
+individual files rather than directories (rejected: unusable in practice).
+
 ### Adapter output
 
 All five adapters render `boundary_rules` inside the existing `## Architecture`
-section as "Must not" bullets, alongside the prose `boundaries` bullets, with
-paths rendered through `wrapCodeSpan` after path validation. A repository that
-declares both a prose boundary and its structured equivalent will see both
-rendered; that redundancy is the author's choice and is documented rather than
-de-duplicated.
+section, under an "Enforced Boundaries" heading that distinguishes them from the
+prose `boundaries` bullets above them, with paths rendered through
+`wrapCodeSpan` after path validation. A repository that declares both a prose
+boundary and its structured equivalent will see both rendered; that redundancy
+is the author's choice and is documented rather than de-duplicated.
 
 ## Alternatives considered
 
@@ -145,10 +176,15 @@ de-duplicated.
 - ROADMAP-TO-1.0.md's v0.7.0 section and exit criteria must be rewritten to
   describe `boundary_rules` rather than parsed `boundaries`.
 - Implementation touches the JSON Schema, raw and normalized types,
-  normalization, semantic validation, a new `analyze/importGraph.ts` scanner, the
-  `analyze` command, shared adapter rendering, all five adapters, golden
-  fixtures, the compatibility corpus, `contract-reference.md`,
+  normalization, semantic validation, the `FileSystem` interface and both of its
+  implementations, a new `analyze/importGraph.ts` scanner, the `analyze` command,
+  shared adapter rendering, all five adapters, golden fixtures, the compatibility
+  corpus, `docs/architecture/overview.md`, `contract-reference.md`,
   `cli-reference.md`, and `diagnostics.md`.
+- `FileSystem` is a public API export, so `readDirectory` widens the public
+  surface. Under ADR-0009's pre-1.0 policy this is permitted, but it is a
+  breaking addition for any external embedder that implements the interface, and
+  ADR-0041's 1.0 public API freeze must categorize it explicitly.
 - Three diagnostics are added: `ARCHITECTURE_BOUNDARY_RULE_INVALID`,
   `ARCHITECTURE_BOUNDARY_VIOLATED`, `ARCHITECTURE_ANALYSIS_SCAN_FAILED`. The
   roadmap named only the latter two; rule validation needs its own code because

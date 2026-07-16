@@ -3,6 +3,31 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
+## Unreleased
+
+### Added
+
+- Optional, additive `architecture.boundary_rules`: machine-checked import
+  boundaries declaring an origin path prefix and the repository-relative
+  prefixes nothing under it may import.
+- `agent-ready analyze --architecture`, an opt-in, read-only check of those
+  rules against the repository's real import graph. Bounded to
+  repository-relative JS/TS imports; bare module specifiers and non-literal
+  dynamic specifiers are ignored rather than guessed at.
+- `FileSystem.readDirectory`, a read-only, non-recursive directory listing that
+  never follows symlinks. Implemented by both `NodeFileSystem` and
+  `InMemoryFileSystem`.
+- Stable diagnostics `ARCHITECTURE_BOUNDARY_RULE_INVALID`,
+  `ARCHITECTURE_BOUNDARY_VIOLATED`, and `ARCHITECTURE_ANALYSIS_SCAN_FAILED`,
+  each with an `explain` entry.
+
+### Changed
+
+- `architecture.boundaries` is unchanged and still never parsed. Structured
+  rules live in the separate `boundary_rules` field, so contracts without it
+  validate and generate identically to 0.6.1. See
+  [ADR-0037](docs/decisions/0037-architecture-dependency-analysis.md).
+
 ## 0.6.1 - 2026-07-12
 
 ### Security

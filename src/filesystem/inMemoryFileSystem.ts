@@ -1,4 +1,4 @@
-import type { FileStat, FileSystem } from "./types.js";
+import type { DirectoryEntry, FileStat, FileSystem } from "./types.js";
 import { FileSystemError } from "./types.js";
 
 /**
@@ -61,6 +61,29 @@ export class InMemoryFileSystem implements FileSystem {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await -- interface is async for parity with real I/O
+  async readDirectory(absolutePath: string): Promise<readonly DirectoryEntry[] | undefined> {
+    if (!this.directories.has(absolutePath)) return undefined;
+
+    const prefix = absolutePath.endsWith("/") ? absolutePath : `${absolutePath}/`;
+    const names = new Map<string, { isFile: boolean; isDirectory: boolean }>();
+
+    for (const path of this.files.keys()) {
+      const name = immediateChildName(prefix, path);
+      if (name !== undefined) names.set(name, { isFile: true, isDirectory: false });
+    }
+    for (const path of this.directories) {
+      const name = immediateChildName(prefix, path);
+      if (name !== undefined && !names.has(name)) {
+        names.set(name, { isFile: false, isDirectory: true });
+      }
+    }
+
+    return [...names.entries()]
+      .map(([name, kind]) => ({ name, ...kind, isSymbolicLink: false }))
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await -- interface is async for parity with real I/O
   async realPath(absolutePath: string): Promise<string> {
     return absolutePath;
   }
@@ -69,6 +92,18 @@ export class InMemoryFileSystem implements FileSystem {
   async writeTextFile(absolutePath: string, content: string): Promise<void> {
     this.addFile(absolutePath, content);
   }
+}
+
+/**
+ * Returns the entry name when `path` sits directly inside `prefix`, or
+ * undefined when it is the prefix itself, outside it, or nested deeper.
+ * Deeper paths are covered by their own inferred ancestor directories.
+ */
+function immediateChildName(prefix: string, path: string): string | undefined {
+  if (!path.startsWith(prefix)) return undefined;
+  const remainder = path.slice(prefix.length);
+  if (remainder.length === 0 || remainder.includes("/")) return undefined;
+  return remainder;
 }
 
 function ancestorsOf(absolutePath: string): string[] {

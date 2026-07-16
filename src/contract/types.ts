@@ -52,9 +52,15 @@ export interface RawArchitectureDecision {
   readonly summary: string;
 }
 
+export interface RawArchitectureBoundaryRule {
+  readonly from: string;
+  readonly must_not_import: readonly string[];
+}
+
 export interface RawArchitecture {
   readonly boundaries?: readonly string[];
   readonly invariants?: readonly string[];
+  readonly boundary_rules?: readonly RawArchitectureBoundaryRule[];
   readonly key_decisions?: readonly RawArchitectureDecision[];
 }
 
@@ -126,9 +132,20 @@ export interface NormalizedArchitectureDecision {
   readonly summary: string;
 }
 
+/**
+ * A machine-checked import boundary. Unlike `boundaries`, which is prose an
+ * agent reads, these are executable policy for `analyze --architecture`
+ * (see ADR-0037). Both paths are normalized repository-relative prefixes.
+ */
+export interface NormalizedArchitectureBoundaryRule {
+  readonly from: string;
+  readonly mustNotImport: readonly string[];
+}
+
 export interface NormalizedArchitecture {
   readonly boundaries: readonly string[];
   readonly invariants: readonly string[];
+  readonly boundaryRules: readonly NormalizedArchitectureBoundaryRule[];
   readonly keyDecisions: readonly NormalizedArchitectureDecision[];
 }
 

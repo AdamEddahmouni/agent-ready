@@ -36,6 +36,15 @@ export interface PathValidationOptions {
   readonly allowGlob: boolean;
 }
 
+/**
+ * Whether a normalized repository-relative path sits at or beneath a
+ * normalized prefix. Segment-aware on purpose: "src/contracts/a.ts" is not
+ * within "src/contract", even though it shares the string prefix.
+ */
+export function isPathWithin(candidate: string, prefix: string): boolean {
+  return candidate === prefix || candidate.startsWith(`${prefix}/`);
+}
+
 function diagnostic(
   code: DiagnosticCode,
   field: string,

@@ -13,7 +13,7 @@ describe("normalizeContract", () => {
       verification: { required: [] },
       paths: { protected: [], generated: [], ignored: [] },
       instructions: { sources: [] },
-      architecture: { boundaries: [], invariants: [], keyDecisions: [] },
+      architecture: { boundaries: [], invariants: [], boundaryRules: [], keyDecisions: [] },
       agents: { disallowedActions: [], approvalRequiredFor: [], contextFiles: [] },
       adapters: [],
     });
@@ -71,6 +71,10 @@ describe("normalizeContract", () => {
       architecture: {
         boundaries: ["second", "first"],
         invariants: ["always second", "always first"],
+        boundary_rules: [
+          { from: "src/./second", must_not_import: ["src/./forbidden", "src/other"] },
+          { from: "src/first", must_not_import: ["src/elsewhere"] },
+        ],
         key_decisions: [
           { file: "docs/./second.md", summary: "Second" },
           { file: "docs/first.md", summary: "First" },
@@ -85,6 +89,10 @@ describe("normalizeContract", () => {
     expect(result.architecture).toEqual({
       boundaries: ["second", "first"],
       invariants: ["always second", "always first"],
+      boundaryRules: [
+        { from: "src/second", mustNotImport: ["src/forbidden", "src/other"] },
+        { from: "src/first", mustNotImport: ["src/elsewhere"] },
+      ],
       keyDecisions: [
         { file: "docs/second.md", summary: "Second" },
         { file: "docs/first.md", summary: "First" },

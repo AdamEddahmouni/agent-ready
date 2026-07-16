@@ -239,6 +239,40 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
     },
   ],
   [
+    "ARCHITECTURE_BOUNDARY_RULE_INVALID",
+    {
+      what: "An architecture.boundary_rules entry is malformed: its from or must_not_import path is not a safe repository-relative literal path, the same from is declared twice, an import prefix is repeated within one rule, or a rule forbids its own origin from importing itself.",
+      why: "Unlike architecture.boundaries, which is prose an agent reads, boundary rules are executable policy for analyze --architecture. A malformed rule is a contract error rather than an analysis finding, so it is caught before any source file is scanned (ADR-0037).",
+      fix: "1. Use literal repository-relative paths for from and every must_not_import entry; globs are not accepted.\n2. Declare each origin once, listing all of its disallowed imports together.\n3. Point must_not_import outside the rule's own from path.\n4. Re-run validate.",
+      fields: ["/architecture/boundary_rules"],
+      related: [
+        "PATH_PATTERN_INVALID",
+        "PATH_TRAVERSAL_DISALLOWED",
+        "ARCHITECTURE_BOUNDARY_VIOLATED",
+      ],
+    },
+  ],
+  [
+    "ARCHITECTURE_BOUNDARY_VIOLATED",
+    {
+      what: "A source file under a boundary rule's from path imports something under one of that rule's must_not_import paths.",
+      why: "A boundary rule is an assertion about the repository's real import graph. Agent-Ready always reports a violation rather than suppressing it heuristically: either the code drifted from the declared architecture, or the declaration is now wrong (ADR-0037).",
+      fix: "1. Remove the import, or route it through an allowed boundary such as an injected interface.\n2. If the architecture intentionally changed, update the rule in architecture.boundary_rules.\n3. Re-run analyze --architecture.",
+      fields: ["/architecture/boundary_rules"],
+      related: ["ARCHITECTURE_BOUNDARY_RULE_INVALID", "ARCHITECTURE_ANALYSIS_SCAN_FAILED"],
+    },
+  ],
+  [
+    "ARCHITECTURE_ANALYSIS_SCAN_FAILED",
+    {
+      what: "Architecture analysis could not scan a declared boundary: the rule's from directory does not exist, a directory could not be read, or a source file was unreadable or larger than the 5 MB per-file limit.",
+      why: "Analysis reports what it could not check instead of silently passing. A boundary rule that scans nothing would otherwise look identical to a boundary rule that found no violations.",
+      fix: "1. Point the rule's from at a directory that exists.\n2. Check filesystem permissions on the reported path.\n3. Split any source file larger than the per-file limit, or exclude its directory via paths.ignored.\n4. Re-run analyze --architecture.",
+      fields: ["/architecture/boundary_rules"],
+      related: ["ARCHITECTURE_BOUNDARY_VIOLATED", "INSTRUCTION_SOURCE_TOO_LARGE"],
+    },
+  ],
+  [
     "AGENT_CONTEXT_FILE_INVALID",
     {
       what: "An agents.context_files entry is malformed, duplicated, not a repository-relative Markdown path, or its referenced file is missing when analyzed.",

@@ -12,12 +12,27 @@ export interface FileStat {
   readonly sizeBytes: number;
 }
 
+export interface DirectoryEntry {
+  readonly name: string;
+  readonly isFile: boolean;
+  readonly isDirectory: boolean;
+  readonly isSymbolicLink: boolean;
+}
+
 export interface FileSystem {
   readonly cwd: string;
   /** Reads a file as UTF-8 text. Throws FileSystemError if it cannot be read. */
   readTextFile(absolutePath: string): Promise<string>;
   /** Returns file metadata, or undefined if nothing exists at that path. */
   stat(absolutePath: string): Promise<FileStat | undefined>;
+  /**
+   * Lists the immediate entries of a directory, or returns undefined if
+   * nothing exists at that path. Never recurses — callers walk the tree
+   * themselves — and never follows symlinked entries, which are reported
+   * via `isSymbolicLink` instead (see ADR-0037). Throws FileSystemError if
+   * an existing directory cannot be read.
+   */
+  readDirectory(absolutePath: string): Promise<readonly DirectoryEntry[] | undefined>;
   /** Resolves symlinks to their real, absolute target path. */
   realPath(absolutePath: string): Promise<string>;
   /**

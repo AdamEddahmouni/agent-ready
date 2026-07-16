@@ -107,3 +107,60 @@ yet — ADR only, per guiding principle #1.
 pass repo-wide because untracked `graphify-out/` and `docs/WORK_LOG.md` fail it —
 pre-existing, not introduced by this session. The three files changed here all
 pass Prettier.
+
+## 2026-07-16 — Implement ADR-0037 (`analyze --architecture`)
+
+**Description:** Implemented the first v0.7.0 deliverable: the
+`architecture.boundary_rules` contract field and the opt-in
+`agent-ready analyze --architecture` import-graph check.
+
+**Files changed:**
+
+- `schemas/v1/agent-ready.schema.json` — `architecture.boundary_rules`
+- `src/contract/types.ts` — raw and normalized boundary-rule types
+- `src/contract/normalize.ts` — normalizes rule path forms, preserves order
+- `src/contract/semantic.ts` — rule validation (duplicate origin, duplicate
+  target, self-forbidding rule, path form)
+- `src/contract/paths.ts` — `isPathWithin`, shared segment-aware prefix match
+- `src/filesystem/types.ts` — `DirectoryEntry`, `FileSystem.readDirectory`
+- `src/filesystem/nodeFileSystem.ts`, `src/filesystem/inMemoryFileSystem.ts` —
+  `readDirectory` implementations
+- `src/analyze/importSpecifiers.ts` — bounded import scanner (new)
+- `src/analyze/analyzeArchitecture.ts` — boundary checking (new)
+- `src/cli/commands/analyze.ts`, `src/cli/index.ts` — `--architecture` flag
+- `src/diagnostics/codes.ts`, `src/cli/commands/explainRegistry.ts` — 3 codes
+- `src/generate/adapters/shared.ts` — "Enforced Boundaries" rendering
+- `agent-ready.yaml` — dogfooded rules for both real boundaries
+- `docs/decisions/0037-*.md` — amended for the FileSystem change; status
+  updated to implemented
+- `docs/architecture/overview.md`, `docs/specification/{contract-reference,cli-reference,diagnostics}.md`,
+  `CHANGELOG.md` — documentation
+- Tests: `tests/unit/{importSpecifiers,analyzeArchitecture,filesystem,semantic,normalize}.test.ts`,
+  `tests/integration/analyzeCli.test.ts` (+29 tests, 557 → 586)
+
+**Decisions made during implementation:**
+
+- The ADR missed that `FileSystem` cannot enumerate directories. Rather than
+  break the rule that only `nodeFileSystem.ts` performs real I/O, the interface
+  gained a read-only `readDirectory`. The ADR was amended before the code
+  landed rather than retrofitted after. This widens a public API export, so
+  ADR-0041's 1.0 freeze must categorize it.
+- Exclusions use the existing `globMatch` matcher, not prefix matching:
+  `paths.ignored`/`paths.generated` hold globs (`dist/**`), which no prefix
+  comparison would match.
+- A malformed `from` no longer hides that rule's `must_not_import` errors; every
+  problem in a rule is reported in one pass. Caught by a test written against
+  the ADR, not against the implementation.
+
+**Commands run:**
+
+- `pnpm format:check`, `pnpm check:action-pins`, `pnpm lint`, `pnpm typecheck`,
+  `pnpm test`, `pnpm build` — all green
+- `node dist/cli/index.js analyze --architecture` — dogfooded: 2 rules,
+  16 files, 58 imports, zero violations
+- Detection verified against a deliberately-true rule
+  (`src/contract` must not import `src/diagnostics`), which correctly reported
+  every crossing import with file, line, and column
+
+**Status:** Complete. 586 tests pass. v0.7.0's first exit criterion is met; the
+framework-specific examples (Python/Rust/Go) remain.

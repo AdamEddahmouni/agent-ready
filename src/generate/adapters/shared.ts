@@ -140,6 +140,7 @@ export function renderContractSections(contract: NormalizedContract): string {
   const hasArchitecture =
     contract.architecture.boundaries.length > 0 ||
     contract.architecture.invariants.length > 0 ||
+    contract.architecture.boundaryRules.length > 0 ||
     contract.architecture.keyDecisions.length > 0;
   if (hasArchitecture) {
     lines.push("", "## Architecture");
@@ -147,6 +148,19 @@ export function renderContractSections(contract: NormalizedContract): string {
       lines.push("", "### Boundaries (must not)");
       for (const boundary of contract.architecture.boundaries) {
         lines.push("- " + escapeMarkdownText(boundary));
+      }
+    }
+    if (contract.architecture.boundaryRules.length > 0) {
+      lines.push("", "### Enforced Boundaries (checked by `agent-ready analyze --architecture`)");
+      lines.push(
+        "",
+        "Unlike the guidance above, these are checked against the real import",
+        "graph. A violation fails analysis.",
+      );
+      for (const rule of contract.architecture.boundaryRules) {
+        for (const target of rule.mustNotImport) {
+          lines.push(`- ${wrapCodeSpan(rule.from)} must not import ${wrapCodeSpan(target)}`);
+        }
       }
     }
     if (contract.architecture.invariants.length > 0) {
