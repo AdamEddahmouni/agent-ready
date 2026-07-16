@@ -3,3 +3,5 @@ coverage/
 pnpm-lock.yaml
 node_modules/
 compatibility/adapter-output/**/expected/
+graphify-out/
+docs/graph/
