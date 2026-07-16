@@ -366,33 +366,54 @@ introduce the first adapter plugin mechanism — all behind ADRs.
 
 #### 1. `agent-ready analyze --architecture`
 
-- [ ] **ADR-0037: Architecture-dependency drift analysis.** Extends
-
-`agent-ready analyze` with an optional `--architecture` flag that
-checks the `architecture.boundaries` declarations (from v0.5.0)
-against the actual import graph of the repository's TypeScript/JavaScript
-source files. **This ADR formally reopens the "architecture-dependency
-analysis beyond declared documentation links" non-goal from
-ROADMAP.md** — the v0.7.0 scope is bounded to JS/TS import-graph
-checking against declared `architecture.boundaries`, not open-ended
-architecture analysis.
+- [x] **[ADR-0037: Architecture-dependency drift analysis](docs/decisions/0037-architecture-dependency-analysis.md).**
+      Accepted; implementation pending. Adds an optional, additive
+      `architecture.boundary_rules` contract field and an opt-in
+      `agent-ready analyze --architecture` flag that checks it against the
+      actual import graph of the repository's TypeScript/JavaScript source
+      files. **This ADR formally reopens the "architecture-dependency
+      analysis beyond declared documentation links" non-goal from
+      ROADMAP.md** — the v0.7.0 scope is bounded to repository-relative
+      JS/TS import-graph checking against declared `boundary_rules`, not
+      open-ended architecture analysis.
 
 Scope:
 
+- Adds `architecture.boundary_rules`, an array of
+  `{ from, must_not_import }` objects holding literal repository-relative
+  path prefixes:
+
+  ```yaml
+  architecture:
+    boundaries:
+      - "src/contract/ must not depend on CLI presentation modules."
+    boundary_rules:
+      - from: "src/contract/"
+        must_not_import:
+          - "src/cli/"
+  ```
+
+  The existing `boundaries` field is **unchanged** — it stays free-form
+  prose for agents to read and is never parsed. ADR-0032 shipped it as
+  1–500-character strings and its reconsideration trigger called for
+  exactly this separately structured form; parsing it in place would
+  retype a shipped field and break additive-only guiding principle #2.
+
 - Parses `import`/`export`/`require` statements in `.ts`/`.js`/`.mjs`/
   `.cjs` files using a bounded, dependency-free scanner (no AST
-  framework — regex-based extraction with strict line-level parsing,
-  same discipline as the Markdown link scanner).
-- For each `boundaries` entry, evaluates whether any import crosses
-  the declared boundary. Boundary entries use a simple
-  `from → to` or `must not import` syntax validated at contract-load
-  time.
-- Read-only; never modifies source files.
-- False-positive policy: boundary declarations are _assertions_, and
-  a violation is always reported — the user adjusts either the code
-  or the declaration. No heuristic suppression.
-- New diagnostics: `ARCHITECTURE_BOUNDARY_VIOLATED`,
+  framework — regex-based extraction with strict line-level parsing and
+  comment/string masking, same discipline as the Markdown link scanner).
+- Read-only; never modifies source files. Opt-in behind `--architecture`,
+  not enforced at `validate` time.
+- False-positive policy: boundary rules are _assertions_, and a violation
+  is always reported — the user adjusts either the code or the
+  declaration. No heuristic suppression, no inline-ignore mechanism.
+- New diagnostics: `ARCHITECTURE_BOUNDARY_RULE_INVALID` (semantic
+  validation), `ARCHITECTURE_BOUNDARY_VIOLATED`,
   `ARCHITECTURE_ANALYSIS_SCAN_FAILED`.
+- Bare module specifiers (`commander`, `node:fs/promises`) and inverse
+  "only X may import Y" rules are out of scope for v0.7.0; both are
+  reconsideration triggers on ADR-0037.
 - Limited to JS/TS initially; a `--language` flag or auto-detection
   for Python/Go/Rust is a future enhancement, not in this release.
 
@@ -418,7 +439,12 @@ Scope:
 
 - `agent-ready analyze --architecture` detects import-graph boundary
   violations with zero false positives on the project's own
-  `architecture.boundaries` declarations (dogfooded).
+  `architecture.boundary_rules` declarations (dogfooded). This repository
+  declares structured rules for both boundaries it currently states in
+  prose: `src/contract/` must not import `src/cli/`, and
+  `src/generate/adapters/` must not import `src/filesystem/nodeFileSystem.ts`.
+- Contracts without `boundary_rules` produce byte-identical adapter output
+  to v0.6.1 (additive-only proof).
 - Three framework-specific examples pass validation and generate
   correct adapter output.
 - Analysis remains local, read-only, deterministic, and LLM-free.
@@ -503,7 +529,7 @@ SemVer guarantees.
 
 #### 1. Public API stabilization
 
-- [ ] **ADR-0040: Public API freeze for 1.0.** Reviews everything
+- [ ] **ADR-0041: Public API freeze for 1.0.** Reviews everything
       exported from `src/index.ts` and categorizes each export as:
   - **Stable for 1.0** — the export's shape is frozen; breaking
     changes require a major version bump.
@@ -517,7 +543,7 @@ SemVer guarantees.
     this ADR, the "experimental" qualifier from ADR-0009 is removed for
     all Stable exports.
 - [ ] Add a `api-audit.test.ts` that asserts the exact set of exports
-      from `src/index.ts` matches the ADR-0040 manifest, preventing
+      from `src/index.ts` matches the ADR-0041 manifest, preventing
       accidental public-surface drift.
 
 #### 2. Pre-1.0 audit — ADR reconsideration triggers
@@ -526,13 +552,13 @@ SemVer guarantees.
       trigger that has been satisfied (by subsequent work), add a
       "Resolution" note. For triggers that remain open, confirm they are
       still relevant or mark them as addressed.
-- [ ] **ADR-0041: Pre-1.0 audit and ADR reconciliation.** Documents
+- [ ] **ADR-0042: Pre-1.0 audit and ADR reconciliation.** Documents
       the audit results, any ADRs being superseded, and any triggers being
       formally closed.
 
 #### 3. Remaining threat-model hardening
 
-- [ ] **ADR-0042: Case-insensitive path conflict detection.** Adds an
+- [ ] **ADR-0043: Case-insensitive path conflict detection.** Adds an
       optional `--case-insensitive` flag to path-category conflict
       detection (defaulting to the host OS's behavior: on on Windows/macOS,
       case-insensitive; on Linux, case-sensitive). Closes the
@@ -541,13 +567,13 @@ SemVer guarantees.
 boolean` field, default `false` on Windows/macOS, `true` on Linux),
       not just CLI-level, so CI on Linux can enforce the repo's intended
       semantics.
-- [ ] **ADR-0043: Symlink boundary enforcement for `generate --write`.**
+- [ ] **ADR-0044: Symlink boundary enforcement for `generate --write`.**
       Adds an `lstat` check before writing generated files: if the target
       path is a symlink, generation refuses with `GENERATE_TARGET_SYMLINK`
       unless `--allow-symlinks` is explicitly passed. Closes the
       "symlinked contract files" and "generate --write follows symlinks"
       known limitations.
-- [ ] **ADR-0044: `verify --execute` SIGKILL escalation.** On POSIX,
+- [ ] **ADR-0045: `verify --execute` SIGKILL escalation.** On POSIX,
       if a timed-out process group does not exit within 5 seconds of
       `SIGTERM`, escalate to `SIGKILL`. On Windows, `taskkill /t /f` is
       already a force-kill. Closes the "timeout kill is best-effort"
@@ -600,7 +626,7 @@ not just a version number.
 
 #### 1. Final ADR sweep
 
-- [ ] **ADR-0045: 1.0.0 release decision.** Documents that all
+- [ ] **ADR-0046: 1.0.0 release decision.** Documents that all
       Milestone 1–4 exit criteria are met, the pre-1.0 stability policy
       ([ADR-0009](docs/decisions/0009-pre-1.0-stability-policy.md))
       is superseded by full SemVer guarantees, and the
@@ -677,12 +703,17 @@ not just a version number.
 | 0037 | v0.7.0  | Architecture-dependency drift analysis              |
 | 0038 | v0.8.0  | Multi-language runtime probing in `doctor`          |
 | 0039 | v0.8.0  | External adapter registration                       |
-| 0040 | v0.9.0  | Public API freeze for 1.0                           |
-| 0041 | v0.9.0  | Pre-1.0 audit and ADR reconciliation                |
-| 0042 | v0.9.0  | Case-insensitive path conflict detection            |
-| 0043 | v0.9.0  | Symlink boundary enforcement for `generate --write` |
-| 0044 | v0.9.0  | `verify --execute` SIGKILL escalation               |
-| 0045 | v1.0.0  | 1.0.0 release decision                              |
+| 0041 | v0.9.0  | Public API freeze for 1.0                           |
+| 0042 | v0.9.0  | Pre-1.0 audit and ADR reconciliation                |
+| 0043 | v0.9.0  | Case-insensitive path conflict detection            |
+| 0044 | v0.9.0  | Symlink boundary enforcement for `generate --write` |
+| 0045 | v0.9.0  | `verify --execute` SIGKILL escalation               |
+| 0046 | v1.0.0  | 1.0.0 release decision                              |
+
+**0040 is not in this table.** It was taken by
+[ADR-0040: Release and version taxonomy](docs/decisions/0040-release-and-version-taxonomy.md),
+accepted out of this roadmap's sequence. The v0.9.0/v1.0.0 identifiers above are
+renumbered accordingly; an earlier revision of this table collided with it.
 
 ---
 
