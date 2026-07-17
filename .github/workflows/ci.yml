@@ -79,17 +79,42 @@ jobs:
           node dist/cli/index.js validate --config examples/minimal/agent-ready.yaml
           node dist/cli/index.js validate --config examples/complete-phase-1/agent-ready.yaml
           node dist/cli/index.js inspect --config examples/complete-phase-1/agent-ready.yaml --json
+          node dist/cli/index.js validate --config examples/python-fastapi/agent-ready.yaml
+          node dist/cli/index.js validate --config examples/rust-cli/agent-ready.yaml
+          node dist/cli/index.js validate --config examples/go-service/agent-ready.yaml
 
       - name: CLI smoke test - generate dry run
         shell: bash
         run: |
           set -e
-          output="$(node dist/cli/index.js generate --config examples/complete-phase-1/agent-ready.yaml --json)"
-          echo "$output"
-          if echo "$output" | grep -q "ADAPTER_NOT_YET_IMPLEMENTED"; then
-            echo "Expected all five example adapters to be implemented" >&2
-            exit 1
-          fi
+          for example in complete-phase-1 python-fastapi rust-cli go-service; do
+            output="$(node dist/cli/index.js generate --config "examples/$example/agent-ready.yaml" --json)"
+            echo "$output"
+            if echo "$output" | grep -q "ADAPTER_NOT_YET_IMPLEMENTED"; then
+              echo "Expected all five example adapters to be implemented for $example" >&2
+              exit 1
+            fi
+          done
+
+      - name: CLI smoke test - generate --check (framework examples, no drift)
+        shell: bash
+        run: |
+          set -e
+          for example in python-fastapi rust-cli go-service; do
+            output="$(node dist/cli/index.js generate --config "examples/$example/agent-ready.yaml" --check --json)"
+            echo "$output"
+            echo "$output" | grep -q '"ok": true'
+          done
+
+      - name: CLI smoke test - doctor warns but does not fail on unprobed runtimes
+        shell: bash
+        run: |
+          set -e
+          for example in python-fastapi rust-cli go-service; do
+            output="$(node dist/cli/index.js doctor --config "examples/$example/agent-ready.yaml" --json)"
+            echo "$output"
+            echo "$output" | grep -q 'RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED'
+          done
 
       - name: CLI smoke test - analyze documentation drift
         shell: bash

@@ -20,6 +20,10 @@ All notable changes to Agent-Ready are documented here. The project follows
 - Stable diagnostics `ARCHITECTURE_BOUNDARY_RULE_INVALID`,
   `ARCHITECTURE_BOUNDARY_VIOLATED`, and `ARCHITECTURE_ANALYSIS_SCAN_FAILED`,
   each with an `explain` entry.
+- Three framework-specific example repositories:
+  `examples/python-fastapi/`, `examples/rust-cli/`, `examples/go-service/`,
+  each with `agent-ready.yaml`, source stubs, and all five generated adapter
+  files committed and drift-checked in CI.
 
 ### Changed
 

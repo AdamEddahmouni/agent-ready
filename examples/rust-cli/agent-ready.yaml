@@ -1,0 +1,52 @@
+version: 1
+
+project:
+  name: rust-cli-example
+  description: Minimal Rust CLI demonstrating cargo-based commands.
+
+environment:
+  runtimes:
+    rust: ">=1.75"
+
+commands:
+  format:
+    run: cargo fmt --check
+  lint:
+    run: cargo clippy -- -D warnings
+  test:
+    run: cargo test
+  build:
+    run: cargo build --release
+    description: Compiles the release binary.
+
+verification:
+  required:
+    - format
+    - lint
+    - test
+    - build
+
+paths:
+  ignored:
+    - "target/**"
+
+instructions:
+  sources:
+    - README.md
+  content: |
+    ## Conventions
+
+    - Run `cargo fmt` before committing; CI enforces `cargo fmt --check`.
+    - Prefer `Result<T, E>` over panics for recoverable errors.
+
+adapters:
+  agentsMd:
+    enabled: true
+  claude:
+    enabled: true
+  cursor:
+    enabled: true
+  copilot:
+    enabled: true
+  gemini:
+    enabled: true

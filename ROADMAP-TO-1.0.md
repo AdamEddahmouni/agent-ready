@@ -419,21 +419,42 @@ Scope:
 
 #### 2. Framework-specific example repositories
 
-- [ ] Add `examples/python-fastapi/` — a minimal FastAPI repository
-      with `agent-ready.yaml` declaring `runtimes.python`, `pip` as
-      package manager (requires `doctor` to gain Python probing — see
-      v0.8.0), `pytest` as the test command, and all five adapters enabled.
-      Note: `doctor` will warn `RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED` for
-      these runtimes until v0.8.0 ships multi-language probing; the examples
-      are valid contracts, but a fully clean `doctor` run requires v0.8.0.
-- [ ] Add `examples/rust-cli/` — a minimal Rust CLI repository with
-      `agent-ready.yaml` declaring `runtimes.rust`, `cargo` commands, and
-      adapter output.
-- [ ] Add `examples/go-service/` — a minimal Go microservice with
-      `agent-ready.yaml` declaring `runtimes.go`, `go test`/`go build`,
-      and adapter output.
-- [ ] Each example gets golden fixtures in the compatibility corpus
-      and is exercised in CI's "valid examples pass" smoke test.
+- [x] Add `examples/python-fastapi/` — a minimal FastAPI repository with
+      `agent-ready.yaml` declaring `runtimes.python`, `pytest` as the test
+      command, and all five adapters enabled. **Deviation from the original
+      plan:** it does not declare `environment.packageManager: pip`.
+      `packageManager.name` is schema-restricted to `"npm" | "pnpm" | "yarn"`
+      — the package managers `doctor`'s `BinaryClient` can probe by name —
+      and widening that enum is v0.8.0's ADR-0038 concern, not v0.7.0's. `pip`
+      is instead declared the same way every other tool in this contract is:
+      `commands.install: { run: pip install -r requirements.txt }`, which
+      needs no schema support since commands are inert, unparsed strings
+      (ADR-0006). `doctor` warns `RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED` for the
+      `python` runtime until v0.8.0 ships multi-language probing; the
+      contract is fully valid today, and the warning is non-blocking
+      (exit code 0), verified in CI.
+- [x] Add `examples/rust-cli/` — a minimal Rust CLI repository with
+      `agent-ready.yaml` declaring `runtimes.rust`, `cargo` commands
+      (`format`/`lint`/`test`/`build`), and adapter output. Same
+      `environment.packageManager` omission as Python, for the same reason:
+      Cargo is not one of the three probeable package managers.
+- [x] Add `examples/go-service/` — a minimal Go microservice with
+      `agent-ready.yaml` declaring `runtimes.go`, `go vet`/`go test`/
+      `go build` commands, and adapter output.
+- [x] Each example's generated adapter output (`AGENTS.md`, `CLAUDE.md`,
+      `.cursorrules`, `.github/copilot-instructions.md`, `GEMINI.md`) is
+      committed and drift-checked in CI via `generate --check`, the same
+      mechanism `verify --execute --check-generate` (ADR-0036) already relies
+      on. **Deviation from the original plan:** these are not added as cases
+      in `compatibility/adapter-output/v{1,2}/manifest.json`. That corpus is
+      scoped to byte-exact rendering of specific schema-version field
+      combinations (see `docs/decisions/0018-versioned-adapter-output-compatibility.md`),
+      not full example repositories, and none of these three examples
+      exercises a field the existing v1/v2 cases don't already cover. The
+      committed per-example output _is_ the golden fixture, matching how
+      `examples/complete-phase-1/` already works. CI's "valid examples pass",
+      "generate dry run", "generate --check", and "doctor warns but does not
+      fail" smoke-test steps exercise all three.
 
 ### v0.7.0 exit criteria
 
@@ -445,8 +466,9 @@ Scope:
   `src/generate/adapters/` must not import `src/filesystem/nodeFileSystem.ts`.
 - Contracts without `boundary_rules` produce byte-identical adapter output
   to v0.6.1 (additive-only proof).
-- Three framework-specific examples pass validation and generate
-  correct adapter output.
+- Three framework-specific examples (`examples/python-fastapi/`,
+  `examples/rust-cli/`, `examples/go-service/`) pass validation and generate
+  correct, drift-free adapter output — verified in CI.
 - Analysis remains local, read-only, deterministic, and LLM-free.
 
 ### v0.8.0 — Multi-language doctor & adapter extensibility

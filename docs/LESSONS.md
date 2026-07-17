@@ -10,6 +10,7 @@ Agent-Ready. Each entry is a candidate for brain memory curation.
 | 2026-07-13 | LESSON-001 | Brain integration follows startup/completion protocol    | candidate |
 | 2026-07-16 | LESSON-002 | A roadmap written before a field ships can contradict it | candidate |
 | 2026-07-16 | LESSON-003 | An ADR is a hypothesis until the boundary is checked     | candidate |
+| 2026-07-16 | LESSON-004 | Committed generated output can be stale and pass anyway  | candidate |
 
 ---
 
@@ -116,3 +117,53 @@ with file, line, and column. This is the same reasoning that motivates
 **Verification:** 586 tests pass; `pnpm format:check`, `lint`, `typecheck`, and
 `build` are green; the CLI dogfoods its own two boundaries with zero findings
 and correctly reports a deliberately introduced violation.
+
+---
+
+## LESSON-004 — Committed generated output can be stale and pass anyway
+
+**Date:** 2026-07-16
+**Status:** candidate
+
+**Finding:** `examples/complete-phase-1/` and `examples/adversarial-content/`
+have committed `AGENTS.md`/`CLAUDE.md`/etc. that do not match what
+`agent-ready generate --write` produces today — confirmed with
+`generate --check`, which reported `"would-write"` for 4-5 of 5 adapters in
+each. Nothing in CI catches this: the existing "generate dry run" step only
+checks for `ADAPTER_NOT_YET_IMPLEMENTED`, never diffs content. The drift was
+invisible because the stale committed files happened to already satisfy
+Prettier, so `format:check` gave no signal either — two different checks, each
+blind to the exact thing the other would have caught.
+
+Root cause: `shared.ts`'s "Further Context" section pushes
+`instructions.content` (a YAML block scalar, trailing-newline-terminated) and
+then its own blank-line separator, so any contract combining `instructions.content`
+with `instructions.sources` renders a double blank line that Prettier
+collapses to one on the next format pass — but `generate --write` never runs
+Prettier, so regenerating reintroduces the double blank line every time.
+
+**How to apply:** A file being "clean" under one tool (Prettier) says nothing
+about whether it still matches its own generator. When a repository has both
+a formatter and a generator writing to the same files, verify both
+independently — `format:check` and `generate --check` are not substitutes for
+each other. This project's own `verify --execute --check-generate`
+(ADR-0036) exists for exactly this reason at the contract-consumer level; it
+just isn't yet applied to the example repositories that ship inside this one.
+
+**Corollary:** When a generator's raw output conflicts with the formatter's
+opinion, don't hand-edit the generated file to satisfy the formatter — that
+edit is exactly the drift `generate --check` exists to catch, and it will
+flag your own fix as staleness on the next run. Either fix the generator, or
+exclude generated output from the formatter's scope (as this repository
+already does for `compatibility/adapter-output/**/expected/`) and let the
+generator alone govern correctness.
+
+**Applied in:** `.prettierignore` (generated example output excluded);
+`src/generate/adapters/shared.ts`'s bug and `complete-phase-1`'s/
+`adversarial-content`'s existing drift were found but deliberately left
+unfixed — flagged separately, since a renderer change affects byte-exact
+output for every adapter project-wide.
+
+**Verification:** All three new framework examples pass both `format:check`
+and `generate --check` simultaneously; confirmed by running each locally
+before trusting the CI wiring that exercises the same commands.

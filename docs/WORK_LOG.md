@@ -164,3 +164,78 @@ pass Prettier.
 
 **Status:** Complete. 586 tests pass. v0.7.0's first exit criterion is met; the
 framework-specific examples (Python/Rust/Go) remain.
+
+## 2026-07-16 — Add framework-specific examples, close out v0.7.0
+
+**Description:** Added the three framework-specific example repositories
+v0.7.0 called for (`examples/python-fastapi/`, `examples/rust-cli/`,
+`examples/go-service/`), wired them into CI, and fixed a real
+`.prettierignore` gap that a pre-existing bug had been hiding.
+
+**Files changed:**
+
+- `examples/python-fastapi/` — `agent-ready.yaml`, `app/main.py`,
+  `requirements.txt`, `README.md`, all 5 generated adapter files (new)
+- `examples/rust-cli/` — `agent-ready.yaml`, `Cargo.toml`, `src/main.rs`,
+  `README.md`, all 5 generated adapter files (new)
+- `examples/go-service/` — `agent-ready.yaml`, `go.mod`, `main.go`,
+  `main_test.go`, `README.md`, all 5 generated adapter files (new)
+- `.github/workflows/ci.yml` — extended "valid examples pass" and "generate
+  dry run" to cover all three; added "generate --check (framework examples,
+  no drift)" and "doctor warns but does not fail on unprobed runtimes"
+- `.prettierignore` — generated adapter output under `examples/*/` excluded,
+  matching the existing `compatibility/adapter-output/**/expected/` precedent
+- `ROADMAP-TO-1.0.md` — checked off the three examples, documented two
+  deviations from the original sketch, updated the v0.7.0 exit criterion
+- `CHANGELOG.md` — Unreleased entry
+
+**Deviations from the roadmap's original sketch (both documented in
+ROADMAP-TO-1.0.md, not silently substituted):**
+
+- The Python example does not declare `environment.packageManager: pip`.
+  `packageManager.name` is schema- and type-restricted to
+  `"npm" | "pnpm" | "yarn"` — confirmed by reading the schema, `RawPackageManager`,
+  and `doctor.ts`'s `SUPPORTED_PACKAGE_MANAGERS` before writing anything. Widening
+  that enum is v0.8.0's ADR-0038 territory. `pip` is declared via
+  `commands.install` instead, which needs no schema support.
+- No new compatibility-corpus cases were added. `compatibility/adapter-output/v{1,2}/`
+  is scoped to byte-exact rendering of specific schema-version field
+  combinations, not full example repos, and none of these three examples
+  exercises a field the existing corpus doesn't cover. The committed
+  per-example adapter output is the golden fixture, matching how
+  `examples/complete-phase-1/` already works, and CI's new `generate --check`
+  step is what proves it hasn't drifted.
+
+**Real bug found and worked around, not silently fixed:** `generate --check`
+against `examples/complete-phase-1/` and `examples/adversarial-content/`
+reports drift **today**, independent of anything in this session — their
+committed adapter output does not match what `agent-ready generate --write`
+produces fresh. Root cause: `src/generate/adapters/shared.ts`'s "Further
+Context" section pushes `instructions.content` (a YAML block scalar, which
+ends in a trailing newline) followed by its own blank-line separator,
+producing a double blank line; Prettier collapses it to one, so the
+currently-committed files are Prettier-clean by historical accident while a
+fresh regeneration is not. This is why the freshly-generated output for the
+three new examples in this session initially failed `format:check`. Rather
+than hand-tune committed Markdown to satisfy Prettier (which `generate --check`
+would then correctly flag as drift), generated adapter output under
+`examples/` was excluded from Prettier's scope, matching how the compatibility
+corpus's `expected/` fixtures are already excluded — correctness for these
+files is "matches the generator," not "satisfies a style formatter." The
+renderer bug itself, and `complete-phase-1`/`adversarial-content`'s existing
+drift, are unfixed and flagged separately; fixing `shared.ts` touches
+byte-exact output for every adapter project-wide and is out of scope for
+"add framework examples."
+
+**Commands run:**
+
+- `pnpm format:check`, `pnpm check:action-pins`, `pnpm lint`, `pnpm typecheck`,
+  `pnpm test`, `pnpm build` — all green (586 tests, unchanged from ADR-0037)
+- Every new CI step run locally against the built CLI before being trusted:
+  `validate`, `generate --json` (ADAPTER_NOT_YET_IMPLEMENTED absence),
+  `generate --check`, `doctor --json` (warning present, exit 0) — all four
+  examples, matching exactly what `ci.yml` now runs
+
+**Status:** Complete. v0.7.0 exit criteria are now all met. `package.json`
+intentionally left at `0.6.1` — that release is still unpublished (blocked on
+PR #20's review), so this session does not claim a version it hasn't earned.
