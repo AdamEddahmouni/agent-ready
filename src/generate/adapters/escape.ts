@@ -4,7 +4,12 @@
  * formatting when interpolated into a line of generated Markdown.
  */
 export function escapeMarkdownText(value: string): string {
-  const singleLine = value.replace(/\r\n|\r|\n/g, " ");
+  // Free text sourced from a YAML block scalar always carries its own
+  // trailing line break (YAML's default clip chomping). Collapsing that
+  // into a space below would leave a trailing space with no visible effect
+  // except making generated output not already Prettier-formatted, so any
+  // trailing line breaks are trimmed first; embedded ones still collapse.
+  const singleLine = value.replace(/(?:\r\n|\r|\n)+$/, "").replace(/\r\n|\r|\n/g, " ");
 
   // Inline-significant characters, escaped wherever they occur: \ (must
   // be escaped first), ` (code span), * _ (emphasis), [ ] (link/image

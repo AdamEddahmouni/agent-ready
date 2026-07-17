@@ -60,6 +60,7 @@ will fail CI. Patterns use the glob syntax documented in
 ### Ignored (do not include in agent output or consideration)
 
 These paths are out of scope for agent operations:
+
 - `target/**`
 
 ## Further Context
@@ -69,14 +70,15 @@ These paths are out of scope for agent operations:
 - Run `cargo fmt` before committing; CI enforces `cargo fmt --check`.
 - Prefer `Result<T, E>` over panics for recoverable errors.
 
-
 See these files for detailed project documentation. If you need deeper
 context about architecture, conventions, or design rationale, start here:
+
 - [README.md](README.md)
 
 ## Before Submitting Work
 
 After making changes, confirm everything still passes:
+
 - Run `cargo fmt --check`
 - Run `cargo clippy -- -D warnings`
 - Run `cargo test`

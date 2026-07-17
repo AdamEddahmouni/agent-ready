@@ -239,3 +239,90 @@ byte-exact output for every adapter project-wide and is out of scope for
 **Status:** Complete. v0.7.0 exit criteria are now all met. `package.json`
 intentionally left at `0.6.1` — that release is still unpublished (blocked on
 PR #20's review), so this session does not claim a version it hasn't earned.
+
+## 2026-07-16 — Fix shared.ts/escape.ts spacing bugs, resolve all example drift
+
+**Description:** Fixed the two Markdown-formatting bugs flagged as a follow-up
+in the previous session (LESSON-004), found a third closely-related bug while
+verifying the fix, and regenerated every example and golden fixture in the
+repository so `generate --write`'s raw output now already matches Prettier's
+formatting everywhere, with no exclusions needed.
+
+**Root causes fixed, both in the adapter renderer:**
+
+- `src/generate/adapters/shared.ts`: every tight bullet/numbered list that
+  followed a heading or lead-in paragraph was missing the blank-line
+  separator Prettier requires between a block and a following list.
+  Confirmed with a minimal Prettier probe before touching source
+  (`### Heading\n- item` → Prettier inserts a blank line). This affected 12
+  call sites, not just the two originally reported (Path Rules, Architecture
+  Boundaries/Invariants/Key Decisions, Enforced Boundaries, Agent
+  Constraints' three lists, instructions.sources, Before Submitting Work).
+  Fixed once, at the root, with a new `pushList(lines, items)` helper that
+  every list-rendering call site now goes through, rather than patching each
+  site individually and risking missing one — which is exactly how the bug
+  reached this size in the first place.
+- `src/generate/adapters/shared.ts`: `instructions.content` (a YAML block
+  scalar, always trailing-newline-terminated) plus the renderer's own
+  blank-line push produced a double blank line before "See these files...".
+  Fixed by trimming trailing line breaks before pushing.
+- `src/generate/adapters/escape.ts` (found during verification, not in the
+  original report): `escapeMarkdownText` collapses embedded newlines to
+  spaces but didn't trim a _trailing_ one first, so any multi-line
+  `description`/`summary`/similar field sourced from a YAML block scalar
+  rendered with a trailing space Prettier would silently strip. Confirmed via
+  `examples/adversarial-content`, whose `project.description` deliberately
+  contains embedded newlines and a marker-lookalike string to test escaping.
+  Same fix shape as the first: trim trailing line breaks before collapsing.
+
+**Files changed:**
+
+- `src/generate/adapters/shared.ts`, `src/generate/adapters/escape.ts` — the fixes
+- `compatibility/adapter-output/{v1,v2}/cases/*/expected/*` — all 13 golden
+  fixture files regenerated via the actual CLI (`generate --write` against a
+  synthetic repo built from each case's manifest entry, output copied back),
+  not hand-edited
+- `tests/fixtures/generate/expected-*.txt` — all 10 golden fixtures, copied
+  directly from the freshly-regenerated `examples/complete-phase-1/` and
+  `examples/adversarial-content/` (same source contract + inputs, so
+  byte-identical by construction; confirmed by the test passing)
+- `examples/complete-phase-1/`, `examples/adversarial-content/`,
+  `examples/{python-fastapi,rust-cli,go-service}/` — every adapter output
+  file regenerated
+- `.prettierignore` — removed the `examples/*/AGENTS.md` etc. exclusion added
+  last session as a workaround; no longer needed, since raw generator output
+  is now already Prettier-clean everywhere it was checked
+- `.github/workflows/ci.yml` — widened "generate --check" from the three
+  framework examples to all five examples (added `complete-phase-1` and
+  `adversarial-content`, the two that were actually stale)
+
+**Verification, in order:**
+
+1. Confirmed each spacing rule with a standalone Prettier probe
+   (`npx prettier <minimal .md snippet>`) before writing any fix, rather than
+   trusting inference from the earlier diff.
+2. `pnpm typecheck`, `pnpm lint` after each of the two source edits.
+3. Regenerated the compatibility corpus (`tests/compatibility/adapterOutput.test.ts`,
+   5 cases) after each fix; inspected the actual diffs to confirm only the
+   intended blank-line insertions and trailing-space removal occurred, no
+   unintended content changes.
+4. Regenerated `tests/fixtures/generate/expected-*.txt`;
+   `tests/integration/generateCli.test.ts` (13 tests) passes.
+5. `generate --check` reports `"ok": true` for all five examples.
+6. `pnpm format:check` passes repo-wide with the `.prettierignore` workaround
+   removed — the stated goal (`generate --write` needs no post-hoc Prettier
+   pass) is met, not just claimed.
+7. Every new/changed CI command run locally against the built CLI, one at a
+   time, before trusting the workflow file.
+8. Full required pipeline: `pnpm format:check`, `pnpm check:action-pins`,
+   `pnpm lint`, `pnpm typecheck`, `pnpm test` (586 tests), `pnpm build` — all
+   green.
+
+**Left alone, deliberately:** `compatibility/adapter-output/**/expected/` is
+still excluded from `.prettierignore`. That entry predates this session and
+wasn't part of what was asked; it happens to also now pass Prettier cleanly,
+but removing it is a separate decision this session didn't make.
+
+**Status:** Complete. LESSON-004's flagged bug and the additional trailing-space
+bug it led to are both fixed at the root, not routed around. Not committed —
+holding for explicit approval per the task's instruction.

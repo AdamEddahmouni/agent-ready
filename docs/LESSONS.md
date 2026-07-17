@@ -11,6 +11,7 @@ Agent-Ready. Each entry is a candidate for brain memory curation.
 | 2026-07-16 | LESSON-002 | A roadmap written before a field ships can contradict it | candidate |
 | 2026-07-16 | LESSON-003 | An ADR is a hypothesis until the boundary is checked     | candidate |
 | 2026-07-16 | LESSON-004 | Committed generated output can be stale and pass anyway  | candidate |
+| 2026-07-16 | LESSON-005 | A reported bug is a sample, not the full defect          | candidate |
 
 ---
 
@@ -167,3 +168,58 @@ output for every adapter project-wide.
 **Verification:** All three new framework examples pass both `format:check`
 and `generate --check` simultaneously; confirmed by running each locally
 before trusting the CI wiring that exercises the same commands.
+
+**Resolution (2026-07-16, follow-up session):** The renderer bug is fixed at
+the root — see LESSON-005. The `.prettierignore` workaround is removed; raw
+`generate --write` output now already matches Prettier everywhere, and every
+example's committed output was regenerated and confirmed drift-free by both
+checks independently.
+
+---
+
+## LESSON-005 — A reported bug is a sample, not the full defect
+
+**Date:** 2026-07-16
+**Status:** candidate
+
+**Finding:** The follow-up task named two specific spacing bugs in
+`shared.ts`'s `renderContractSections`: a double blank line before "See these
+files..." and a missing blank line before the `paths.protected` bullet list.
+Auditing every list-rendering call site in the function (12 total) found the
+missing-blank-line pattern in 10 more places — Architecture
+Boundaries/Invariants/Key Decisions, Enforced Boundaries, all three Agent
+Constraints lists, `instructions.sources`, and Before Submitting Work — not
+just the one named. Verifying the fix then surfaced a _third_, structurally
+identical bug in a different file (`escape.ts`'s `escapeMarkdownText` leaving
+a trailing space from a YAML block scalar's trailing newline), found only
+because `examples/adversarial-content` — the one example whose contract
+happens to declare a multi-line `description` — was still non-Prettier-clean
+after the first two fixes were applied and regenerated.
+
+**How to apply:** When a bug report names one or two instances of a pattern
+inside a function with many structurally similar call sites, grep or read the
+whole function for the same shape before fixing only what was named. Two
+named instances of "paragraph directly followed by a list, no blank line" was
+a strong signal that every other list in the same file had the same
+construction. Fixing all of them with one shared helper (`pushList`) also
+prevents the next contributor from reintroducing instance #13.
+
+**Corollary:** Verify a fix's completeness against reality, not against the
+reported symptom. "Both spacing issues are fixed" was falsifiable —
+regenerating every example and running `pnpm format:check` with the
+`.prettierignore` workaround removed is what actually proved it, and it took
+finding a third bug to make that true. A minimal, standalone reproduction
+(`npx prettier <snippet>`) confirmed each spacing rule _before_ writing the
+fix, rather than trusting the pattern inferred from a single diff — this is
+what caught that a heading-then-list also needs a blank line, a case the
+original diff hadn't shown.
+
+**Applied in:** `src/generate/adapters/shared.ts` (`pushList` helper, 12 call
+sites), `src/generate/adapters/escape.ts` (`escapeMarkdownText` trailing-newline
+trim)
+
+**Verification:** All five examples' generated output, all 13 compatibility-corpus
+golden fixtures, and all 10 `tests/fixtures/generate/expected-*.txt` fixtures
+regenerated via the actual CLI (never hand-edited) and diffed to confirm only
+the intended blank-line/trailing-space changes occurred. `pnpm format:check`
+passes repo-wide with no generated-output exclusion in `.prettierignore`.

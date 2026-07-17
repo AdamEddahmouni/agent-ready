@@ -66,16 +66,19 @@ will fail CI. Patterns use the glob syntax documented in
 ### Protected (DO NOT modify without explicit approval)
 
 These files must never be changed by an AI coding agent:
+
 - `.env*`
 
 ### Generated (produced by build, do not hand-edit)
 
 These files are build artifacts. Never edit them directly:
+
 - `src/generated/**`
 
 ### Ignored (do not include in agent output or consideration)
 
 These paths are out of scope for agent operations:
+
 - `dist/**`
 - `node_modules/**`
 
@@ -94,15 +97,16 @@ its own directory under `src/` with its own tests and types.
 Shared utilities live in `src/shared/`. Never import across
 feature boundaries except through the shared layer.
 
-
 See these files for detailed project documentation. If you need deeper
 context about architecture, conventions, or design rationale, start here:
+
 - [README.md](README.md)
 - [docs/architecture.md](docs/architecture.md)
 
 ## Before Submitting Work
 
 After making changes, confirm everything still passes:
+
 - Run `pnpm lint`
 - Run `pnpm typecheck`
 - Run `pnpm test`

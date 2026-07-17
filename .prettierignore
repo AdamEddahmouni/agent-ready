@@ -5,14 +5,3 @@ node_modules/
 compatibility/adapter-output/**/expected/
 graphify-out/
 docs/graph/
-
-# Generated agent-instruction files under examples/ are produced by
-# `agent-ready generate --write` from each example's agent-ready.yaml.
-# Their correctness is judged by matching the generator (`generate --check`),
-# not by Prettier's Markdown opinions — same reasoning as the compatibility
-# corpus's expected/ fixtures above.
-examples/*/AGENTS.md
-examples/*/CLAUDE.md
-examples/*/GEMINI.md
-examples/*/.cursorrules
-examples/*/.github/copilot-instructions.md

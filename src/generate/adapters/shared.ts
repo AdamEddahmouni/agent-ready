@@ -114,25 +114,28 @@ export function renderContractSections(contract: NormalizedContract): string {
     if (contract.paths.protected.length > 0) {
       lines.push("", "### Protected (DO NOT modify without explicit approval)");
       lines.push("", "These files must never be changed by an AI coding agent:");
-      for (const pattern of contract.paths.protected) {
-        lines.push(`- ${wrapCodeSpan(pattern)}`);
-      }
+      pushList(
+        lines,
+        contract.paths.protected.map((pattern) => `- ${wrapCodeSpan(pattern)}`),
+      );
     }
 
     if (contract.paths.generated.length > 0) {
       lines.push("", "### Generated (produced by build, do not hand-edit)");
       lines.push("", "These files are build artifacts. Never edit them directly:");
-      for (const pattern of contract.paths.generated) {
-        lines.push(`- ${wrapCodeSpan(pattern)}`);
-      }
+      pushList(
+        lines,
+        contract.paths.generated.map((pattern) => `- ${wrapCodeSpan(pattern)}`),
+      );
     }
 
     if (contract.paths.ignored.length > 0) {
       lines.push("", "### Ignored (do not include in agent output or consideration)");
       lines.push("", "These paths are out of scope for agent operations:");
-      for (const pattern of contract.paths.ignored) {
-        lines.push(`- ${wrapCodeSpan(pattern)}`);
-      }
+      pushList(
+        lines,
+        contract.paths.ignored.map((pattern) => `- ${wrapCodeSpan(pattern)}`),
+      );
     }
   }
 
@@ -146,9 +149,10 @@ export function renderContractSections(contract: NormalizedContract): string {
     lines.push("", "## Architecture");
     if (contract.architecture.boundaries.length > 0) {
       lines.push("", "### Boundaries (must not)");
-      for (const boundary of contract.architecture.boundaries) {
-        lines.push("- " + escapeMarkdownText(boundary));
-      }
+      pushList(
+        lines,
+        contract.architecture.boundaries.map((boundary) => "- " + escapeMarkdownText(boundary)),
+      );
     }
     if (contract.architecture.boundaryRules.length > 0) {
       lines.push("", "### Enforced Boundaries (checked by `agent-ready analyze --architecture`)");
@@ -157,25 +161,31 @@ export function renderContractSections(contract: NormalizedContract): string {
         "Unlike the guidance above, these are checked against the real import",
         "graph. A violation fails analysis.",
       );
-      for (const rule of contract.architecture.boundaryRules) {
-        for (const target of rule.mustNotImport) {
-          lines.push(`- ${wrapCodeSpan(rule.from)} must not import ${wrapCodeSpan(target)}`);
-        }
-      }
+      pushList(
+        lines,
+        contract.architecture.boundaryRules.flatMap((rule) =>
+          rule.mustNotImport.map(
+            (target) => `- ${wrapCodeSpan(rule.from)} must not import ${wrapCodeSpan(target)}`,
+          ),
+        ),
+      );
     }
     if (contract.architecture.invariants.length > 0) {
       lines.push("", "### Invariants (always)");
-      for (const invariant of contract.architecture.invariants) {
-        lines.push("- " + escapeMarkdownText(invariant));
-      }
+      pushList(
+        lines,
+        contract.architecture.invariants.map((invariant) => "- " + escapeMarkdownText(invariant)),
+      );
     }
     if (contract.architecture.keyDecisions.length > 0) {
       lines.push("", "### Key Decisions");
-      for (const decision of contract.architecture.keyDecisions) {
-        lines.push(
-          "- " + renderMarkdownLink(decision.file) + " — " + escapeMarkdownText(decision.summary),
-        );
-      }
+      pushList(
+        lines,
+        contract.architecture.keyDecisions.map(
+          (decision) =>
+            "- " + renderMarkdownLink(decision.file) + " — " + escapeMarkdownText(decision.summary),
+        ),
+      );
     }
   }
 
@@ -187,21 +197,24 @@ export function renderContractSections(contract: NormalizedContract): string {
     lines.push("", "## Agent Constraints");
     if (contract.agents.disallowedActions.length > 0) {
       lines.push("", "### Do Not");
-      for (const action of contract.agents.disallowedActions) {
-        lines.push("- " + escapeMarkdownText(action));
-      }
+      pushList(
+        lines,
+        contract.agents.disallowedActions.map((action) => "- " + escapeMarkdownText(action)),
+      );
     }
     if (contract.agents.approvalRequiredFor.length > 0) {
       lines.push("", "### Ask Before");
-      for (const action of contract.agents.approvalRequiredFor) {
-        lines.push("- " + escapeMarkdownText(action));
-      }
+      pushList(
+        lines,
+        contract.agents.approvalRequiredFor.map((action) => "- " + escapeMarkdownText(action)),
+      );
     }
     if (contract.agents.contextFiles.length > 0) {
       lines.push("", "### Context Files");
-      for (const path of contract.agents.contextFiles) {
-        lines.push("- " + renderMarkdownLink(path));
-      }
+      pushList(
+        lines,
+        contract.agents.contextFiles.map((path) => "- " + renderMarkdownLink(path)),
+      );
     }
   }
 
@@ -210,7 +223,14 @@ export function renderContractSections(contract: NormalizedContract): string {
 
   lines.push("", "## Further Context");
   if (hasContent) {
-    lines.push("", contract.instructions.content);
+    // instructions.content is a YAML block scalar and always ends in its own
+    // trailing newline; pushing it verbatim plus our own blank-line
+    // separator below would render as two blank lines, which Prettier
+    // collapses to one on format but `generate --write` never runs
+    // Prettier, so every regeneration would reintroduce the second blank
+    // line. Trimming here keeps raw generator output already
+    // Prettier-equivalent.
+    lines.push("", contract.instructions.content.replace(/\n+$/, ""));
   }
   if (hasSources) {
     lines.push(
@@ -218,9 +238,10 @@ export function renderContractSections(contract: NormalizedContract): string {
       "See these files for detailed project documentation. If you need deeper",
       "context about architecture, conventions, or design rationale, start here:",
     );
-    for (const source of contract.instructions.sources) {
-      lines.push(`- ${renderMarkdownLink(source)}`);
-    }
+    pushList(
+      lines,
+      contract.instructions.sources.map((source) => `- ${renderMarkdownLink(source)}`),
+    );
   }
   if (!hasContent && !hasSources) {
     lines.push("", "(none declared)");
@@ -230,13 +251,28 @@ export function renderContractSections(contract: NormalizedContract): string {
   if (contract.verification.required.length > 0) {
     lines.push("", "## Before Submitting Work");
     lines.push("", "After making changes, confirm everything still passes:");
-    for (const name of contract.verification.required) {
-      const cmd = contract.commands.find((c) => c.name === name);
-      lines.push(`- Run ${wrapCodeSpan(cmd?.run ?? name)}`);
-    }
+    pushList(
+      lines,
+      contract.verification.required.map((name) => {
+        const cmd = contract.commands.find((c) => c.name === name);
+        return `- Run ${wrapCodeSpan(cmd?.run ?? name)}`;
+      }),
+    );
   }
 
   return lines.join("\n");
+}
+
+/**
+ * Pushes a blank-line separator followed by a tight bullet or numbered
+ * list. CommonMark allows a list directly after a heading or paragraph with
+ * no blank line, but Prettier's Markdown formatter always inserts one —
+ * every call site in this file that renders a list must go through this
+ * helper rather than pushing list items directly, or raw `generate --write`
+ * output silently stops matching what `prettier --write` would produce.
+ */
+function pushList(lines: string[], items: readonly string[]): void {
+  lines.push("", ...items);
 }
 
 // ── Command grouping ──────────────────────────────────────────────────────

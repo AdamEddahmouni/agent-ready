@@ -56,6 +56,7 @@ will fail CI. Patterns use the glob syntax documented in
 ### Ignored (do not include in agent output or consideration)
 
 These paths are out of scope for agent operations:
+
 - `bin/**`
 
 ## Further Context
@@ -65,14 +66,15 @@ These paths are out of scope for agent operations:
 - Run `gofmt -l .` before committing; unformatted files fail review.
 - Return wrapped errors with `fmt.Errorf("...: %w", err)`.
 
-
 See these files for detailed project documentation. If you need deeper
 context about architecture, conventions, or design rationale, start here:
+
 - [README.md](README.md)
 
 ## Before Submitting Work
 
 After making changes, confirm everything still passes:
+
 - Run `go vet ./...`
 - Run `go test ./...`
 - Run `go build ./...`

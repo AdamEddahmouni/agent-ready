@@ -60,11 +60,13 @@ will fail CI. Patterns use the glob syntax documented in
 ### Protected (DO NOT modify without explicit approval)
 
 These files must never be changed by an AI coding agent:
+
 - `.env*`
 
 ### Ignored (do not include in agent output or consideration)
 
 These paths are out of scope for agent operations:
+
 - `__pycache__/**`
 - `.pytest_cache/**`
 - `.venv/**`
@@ -77,14 +79,15 @@ These paths are out of scope for agent operations:
 - Format with `ruff format`, lint with `ruff check`.
 - Routes live in `app/routes/`; keep `app/main.py` limited to app wiring.
 
-
 See these files for detailed project documentation. If you need deeper
 context about architecture, conventions, or design rationale, start here:
+
 - [README.md](README.md)
 
 ## Before Submitting Work
 
 After making changes, confirm everything still passes:
+
 - Run `ruff check .`
 - Run `mypy app`
 - Run `pytest`

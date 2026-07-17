@@ -96,11 +96,11 @@ jobs:
             fi
           done
 
-      - name: CLI smoke test - generate --check (framework examples, no drift)
+      - name: CLI smoke test - generate --check (every example, no drift)
         shell: bash
         run: |
           set -e
-          for example in python-fastapi rust-cli go-service; do
+          for example in complete-phase-1 adversarial-content python-fastapi rust-cli go-service; do
             output="$(node dist/cli/index.js generate --config "examples/$example/agent-ready.yaml" --check --json)"
             echo "$output"
             echo "$output" | grep -q '"ok": true'

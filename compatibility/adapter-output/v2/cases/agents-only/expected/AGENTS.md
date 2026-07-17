@@ -17,12 +17,15 @@ agents-only
 ## Agent Constraints
 
 ### Do Not
+
 - Install packages without approval.
 
 ### Ask Before
+
 - Changes to CI configuration.
 
 ### Context Files
+
 - [docs/context.md](docs/context.md)
 
 ## Further Context

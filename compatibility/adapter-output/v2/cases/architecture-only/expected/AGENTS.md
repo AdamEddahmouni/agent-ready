@@ -17,12 +17,15 @@ architecture-only
 ## Architecture
 
 ### Boundaries (must not)
+
 - src/domain/ must not import from src/cli/
 
 ### Invariants (always)
+
 - Domain errors are returned as diagnostics.
 
 ### Key Decisions
+
 - [docs/decisions/0001.md](docs/decisions/0001.md) — Keep the package ESM-only.
 
 ## Further Context
