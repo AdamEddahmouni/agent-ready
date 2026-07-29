@@ -503,7 +503,8 @@ Scope:
 
 #### 2. Adapter extensibility (first step)
 
-- [ ] **ADR-0039: External adapter registration.** Introduces a
+- [x] **[ADR-0039: External adapter registration](docs/decisions/0039-external-adapter-registration.md).**
+      Accepted; implementation pending. Introduces a
       _minimal_ mechanism for registering a custom adapter renderer
       without modifying Agent-Ready's source code:
 
@@ -539,6 +540,22 @@ Scope:
     from ROADMAP.md** — only the narrow single-function render-call
     mechanism is reintroduced; full plugin architecture with lifecycle
     hooks remains permanently out of scope (see below).
+
+  Deviations settled by the accepted ADR:
+  - `render` returns `GeneratedFile`, not `string` — that is the existing
+    exported `AdapterRenderer` signature, so no new type is introduced.
+    The returned `relativePath` is ignored in favor of the contract's
+    `output`, keeping path authority outside loaded code.
+  - The module is loaded in the CLI layer and injected through the
+    existing `RendererRegistry` seam, _not_ imported inside
+    `planGeneration`. Dynamic `import()` is asynchronous file-system
+    access, and `planGeneration` is documented as synchronous and
+    file-system-pure.
+  - Four diagnostics, not one: `CUSTOM_ADAPTER_OUTPUT_INVALID`
+    (validation-time path check), `CUSTOM_ADAPTER_LOAD_FAILED`,
+    `CUSTOM_ADAPTER_RENDER_FAILED`, and `CUSTOM_ADAPTER_MARKER_MISSING`
+    (output omitting `GENERATED_FILE_MARKER`, which would otherwise
+    surface a run later as a confusing `unmanaged` refusal).
 
 ### v0.8.0 exit criteria
 

@@ -268,20 +268,40 @@ The following are explicitly **not** implemented right now, by design —
 not oversights:
 
 `agent-ready audit`/`sync`/`score` subcommands ·
-per-command timeout/environment/working-directory declarations ·
+per-command environment/working-directory declarations ·
 capturing or persisting a command's actual stdout/stderr as evidence
 (only structured status is persisted, via `verify --execute --record`) ·
 historical/multi-run verification-evidence retention · task packets ·
 context manifests ·
-architecture-dependency analysis beyond declared documentation links ·
-plugin/adapter loading ·
+plugin/adapter loading with lifecycle hooks, middleware, or an event
+system ·
 framework detection · monorepo contract inheritance or nested contracts ·
 remote configuration · organization policies · hosted dashboards · user
 accounts · authentication · billing · telemetry · analytics · IDE
 extensions · a documentation website · GitHub App integration · a
 GitHub Action product · cloud APIs · enterprise features · AI-generated
-configuration · LLM calls · automatic repository modification · automated
-package publication or release.## Branding and visual design
+configuration · LLM calls · automatic repository modification.
+
+Four entries once on this list were narrowed or removed by later ADRs,
+each of which reopened its non-goal explicitly rather than by drift:
+
+- **Per-command timeouts** shipped in v0.6.0 via
+  [ADR-0035](docs/decisions/0035-per-command-timeout.md). Environment and
+  working-directory declarations remain non-goals.
+- **Architecture-dependency analysis** shipped in v0.7.0 via
+  [ADR-0037](docs/decisions/0037-architecture-dependency-analysis.md),
+  bounded to repository-relative JS/TS imports checked against declared
+  `architecture.boundary_rules`. Open-ended architecture analysis remains
+  a non-goal.
+- **Adapter loading** is reopened for v0.8.0 by
+  [ADR-0039](docs/decisions/0039-external-adapter-registration.md), as a
+  single `render(contract)` call per custom adapter and nothing more. A
+  plugin architecture with lifecycle hooks remains permanently out of
+  scope.
+- **Automated package publication** shipped in v0.4.0 via
+  [ADR-0027](docs/decisions/0027-npm-package-publication-strategy.md).
+
+## Branding and visual design
 
 Repository branding assets (logo, hero banner, diagrams, and feature
 cards under `assets/`) have been added for the GitHub README and social
