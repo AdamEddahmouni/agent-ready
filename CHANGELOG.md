@@ -14,6 +14,8 @@ All notable changes to Agent-Ready are documented here. The project follows
 - Require bounded CLI timeouts from 1 through 3600 seconds.
 - Gate releases on a main-reachable, GitHub-verified signed tag and protected
   deployment environments; make high-severity production audits blocking.
+- Resolve the transitive `fast-uri` production dependency (reached through
+  `ajv`) to 3.1.4, clearing a high-severity advisory.
 
 ### Changed
 
