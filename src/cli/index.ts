@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
-import { Command } from "commander";
+import { Command, InvalidArgumentError } from "commander";
 import { NodeFileSystem } from "../filesystem/nodeFileSystem.js";
 import { NodeGitClient } from "../git/nodeGitClient.js";
 import { NodeCommandRunner } from "../verify/nodeCommandRunner.js";
@@ -251,7 +251,13 @@ program
   .option(
     "--timeout <seconds>",
     "Per-command timeout in seconds (default: 900).",
-    (value: string) => Number.parseInt(value, 10),
+    (value: string) => {
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > 3600) {
+        throw new InvalidArgumentError("must be an integer from 1 through 3600");
+      }
+      return parsed;
+    },
   )
   .option(
     "--record",

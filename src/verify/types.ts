@@ -15,7 +15,8 @@ export interface CommandToRun {
   readonly timeout?: number;
 }
 
-export type CommandOutcomeStatus = "passed" | "failed" | "timed-out" | "spawn-failed" | "skipped";
+export type CommandOutcomeStatus =
+  "passed" | "failed" | "timed-out" | "termination-failed" | "spawn-failed" | "skipped";
 
 export interface CommandOutcome {
   readonly id: string;

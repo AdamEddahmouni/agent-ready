@@ -1,5 +1,8 @@
 # ADR-0004: Repository root and contract discovery
 
+> Security hardening note (v0.6.1): filesystem metadata now uses `lstat`.
+> Symbolic-link contracts are rejected rather than followed.
+
 ## Status
 
 Accepted
@@ -53,14 +56,10 @@ explicit `--config` path is given.
   root becomes the directory containing the given file, full stop. This
   is the simplest rule that is still safe and explicit: no traversal
   logic, no ambiguity about which root applies.
-- **Symlinks are not given special handling during discovery.** Both
-  `agent-ready.yaml` and `.git` checks use `fs.stat` (which follows
-  symlinks) exactly as normal file access would. Since this phase never
-  executes the contract's contents and only reads them as inert text,
-  symlink-based relocation of the contract file is a low-severity,
-  accepted risk documented in `docs/security/threat-model.md`, rather
-  than a scenario that justifies additional `lstat`-based boundary
-  enforcement.
+- **Symlinks are identified without following them during discovery.** Both
+  `agent-ready.yaml` and `.git` checks use `lstat`. A contract symlink is not a
+  regular file and is rejected; any `.git` entry still stops ancestor search.
+  This v0.6.1 hardening supersedes the original accepted-risk decision.
 
 ## Consequences
 

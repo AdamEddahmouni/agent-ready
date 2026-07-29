@@ -7,7 +7,7 @@ interchangeably:
 
 | Identifier                   | Example                      | Purpose                                                                                 |
 | ---------------------------- | ---------------------------- | --------------------------------------------------------------------------------------- |
-| Package version and Git tag  | `0.5.0` / `v0.5.0`           | The immutable, published Agent-Ready release.                                           |
+| Package version and Git tag  | `0.6.0` / `v0.6.0`           | The immutable, published Agent-Ready release.                                           |
 | npm dist-tag                 | `next` or `latest`           | The moving installation channel: prereleases use `next`; stable releases use `latest`.  |
 | Contract schema version      | `version: 1`                 | The compatibility shape of `agent-ready.yaml`; independent of package releases.         |
 | Adapter compatibility corpus | `adapter-output/v1` and `v2` | Independently versioned expected-output fixture formats, archived together per release. |
@@ -28,17 +28,20 @@ Release steps:
    `pnpm check:action-pins`.
 4. Open a PR, confirm the GitHub Actions OS matrix and composite-action dogfood
    job pass, then merge.
-5. Create an annotated `v<version>` tag at the merge commit:
-   `git tag -a v<version> -m "v<version>"`
+5. Create a cryptographically signed annotated `v<version>` tag at the merge
+   commit: `git tag -s v<version> -m "v<version>"`. GitHub must show the tag as
+   verified.
 6. Push the tag (this also pushes the commit if it hasn't been pushed yet):
    `git push origin v<version>`
-7. The `.github/workflows/publish.yml` workflow triggers on the tag push and
-   runs typecheck, tests, build, package smoke test, tag-version verification,
+7. Approve the protected `npm-production` environment deployment. The
+   `.github/workflows/publish.yml` workflow rejects unsigned/lightweight tags
+   and commits not reachable from `main`, then runs typecheck, tests, build, package smoke test, tag-version verification,
    and `npm publish --provenance --access public`. Prerelease versions are
    published under npm's `next` tag; stable versions use `latest`. It then
    installs the exact published version in a clean directory, checks
    `--version`, and validates the minimal example.
-8. The parallel `.github/workflows/release.yml` workflow creates the GitHub
+8. Approve the protected `github-release` deployment. The parallel
+   `.github/workflows/release.yml` workflow creates the GitHub
    Release from the matching CHANGELOG section and attaches the npm package
    tarball plus the standalone adapter compatibility corpus.
 

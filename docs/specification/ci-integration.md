@@ -27,8 +27,8 @@ Prefer an immutable full commit SHA when your supply-chain policy requires it:
 uses: AdamEddahmouni/agent-ready@<commit-sha>
 ```
 
-For readable version pinning, use the corresponding release tag, such as
-`v0.5.0`. Do not pin a mutable branch name.
+For readable version pinning, use the corresponding signed, protected release
+tag, such as `v0.6.1`. Do not pin a mutable branch name.
 
 ## Usage
 
@@ -45,36 +45,36 @@ jobs:
   agent-ready:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Validate contract
-        uses: AdamEddahmouni/agent-ready@v0.5.0
+        uses: AdamEddahmouni/agent-ready@v0.6.1 # signed, protected release tag
         with:
           command: validate
 
       - name: Check generated files are up to date
-        uses: AdamEddahmouni/agent-ready@v0.5.0
+        uses: AdamEddahmouni/agent-ready@v0.6.1 # signed, protected release tag
         with:
           command: generate
           check: "true"
 
       - name: Check protected paths
-        uses: AdamEddahmouni/agent-ready@v0.5.0
+        uses: AdamEddahmouni/agent-ready@v0.6.1 # signed, protected release tag
         with:
           command: check
 
       - name: Check documentation links
-        uses: AdamEddahmouni/agent-ready@v0.5.0
+        uses: AdamEddahmouni/agent-ready@v0.6.1 # signed, protected release tag
         with:
           command: analyze
 
       - name: Print the bundled contract JSON Schema
-        uses: AdamEddahmouni/agent-ready@v0.5.0
+        uses: AdamEddahmouni/agent-ready@v0.6.1 # signed, protected release tag
         with:
           command: schema
 
       - name: Run verification
-        uses: AdamEddahmouni/agent-ready@v0.5.0
+        uses: AdamEddahmouni/agent-ready@v0.6.1 # signed, protected release tag
         with:
           command: verify
           execute: "true"

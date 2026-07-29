@@ -331,7 +331,11 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
       why: "A verification command that exits non-zero means the check it performed did not pass. Verification stops at the first failure so remaining commands are skipped.",
       fix: "1. Run the failing command directly to see its full output:\n     pnpm lint\n2. Fix the underlying issue.\n3. Re-run `agent-ready verify --execute` to confirm the fix.",
       fields: ["/verification/required"],
-      related: ["VERIFICATION_COMMAND_TIMEOUT", "VERIFICATION_COMMAND_SPAWN_FAILED"],
+      related: [
+        "VERIFICATION_COMMAND_TIMEOUT",
+        "VERIFICATION_COMMAND_TERMINATION_FAILED",
+        "VERIFICATION_COMMAND_SPAWN_FAILED",
+      ],
     },
   ],
   [
@@ -341,7 +345,17 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
       why: "Each verification command has a time limit (default 900 seconds). A timeout prevents hung commands from blocking CI indefinitely.",
       fix: "1. If the command legitimately needs more time, increase the timeout:\n     agent-ready verify --execute --timeout 1800\n2. If the command is hanging unexpectedly, investigate why.",
       fields: ["/verification/required"],
-      related: ["VERIFICATION_COMMAND_FAILED"],
+      related: ["VERIFICATION_COMMAND_FAILED", "VERIFICATION_COMMAND_TERMINATION_FAILED"],
+    },
+  ],
+  [
+    "VERIFICATION_COMMAND_TERMINATION_FAILED",
+    {
+      what: "A verification command exceeded its timeout, but Agent-Ready could not confirm that the entire process tree stopped.",
+      why: "Reporting an ordinary timeout without confirmed cleanup could leave background work running while evidence incorrectly implies execution is bounded.",
+      fix: "1. Stop the remaining process tree manually.\n2. Investigate daemonization, signal handling, or platform process-tree restrictions.\n3. Re-run verification only after cleanup is confirmed.",
+      fields: ["/verification/required"],
+      related: ["VERIFICATION_COMMAND_TIMEOUT"],
     },
   ],
   [
