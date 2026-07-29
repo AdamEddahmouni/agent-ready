@@ -1,6 +1,6 @@
 # Project Status
 
-**Last updated:** 2026-07-13
+**Last updated:** 2026-07-29
 
 ## Summary
 
@@ -16,7 +16,7 @@
 
 ## Current Branch
 
-`codex/security-hardening-v060` — security hardening and release pipeline for v0.6.1.
+`agent/brain-integration-and-adr-0037` — brain session protocol, ADR-0037 architecture-dependency analysis, the v0.7.0 framework examples, and ADR-0038 multi-language runtime probing. Branched on top of the v0.6.1 security hardening.
 
 ## Verification Pipeline
 
@@ -42,7 +42,8 @@ See `docs/security/threat-model.md` for the full list. Key ones:
 
 ## Recent Changes
 
-- v0.6.1: Refuse symlink write targets, escalate timed-out POSIX processes to SIGKILL, require bounded CLI timeouts, gate releases on signed tags and protected environments.
+- Unreleased: `architecture.boundary_rules` and `analyze --architecture` (ADR-0037); Python/Rust/Go example repositories; `doctor` probes declared `python`/`rust`/`go` runtimes for real (ADR-0038).
+- v0.6.1: Refuse symlink write targets, escalate timed-out POSIX processes to SIGKILL, require bounded CLI timeouts, gate releases on signed tags and protected environments, clear the `fast-uri` advisory.
 - v0.6.0: Structured handoff evidence (`--handoff`), per-command `timeout`, `verify --execute --check-generate` drift detection.
 
 ## What's Next

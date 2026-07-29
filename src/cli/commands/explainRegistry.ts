@@ -550,6 +550,26 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
     },
   ],
   [
+    "RUNTIME_PROBE_UNAVAILABLE",
+    {
+      what: "The contract declares a runtime (python, rust, or go) whose binary — python, cargo, or go respectively — is not installed or not on your PATH. Agent-Ready tried to probe it and could not find it, or the probe itself failed.",
+      why: "Doctor graduated python/rust/go from a warn-only advisory to a real pass/fail check (ADR-0038), mirroring how it already checks node and the declared package manager. A missing toolchain binary means the commands this contract declares for that ecosystem will fail with 'command not found'.",
+      fix: "1. Install the missing toolchain (python, rustup for cargo, or the Go toolchain).\n2. Verify it is on your PATH, e.g.:\n     python --version\n     cargo --version\n     go version\n3. Or, remove the runtime declaration from environment.runtimes if this repository does not need it.\n4. Re-run `agent-ready doctor` to confirm.",
+      fields: ["/environment/runtimes"],
+      related: ["RUNTIME_PROBE_VERSION_MISMATCH", "RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED"],
+    },
+  ],
+  [
+    "RUNTIME_PROBE_VERSION_MISMATCH",
+    {
+      what: "Doctor probed a declared python/rust/go runtime and its detected version does not satisfy the declared semver range in environment.runtimes.",
+      why: "The contract declares which version range of this runtime the project supports. Running with a version outside that range means the commands this contract declares for it may behave differently or fail outright.",
+      fix: '1. Install a version of the toolchain satisfying the declared range.\n2. Or, update agent-ready.yaml to match the installed version, e.g.:\n     environment:\n       runtimes:\n         python: ">=3.11"\n3. Re-run `agent-ready doctor` to confirm.',
+      fields: ["/environment/runtimes"],
+      related: ["RUNTIME_PROBE_UNAVAILABLE"],
+    },
+  ],
+  [
     "PACKAGE_MANAGER_UNAVAILABLE",
     {
       what: "The contract declares a package manager (pnpm, npm, or yarn) that is not installed or not on your PATH. Agent-Ready tried to probe it with `--version` and could not find it.",

@@ -425,14 +425,16 @@ Scope:
       plan:** it does not declare `environment.packageManager: pip`.
       `packageManager.name` is schema-restricted to `"npm" | "pnpm" | "yarn"`
       — the package managers `doctor`'s `BinaryClient` can probe by name —
-      and widening that enum is v0.8.0's ADR-0038 concern, not v0.7.0's. `pip`
-      is instead declared the same way every other tool in this contract is:
-      `commands.install: { run: pip install -r requirements.txt }`, which
-      needs no schema support since commands are inert, unparsed strings
-      (ADR-0006). `doctor` warns `RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED` for the
-      `python` runtime until v0.8.0 ships multi-language probing; the
-      contract is fully valid today, and the warning is non-blocking
-      (exit code 0), verified in CI.
+      and widening that enum remains out of scope. (ADR-0038 was expected to
+      cover it; it does not. That ADR widens `BinaryTarget` for
+      `environment.runtimes` probing only, and explicitly leaves
+      `packageManager.name` alone — a `pip` package-manager probe would need
+      its own decision.) `pip` is instead declared the same way every other
+      tool in this contract is, as a `commands.install` entry whose `run` is
+      `pip install -r requirements.txt`, which needs no schema support since
+      commands are inert, unparsed strings (ADR-0006). As of ADR-0038 the `python` runtime
+      is probed for real, so this example's `doctor` run passes on a host with
+      Python installed rather than warning.
 - [x] Add `examples/rust-cli/` — a minimal Rust CLI repository with
       `agent-ready.yaml` declaring `runtimes.rust`, `cargo` commands
       (`format`/`lint`/`test`/`build`), and adapter output. Same
@@ -475,16 +477,27 @@ Scope:
 
 #### 1. Extended `doctor` runtime probing
 
-- [ ] **ADR-0038: Multi-language runtime probing in `doctor`.** Extends
-      the `BinaryClient` boundary (from [ADR-0023](docs/decisions/0023-agent-ready-doctor-command.md))
-      to probe `python`,
-      `rust`/`cargo`, and `go` in addition to `node`/`pnpm`/`npm`/`yarn`.
-      Each new runtime gets the same `--version` probe pattern. The
+- [x] **[ADR-0038: Multi-language runtime probing in `doctor`](docs/decisions/0038-multi-language-runtime-probing.md).**
+      Accepted and implemented. Extends the `BinaryClient` boundary (from
+      [ADR-0023](docs/decisions/0023-agent-ready-doctor-command.md)) to probe
+      `python`, `rust`/`cargo`, and `go` in addition to
+      `node`/`pnpm`/`npm`/`yarn`. The
       `RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED` diagnostic is retired for
       these runtimes (they become fully supported); it remains for any
       runtime not yet probed.
-  - Doctor's `--json` output gains a `probedRuntimes` array listing
-    which runtimes were checked and their detected versions.
+  - **Deviation from the sketch above:** each new runtime does _not_ get
+    "the same `--version` probe pattern". `go --version` is rejected by
+    Go's CLI; the correct invocation is the bare subcommand `go version`,
+    so `probe`'s argv became a hardcoded per-target lookup rather than one
+    shared literal. `go`'s output also needs its own version-string
+    normalization (`go version go1.22.0 linux/amd64`, plus Go's
+    two-component `go1.21` initial releases).
+  - **Deviation:** doctor's `--json` gains no `probedRuntimes` array.
+    Results are reported through `runtime-<name>` check rows, parallel to
+    the existing `runtime-node` row, rather than a second reporting
+    channel carrying the same facts in a different shape.
+  - `rust` is probed via the `cargo` binary — there is no `rust`
+    executable.
   - The v0.7.0 framework examples' `doctor` runs now pass instead of
     warning.
 

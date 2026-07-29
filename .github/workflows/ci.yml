@@ -106,14 +106,27 @@ jobs:
             echo "$output" | grep -q '"ok": true'
           done
 
-      - name: CLI smoke test - doctor warns but does not fail on unprobed runtimes
+      - name: CLI smoke test - doctor probes graduated runtimes
         shell: bash
         run: |
           set -e
-          for example in python-fastapi rust-cli go-service; do
-            output="$(node dist/cli/index.js doctor --config "examples/$example/agent-ready.yaml" --json)"
+          # ADR-0038 graduated python/rust/go from a warn-only
+          # `runtime-other-<name>` row to a real probe, so this asserts the
+          # row shape rather than pass/fail: whether the probe passes depends
+          # on which toolchains this runner happens to have installed, and
+          # that varies across the OS matrix. A missing toolchain now exits
+          # non-zero by design, hence `|| true` on the capture.
+          set -- python-fastapi:python rust-cli:rust go-service:go
+          for pair in "$@"; do
+            example="${pair%%:*}"
+            runtime="${pair##*:}"
+            output="$(node dist/cli/index.js doctor --config "examples/$example/agent-ready.yaml" --json || true)"
             echo "$output"
-            echo "$output" | grep -q 'RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED'
+            echo "$output" | grep -q "\"check\": \"runtime-$runtime\""
+            if echo "$output" | grep -q 'RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED'; then
+              echo "examples/$example: $runtime is probed as of ADR-0038 and must not report it unsupported" >&2
+              exit 1
+            fi
           done
 
       - name: CLI smoke test - analyze documentation drift

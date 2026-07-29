@@ -24,6 +24,13 @@ All notable changes to Agent-Ready are documented here. The project follows
   `examples/python-fastapi/`, `examples/rust-cli/`, `examples/go-service/`,
   each with `agent-ready.yaml`, source stubs, and all five generated adapter
   files committed and drift-checked in CI.
+- `doctor` probes declared `python`, `rust`, and `go` runtimes for real,
+  reporting `runtime-python`/`runtime-rust`/`runtime-go` rows with the same
+  pass/fail treatment `node` already gets. `rust` is probed via `cargo`; `go`
+  is probed with the bare `go version` subcommand, which its CLI requires.
+  See [ADR-0038](docs/decisions/0038-multi-language-runtime-probing.md).
+- Stable diagnostics `RUNTIME_PROBE_UNAVAILABLE` and
+  `RUNTIME_PROBE_VERSION_MISMATCH`, each with an `explain` entry.
 
 ### Changed
 
@@ -31,6 +38,11 @@ All notable changes to Agent-Ready are documented here. The project follows
   rules live in the separate `boundary_rules` field, so contracts without it
   validate and generate identically to 0.6.1. See
   [ADR-0037](docs/decisions/0037-architecture-dependency-analysis.md).
+- `doctor --json` names the check row for a declared `python`, `rust`, or `go`
+  runtime `runtime-<name>` instead of `runtime-other-<name>`, and those
+  runtimes no longer emit `RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED`. A missing
+  toolchain now fails `doctor` rather than warning. Every other declared
+  runtime keeps its existing warn-only row. No contract schema change.
 
 ## 0.6.1 - 2026-07-12
 
