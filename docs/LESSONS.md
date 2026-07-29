@@ -12,6 +12,8 @@ Agent-Ready. Each entry is a candidate for brain memory curation.
 | 2026-07-16 | LESSON-003 | An ADR is a hypothesis until the boundary is checked     | candidate |
 | 2026-07-16 | LESSON-004 | Committed generated output can be stale and pass anyway  | candidate |
 | 2026-07-16 | LESSON-005 | A reported bug is a sample, not the full defect          | candidate |
+| 2026-07-29 | LESSON-006 | A green CI is not a mergeable PR                         | candidate |
+| 2026-07-29 | LESSON-007 | Graduating a warning to an error breaks its assertions   | candidate |
 
 ---
 
@@ -223,3 +225,85 @@ golden fixtures, and all 10 `tests/fixtures/generate/expected-*.txt` fixtures
 regenerated via the actual CLI (never hand-edited) and diffed to confirm only
 the intended blank-line/trailing-space changes occurred. `pnpm format:check`
 passes repo-wide with no generated-output exclusion in `.prettierignore`.
+
+---
+
+## LESSON-006 — A green CI is not a mergeable PR
+
+**Date:** 2026-07-29
+
+**Context:** PR #20 sat with all 19 checks passing, zero required approvals,
+and `mergeable: MERGEABLE`, yet `mergeStateStatus: BLOCKED`. The natural
+reading — flaky check, missing review, stale branch — was wrong in every
+case.
+
+**Lesson:** `mergeable` and `mergeStateStatus` answer different questions.
+The first means "no merge conflicts"; the second means "the branch
+protection rules are satisfied." A PR can be conflict-free, fully green, and
+still unmergeable. Read the protection rules directly
+(`gh api repos/:owner/:repo/branches/main/protection`) before theorizing
+about CI.
+
+Here the rule was `required_signatures.enabled: true` with
+`enforce_admins: true`, and `commit.gpgsign` was unset locally, so every
+commit was unsigned. Nothing in the checks list can surface that, because
+signature enforcement is not a check.
+
+**Corollary — a signed commit is not a verified commit.** After enabling
+signing, `git log --format=%G?` showed `G` and `git cat-file commit` showed
+an SSH signature block, but GitHub reported `verified: false, reason:
+"unknown_key"`. Local verification only proves the signature matches the
+configured `allowedSignersFile`; GitHub verifies against the keys registered
+on the account, as signing keys specifically — an authentication key with
+the same bytes does not count. The authoritative check is
+`gh api repos/:owner/:repo/commits/<sha> --jq .commit.verification`, run
+after pushing. Two things that both look like success locally can both be
+insufficient remotely.
+
+**How to apply:** When a PR is blocked and CI is green, query the protection
+rules first. When a signing setup "works," confirm it against the remote's
+view, not the local one.
+
+**Applied in:** Unblocking PR #20; re-signing
+`codex/security-hardening-v060` and the five commits on
+`agent/brain-integration-and-adr-0037`.
+
+---
+
+## LESSON-007 — Graduating a warning to an error breaks whatever asserted the warning
+
+**Date:** 2026-07-29
+
+**Context:** ADR-0038 graduated `python`/`rust`/`go` in `doctor` from a
+warn-only row to a real pass/fail probe. The source implementation was
+complete and the ADR was thorough — but a CI step named "doctor warns but
+does not fail on unprobed runtimes" asserted
+`grep -q 'RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED'` for all three framework
+examples. That is precisely the diagnostic the change stops emitting. The
+ADR's own consequences section listed the docs and tests it touched and did
+not mention this step.
+
+**Lesson:** When a diagnostic stops firing, the risk isn't only the code
+that emits it — it's everything that asserted it _fires_. Those assertions
+live outside the source tree (workflow files, smoke tests, example READMEs)
+where a typecheck and a unit-test run will never find them. Grep the whole
+repository for the diagnostic's name, including `.github/` and `examples/`,
+not just `src/` and `tests/`.
+
+**Corollary:** The replacement assertion should test the invariant the ADR
+actually establishes, not the outcome on one machine. Asserting
+`runtime-go` _passes_ would have made CI depend on which toolchains a
+runner happens to ship — and it varies across the OS matrix. Asserting that
+the `runtime-<name>` row exists and that the unsupported diagnostic is
+absent tests the ADR's real contract and holds whether or not Go is
+installed. Verified by running the rewritten loop locally against the built
+CLI, on a machine with Python and Rust but no Go — so both the passing and
+the failing branch were exercised for real.
+
+**How to apply:** Before landing a change to diagnostic emission, grep the
+repository for the code name across every file type. Prefer assertions on
+structure over assertions on pass/fail when the outcome depends on the host.
+
+**Applied in:** `.github/workflows/ci.yml` (doctor smoke test),
+`examples/{python-fastapi,rust-cli,go-service}/README.md`,
+`docs/specification/{diagnostics,cli-reference}.md`
