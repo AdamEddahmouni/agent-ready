@@ -247,7 +247,7 @@ pnpm build
 ## Quick start
 
 The commands below assume the npm package is installed. From a source checkout,
-replace `agent-ready` with `pnpm cli --`.
+replace `agent-ready` with `pnpm cli --`. Requires Node.js `>=20.0.0`.
 
 ```bash
 # Scaffold a starter contract from your repo
@@ -269,6 +269,25 @@ agent-ready generate --write
 agent-ready verify --execute
 agent-ready verify --execute --check-generate --handoff handoff.json --record
 ```
+
+What this creates in your repository:
+
+- `agent-ready.yaml` — the contract (hand-authored; the file you maintain).
+- `AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `GEMINI.md` — generated
+  instruction files, each carrying a managed-file marker so a re-run of
+  `generate --write` updates them safely and never silently overwrites
+  hand-authored content.
+- `.github/copilot-instructions.md` — generated only if the `copilot`
+  adapter is enabled **and** your repository already has a `.github/`
+  directory (the generator deliberately does not create directories;
+  without one it reports `GENERATE_WRITE_FAILED` and the remediation is
+  to create `.github/` or disable the adapter).
+- `agent-ready-verify-result.json` — verification evidence, only when
+  `verify --execute --record` runs.
+
+To remove the example entirely: delete `agent-ready.yaml` and any
+`AGENTS.md`/`CLAUDE.md`/`.cursorrules`/`GEMINI.md`/`copilot-instructions.md`
+it generated. Nothing else is modified.
 
 ## Specification Goals
 
@@ -292,15 +311,21 @@ reporting what they ran, what passed, and what changed.
 
 ## Project Status
 
-Agent-Ready is **pre-1.0**. The current stable release is `0.5.0`. The core contract schema and
+Agent-Ready is **pre-1.0**. The current stable release is `0.6.0`. The core contract schema and
 CLI are stable enough for evaluation and daily use. Path A (the adoption
 funnel: `schema` →
 `doctor` → `explain` → `init`) is complete. All eleven commands ship and run
-today, including the v0.4 `upgrade` command and v0.5 architecture and agent-guidance blocks.
+today, including the v0.4 `upgrade` command, the v0.5 architecture and
+agent-guidance blocks, and the v0.6 structured handoff evidence and
+per-command timeouts.
 
-CI runs 512 automated tests across 39 test files, exercising the full pipeline
+CI runs 550 automated tests across 41 test files, exercising the full pipeline
 on Ubuntu, Windows, and macOS. Release tags are cut only from a green quality
 gate.
+
+See [docs/adoption-and-impact.md](docs/adoption-and-impact.md) for a
+verifiable record of Agent-Ready's actual adoption and impact — the project
+is early-stage, and no external adoption is currently claimed.
 
 <p align="center">
   <img src="assets/cards/spec-lifecycle.png" alt="Specification lifecycle: Draft → Experimental → Stable → Versioned." width="100%">
@@ -340,6 +365,7 @@ for the full reference.
 - [Roadmap](ROADMAP.md) — completed phase history and current non-goals
 - [Roadmap to 1.0](ROADMAP-TO-1.0.md) — forward release plan through v1.0.0
 - [Adoption guide](docs/adoption-guide.md)
+- [Adoption and impact (verified evidence)](docs/adoption-and-impact.md)
 - [Threat model](docs/security/threat-model.md)
 
 ## Dogfooding

@@ -37,7 +37,7 @@ TypeScript package, not just a specification document:
   embedding the validation pipeline in another tool — see
   [docs/specification/api-stability.md](specification/api-stability.md).
 - Unit and integration tests, a CI pipeline
-  (`.github/workflows/ci.yml`), 34 Architecture Decision Records
+  (`.github/workflows/ci.yml`), 37 Architecture Decision Records
   (`docs/decisions/`), a threat model, and a stated pre-1.0
   compatibility policy.
 
@@ -46,7 +46,9 @@ install && pnpm build` and every command above is real.
 
 ## What does not exist yet
 
-- **No v1.0 compatibility commitment.** `0.6.1` is the stable npm package,
+- **No v1.0 compatibility commitment.** `0.6.1` is the repository's current
+  source version; the latest npm-published stable release is `0.6.0` (v0.6.1
+  is merged to main but not yet tagged or published),
   while the project remains pre-1.0 under the documented compatibility policy.
   The composite GitHub Action remains build-from-source and does not depend on
   npm publication.
