@@ -311,7 +311,9 @@ reporting what they ran, what passed, and what changed.
 
 ## Project Status
 
-Agent-Ready is **pre-1.0**. The current stable release is `0.6.0`. The core contract schema and
+Agent-Ready is **pre-1.0**. The latest published release is `0.6.0` (npm
+`latest`, tag `v0.6.0`); the repository's `main` branch is at `0.6.1`, a
+security-hardening patch merged but not yet tagged or published. The core contract schema and
 CLI are stable enough for evaluation and daily use. Path A (the adoption
 funnel: `schema` →
 `doctor` → `explain` → `init`) is complete. All eleven commands ship and run
@@ -319,7 +321,7 @@ today, including the v0.4 `upgrade` command, the v0.5 architecture and
 agent-guidance blocks, and the v0.6 structured handoff evidence and
 per-command timeouts.
 
-CI runs 550 automated tests across 41 test files, exercising the full pipeline
+CI runs 557 automated tests across 41 test files, exercising the full pipeline
 on Ubuntu, Windows, and macOS. Release tags are cut only from a green quality
 gate.
 
@@ -334,7 +336,9 @@ is early-stage, and no external adoption is currently claimed.
 ## CI Integration
 
 Adopt the same commands in another repository's CI via the reusable GitHub
-composite action. The example below targets the current stable tag:
+composite action. The example below targets the current source version.
+The `v0.6.1` tag does not exist yet — it is cut as part of the v0.6.1
+release. Until that tag is published, pin `@v0.6.0` instead:
 
 ```yaml
 - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
