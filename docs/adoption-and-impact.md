@@ -22,9 +22,9 @@ Every fact here carries one of these classifications:
 
 Agent-Ready is an **early-stage open-source developer tool under active
 development** by a single maintainer. The contract schema and CLI are
-stable enough for evaluation and daily use (pre-1.0; latest npm-published
-release `0.6.0`, while the repository's `main` branch is at `0.6.1` pending
-publication), but the project has **no confirmed external
+stable enough for evaluation and daily use (pre-1.0; current stable
+release `0.6.1`, published with a GitHub-verified signed tag), but the
+project has **no confirmed external
 adopters** yet and makes no claim otherwise.
 
 This page exists so that anyone evaluating Agent-Ready — a potential
@@ -69,35 +69,36 @@ how agents should work:
 | Fact                      | Value                                                                                      | Classification                                                                   |
 | ------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
 | GitHub repository         | [AdamEddahmouni/agent-ready](https://github.com/AdamEddahmouni/agent-ready)                | Verified (public, queried 2026-08-04)                                            |
-| npm package               | [`@adameddahmouni/agent-ready`](https://www.npmjs.com/package/@adameddahmouni/agent-ready) | Verified (npm registry `latest` = `0.6.0`, queried 2026-08-04)                   |
-| Current published version | `0.6.0`                                                                                    | Verified (npm `latest` dist-tag and GitHub release `v0.6.0`, checked 2026-08-04) |
-| Repository source version | `0.6.1` (main; security patch merged, not yet tagged or published)                         | Verified (package.json on `main`, checked 2026-08-04)                            |
+| npm package               | [`@adameddahmouni/agent-ready`](https://www.npmjs.com/package/@adameddahmouni/agent-ready) | Verified (npm registry `latest` = `0.6.1`, queried 2026-08-05)                   |
+| Current published version | `0.6.1`                                                                                    | Verified (npm `latest` dist-tag and GitHub release `v0.6.1`, checked 2026-08-05) |
+| Repository source version | `0.6.1`                                                                                    | Verified (package.json on `main`, checked 2026-08-05)                            |
+| Signed release tag        | `v0.6.1`, GitHub-verified SSH signature                                                    | Verified (GitHub tag object `verification.verified = true`, 2026-08-05)          |
 | License                   | Apache-2.0                                                                                 | Verified (LICENSE file, GitHub metadata)                                         |
 | First public release      | `v0.1.0` (2026-07-06)                                                                      | Verified (GitHub release date)                                                   |
-| Latest public release     | `v0.6.0` (2026-07-12)                                                                      | Verified (GitHub release date)                                                   |
+| Latest public release     | `v0.6.1` (2026-08-05)                                                                      | Verified (GitHub release date)                                                   |
 | Supported runtime         | Node.js `>=20.0.0`                                                                         | Verified (package.json `engines`)                                                |     | Installation command | `npm install --save-dev @adameddahmouni/agent-ready` | Verified (package exists on npm; command matches README and adoption guide) |
 
 ## Current Metrics
 
-**Verification date: 2026-08-04.**
+**Verification date: 2026-08-05.**
 
 All values below were read directly from the GitHub REST API, the npm
 registry API, or reproducible local commands on that date. They change
 over time; re-verify before quoting them anywhere.
 
-| Metric                                     | Value                                   | Classification | Notes                                                                |
-| ------------------------------------------ | --------------------------------------- | -------------- | -------------------------------------------------------------------- |
-| GitHub stars                               | 1                                       | Verified       | —                                                                    |
-| GitHub forks                               | 0                                       | Verified       | —                                                                    |
-| Listed contributors                        | 2 (`AdamEddahmouni`, `dependabot[bot]`) | Verified       | `dependabot[bot]` is automation, not a person                        |
-| GitHub releases                            | 10                                      | Verified       | `v0.1.0` through `v0.6.0`, including prereleases                     |
-| npm weekly downloads                       | 12 (2026-07-28 → 2026-08-03)            | Verified       | See download-count warning below                                     |
-| npm monthly downloads                      | 955 (2026-07-05 → 2026-08-03)           | Verified       | See download-count warning below                                     |
-| GitHub dependent repositories              | Unknown                                 | Unknown        | GitHub code-search API requires authentication for this query        |
-| npm dependent packages                     | Unknown                                 | Unknown        | No reliable public API for reverse dependencies was verified         |
-| Externally owned public integrations       | None                                    | Not claimed    | No third-party repository using Agent-Ready has been identified      |
-| Externally submitted merged pull requests  | None                                    | Not claimed    | All merged PRs are maintainer-authored or automated dependency bumps |
-| Externally submitted issues or discussions | None                                    | Not claimed    | All open GitHub items are PRs, not issues                            |
+| Metric                                     | Value                                     | Classification | Notes                                                                |
+| ------------------------------------------ | ----------------------------------------- | -------------- | -------------------------------------------------------------------- |
+| GitHub stars                               | 1                                         | Verified       | —                                                                    |
+| GitHub forks                               | 0                                         | Verified       | —                                                                    |
+| Listed contributors                        | 2 (`AdamEddahmouni`, `dependabot[bot]`)   | Verified       | `dependabot[bot]` is automation, not a person                        |
+| GitHub releases                            | 11                                        | Verified       | `v0.1.0` through `v0.6.1`, including prereleases                     |
+| npm weekly downloads                       | 12 (rolling 7 days, queried 2026-08-05)   | Verified       | See download-count warning below                                     |
+| npm monthly downloads                      | 955 (rolling 30 days, queried 2026-08-05) | Verified       | See download-count warning below                                     |
+| GitHub dependent repositories              | Unknown                                   | Unknown        | GitHub code-search API requires authentication for this query        |
+| npm dependent packages                     | Unknown                                   | Unknown        | No reliable public API for reverse dependencies was verified         |
+| Externally owned public integrations       | None                                      | Not claimed    | No third-party repository using Agent-Ready has been identified      |
+| Externally submitted merged pull requests  | None                                      | Not claimed    | All merged PRs are maintainer-authored or automated dependency bumps |
+| Externally submitted issues or discussions | None                                      | Not claimed    | All open GitHub items are PRs, not issues                            |
 
 > **Warning about download counts.** Registry download counts include
 > CI pipelines, automated installation scripts, caching and mirroring
@@ -132,7 +133,7 @@ external adoption.
 ## External Validation
 
 No external validation is currently claimed. Specifically, as of
-2026-08-04 there are:
+2026-08-05 there are:
 
 - No externally submitted issues or bug reports.
 - No externally submitted feature requests.
@@ -192,14 +193,16 @@ Agent-Ready does **not** claim that the ecosystem already depends on it.
 
 ## Evidence Log
 
-| Date       | Evidence                                         | Classification | Source                                                   | Notes / limitations                                                                                                                                         |
-| ---------- | ------------------------------------------------ | -------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-08-04 | npm `latest` dist-tag = `0.6.0`                  | Verified       | `npm view @adameddahmouni/agent-ready dist-tags --json`  | Matches `package.json` and git tag `v0.6.0`                                                                                                                 |
-| 2026-08-04 | GitHub repo public; 1 star; 0 forks              | Verified       | GitHub REST API (`/repos/AdamEddahmouni/agent-ready`)    | Snapshot; changes over time                                                                                                                                 |
-| 2026-08-04 | 2 listed contributors                            | Verified       | GitHub REST API (`/contributors`)                        | One is `dependabot[bot]` automation                                                                                                                         |
-| 2026-08-04 | 10 releases, latest `v0.6.0` (2026-07-12)        | Verified       | GitHub REST API (`/releases`)                            | Includes prereleases                                                                                                                                        |
-| 2026-08-04 | npm downloads: 12 weekly / 955 monthly           | Verified       | npm downloads API                                        | Not users; see warning above                                                                                                                                |
-| 2026-08-04 | No externally submitted issues/PRs               | Verified       | GitHub REST API (`/issues?state=open`)                   | All 8 items are PRs                                                                                                                                         |
-| 2026-08-04 | Self-hosting works (validate/analyze/verify)     | Verified       | Local commands on `main` @ `286286a`                     | `doctor` reports `PACKAGE_MANAGER_UNAVAILABLE` for pnpm in this local shell only; CI runs `doctor` via the dogfood-action matrix, which was not re-run here |
-| 2026-08-04 | v0.6.1 merged to `main`, not tagged or published | Verified       | `package.json` on `main`, `git tag --list`, `npm view`   | Repo source `0.6.1`; npm `latest` and latest tag remain `0.6.0`                                                                                             |
-| 2026-08-04 | 557 tests passing / 2 skipped across 41 files    | Verified       | `pnpm test` on `sprint/claude-oss-readiness` @ `f220702` | Re-measured after rebasing onto `origin/main` (v0.6.1)                                                                                                      |
+| Date       | Evidence                                            | Classification                     | Source                                                   | Notes / limitations                                                                                                                                         |
+| ---------- | --------------------------------------------------- | ---------------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-04 | npm `latest` dist-tag = `0.6.0`                     | Verified                           | `npm view @adameddahmouni/agent-ready dist-tags --json`  | Matches `package.json` and git tag `v0.6.0`                                                                                                                 |
+| 2026-08-04 | GitHub repo public; 1 star; 0 forks                 | Verified                           | GitHub REST API (`/repos/AdamEddahmouni/agent-ready`)    | Snapshot; changes over time                                                                                                                                 |
+| 2026-08-04 | 2 listed contributors                               | Verified                           | GitHub REST API (`/contributors`)                        | One is `dependabot[bot]` automation                                                                                                                         |
+| 2026-08-04 | 10 releases, latest `v0.6.0` (2026-07-12)           | Verified                           | GitHub REST API (`/releases`)                            | Includes prereleases                                                                                                                                        |
+| 2026-08-04 | npm downloads: 12 weekly / 955 monthly              | Verified                           | npm downloads API                                        | Not users; see warning above                                                                                                                                |
+| 2026-08-04 | No externally submitted issues/PRs                  | Verified                           | GitHub REST API (`/issues?state=open`)                   | All 8 items are PRs                                                                                                                                         |
+| 2026-08-04 | Self-hosting works (validate/analyze/verify)        | Verified                           | Local commands on `main` @ `286286a`                     | `doctor` reports `PACKAGE_MANAGER_UNAVAILABLE` for pnpm in this local shell only; CI runs `doctor` via the dogfood-action matrix, which was not re-run here |
+| 2026-08-05 | Published signed `v0.6.1` release to npm and GitHub | Distribution and release integrity | GitHub Release, npm registry and workflow evidence       | Signed tag GitHub-verified; npm provenance present (2 attestations); clean consumer installation verified                                                   |
+| 2026-08-05 | npm `latest` dist-tag = `0.6.1`                     | Verified                           | `npm view @adameddahmouni/agent-ready dist-tags --json`  | Published via `npm publish --provenance` from the tag-triggered workflow                                                                                    |
+| 2026-08-05 | 11 releases, latest `v0.6.1` (2026-08-05)           | Verified                           | GitHub REST API (`/releases`)                            | Includes prereleases                                                                                                                                        |
+| 2026-08-04 | 557 tests passing / 2 skipped across 41 files       | Verified                           | `pnpm test` on `sprint/claude-oss-readiness` @ `f220702` | Re-measured after rebasing onto `origin/main` (v0.6.1)                                                                                                      |

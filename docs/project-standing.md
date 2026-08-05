@@ -46,10 +46,9 @@ install && pnpm build` and every command above is real.
 
 ## What does not exist yet
 
-- **No v1.0 compatibility commitment.** `0.6.1` is the repository's current
-  source version; the latest npm-published stable release is `0.6.0` (v0.6.1
-  is merged to main but not yet tagged or published),
-  while the project remains pre-1.0 under the documented compatibility policy.
+- **No v1.0 compatibility commitment.** `0.6.1` is the stable npm package
+  and Git tag, published with a GitHub-verified signed tag, while the project
+  remains pre-1.0 under the documented compatibility policy.
   The composite GitHub Action remains build-from-source and does not depend on
   npm publication.
 - **Structured handoff evidence is optional and local.** v0.6.0 validates

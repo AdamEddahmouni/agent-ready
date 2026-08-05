@@ -49,7 +49,7 @@ body:
     attributes:
       label: Agent-Ready version
       description: Run `agent-ready --version` or check `package.json`.
-      placeholder: "0.6.0"
+      placeholder: "0.6.1"
     validations:
       required: true
   - type: input
