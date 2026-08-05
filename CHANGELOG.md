@@ -15,7 +15,8 @@ All notable changes to Agent-Ready are documented here. The project follows
 - Gate releases on a main-reachable, GitHub-verified signed tag and protected
   deployment environments; make high-severity production audits blocking.
 - Resolve the transitive `fast-uri` production dependency (reached through
-  `ajv`) to 3.1.4, clearing a high-severity advisory.
+  `ajv`) to 3.1.5, addressing GHSA-7p8r-x3mc-p8w7 / CVE-2026-18446, which
+  affects the v3 line before 3.1.5.
 
 ### Changed
 
