@@ -4,7 +4,7 @@ import type { Diagnostic } from "../diagnostics/types.js";
 import type { FileSystem } from "../filesystem/types.js";
 import { SUPPORTED_CONTRACT_VERSION } from "./types.js";
 import type { RawContract } from "./types.js";
-import { normalizePathPattern } from "./paths.js";
+import { isPathWithin, normalizePathPattern } from "./paths.js";
 
 export interface SemanticContext {
   readonly fs: FileSystem;
@@ -31,9 +31,104 @@ export async function validateSemantics(
   validatePathCategories(raw, diagnostics);
   await validateInstructionSources(raw, context, diagnostics);
   validateArchitecture(raw, diagnostics);
+  validateArchitectureBoundaryRules(raw, diagnostics);
   validateAgents(raw, diagnostics);
 
   return diagnostics;
+}
+
+/**
+ * Validates the machine-checked boundary rules from ADR-0037. Unlike
+ * `architecture.boundaries`, which is unparsed prose, these are executable
+ * policy and so their path forms are validated here rather than at analysis
+ * time — a malformed rule is a contract error, not an analysis finding.
+ */
+function validateArchitectureBoundaryRules(raw: RawContract, diagnostics: Diagnostic[]): void {
+  const rules = raw.architecture?.boundary_rules;
+  if (rules === undefined) return;
+
+  const seenOrigins = new Set<string>();
+  for (let index = 0; index < rules.length; index++) {
+    const rule = rules[index];
+    if (rule === undefined) continue;
+
+    const fromField = `/architecture/boundary_rules/${String(index)}/from`;
+    const fromResult = normalizePathPattern(rule.from, fromField, { allowGlob: false });
+
+    // A malformed origin does not hide the rule's import errors: every
+    // problem in the rule is reported in one pass so the author fixes the
+    // whole entry at once.
+    let origin: string | undefined;
+    if ("diagnostics" in fromResult) {
+      diagnostics.push(...fromResult.diagnostics);
+    } else {
+      origin = fromResult.normalized;
+      if (seenOrigins.has(origin)) {
+        diagnostics.push(
+          boundaryRuleDiagnostic(
+            fromField,
+            `Duplicate boundary rule origin "${rule.from}".`,
+            `"${origin}" is declared as the origin of more than one boundary rule, so the policy for that path is split across rules.`,
+            "Merge the rules into a single entry listing every disallowed import under one from.",
+          ),
+        );
+        continue;
+      }
+      seenOrigins.add(origin);
+    }
+
+    const seenTargets = new Set<string>();
+    for (let targetIndex = 0; targetIndex < rule.must_not_import.length; targetIndex++) {
+      const target = rule.must_not_import[targetIndex];
+      if (target === undefined) continue;
+      const targetField = `/architecture/boundary_rules/${String(index)}/must_not_import/${String(targetIndex)}`;
+      const targetResult = normalizePathPattern(target, targetField, { allowGlob: false });
+      if ("diagnostics" in targetResult) {
+        diagnostics.push(...targetResult.diagnostics);
+        continue;
+      }
+
+      if (seenTargets.has(targetResult.normalized)) {
+        diagnostics.push(
+          boundaryRuleDiagnostic(
+            targetField,
+            `Duplicate disallowed import "${target}".`,
+            `"${targetResult.normalized}" is listed more than once under the same boundary rule.`,
+            "List each disallowed import prefix exactly once per rule.",
+          ),
+        );
+        continue;
+      }
+      seenTargets.add(targetResult.normalized);
+
+      if (origin !== undefined && isPathWithin(targetResult.normalized, origin)) {
+        diagnostics.push(
+          boundaryRuleDiagnostic(
+            targetField,
+            `Boundary rule forbids "${target}" from importing itself.`,
+            `"${targetResult.normalized}" is inside the rule's own origin "${origin}", so the rule would report every import within that directory.`,
+            "Declare a disallowed import prefix outside the rule's own from path.",
+          ),
+        );
+      }
+    }
+  }
+}
+
+function boundaryRuleDiagnostic(
+  field: string,
+  summary: string,
+  detail: string,
+  remediation: string,
+): Diagnostic {
+  return {
+    code: "ARCHITECTURE_BOUNDARY_RULE_INVALID",
+    severity: "error",
+    field,
+    summary,
+    detail,
+    remediation,
+  };
 }
 
 function validateArchitecture(raw: RawContract, diagnostics: Diagnostic[]): void {

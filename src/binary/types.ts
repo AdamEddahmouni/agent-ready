@@ -2,12 +2,15 @@
  * Narrow binary-probing boundary, mirroring `git/types.ts`'s pattern:
  * domain/CLI code depends on this interface, not on `node:child_process`
  * directly, so `agent-ready doctor` can be tested against a fake without
- * invoking any binary. See ADR-0013 for the argv-hardcoding invariant
- * this surface upholds: every argv pair is hardcoded `[<target>, "--version"]`,
- * callers cannot influence argv.
+ * invoking any binary. See ADR-0013 for the argv-hardcoding invariant this
+ * surface upholds: every argv pair is a hardcoded, per-target constant
+ * (see `PROBE_ARGS` in `nodeBinaryClient.ts`) — callers cannot influence
+ * argv. Per-target argv is not the same argv for every target (`go` uses
+ * the bare subcommand `version`, not the `--version` flag every other
+ * target accepts); see ADR-0038.
  */
 
-export type BinaryTarget = "git" | "pnpm" | "npm" | "yarn";
+export type BinaryTarget = "git" | "pnpm" | "npm" | "yarn" | "python" | "cargo" | "go";
 
 export interface BinaryProbeResult {
   /** Raw version text exactly as the binary reports it. Doctor feeds this to `semver.satisfies` directly — no `semver.major` extraction, no `v`-prepending. */
@@ -19,9 +22,12 @@ export interface BinaryProbeResult {
 export interface BinaryClient {
   /**
    * Probe `target` and return its version + resolved path, or `undefined`
-   * if the binary is not on PATH. The real implementation always shells
-   * the Agent-Ready-hardcoded argv pair `[<target>, "--version"]`; the
-   * argv cannot vary.
+   * if the binary is not on PATH. The real implementation always shells a
+   * hardcoded, per-target argv pair keyed only by `target` (an enum value,
+   * never contract- or caller-supplied text); the argv itself cannot vary
+   * per call. Most targets probe `--version`; `go` probes the bare
+   * subcommand `version` instead, since `go --version` is rejected by the
+   * Go CLI (see ADR-0038).
    *
    * `root` mirrors the parameter shape of `GitClient.isRepository(root)`
    * and `GitClient.getChangedFiles(root, base)`. The argument is currently

@@ -155,12 +155,30 @@
       }
     },
     "architecture": {
-      "description": "Optional structured repository architecture guidance. These declarations are rendered for agents but are not executable policy in contract version 1.",
+      "description": "Optional structured repository architecture guidance. Except for boundary_rules, these declarations are rendered for agents but are not executable policy in contract version 1.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "boundaries": { "$ref": "#/$defs/architectureGuidanceList" },
         "invariants": { "$ref": "#/$defs/architectureGuidanceList" },
+        "boundary_rules": {
+          "description": "Ordered, machine-checked import boundaries. Each rule declares an origin path prefix and the repository-relative path prefixes it must not import. Checked by `agent-ready analyze --architecture`; see ADR-0037.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "must_not_import"],
+            "properties": {
+              "from": { "type": "string", "minLength": 1, "maxLength": 200 },
+              "must_not_import": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1, "maxLength": 200 }
+              }
+            }
+          }
+        },
         "key_decisions": {
           "description": "Ordered repository-relative Markdown decision references with concise summaries.",
           "type": "array",

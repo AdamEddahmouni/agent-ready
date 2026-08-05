@@ -1,7 +1,7 @@
 import { constants } from "node:fs";
-import { lstat, open, readFile, realpath } from "node:fs/promises";
+import { lstat, open, readdir, readFile, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
-import type { FileStat, FileSystem } from "./types.js";
+import type { DirectoryEntry, FileStat, FileSystem } from "./types.js";
 import type { WriteTextFileOptions } from "./types.js";
 import { FileSystemError } from "./types.js";
 
@@ -37,6 +37,27 @@ export class NodeFileSystem implements FileSystem {
         return undefined;
       }
       throw new FileSystemError(`Failed to stat path: ${absolutePath}`, absolutePath, {
+        cause: error,
+      });
+    }
+  }
+
+  async readDirectory(absolutePath: string): Promise<readonly DirectoryEntry[] | undefined> {
+    try {
+      const entries = await readdir(absolutePath, { withFileTypes: true });
+      return entries
+        .map((entry) => ({
+          name: entry.name,
+          isFile: entry.isFile(),
+          isDirectory: entry.isDirectory(),
+          isSymbolicLink: entry.isSymbolicLink(),
+        }))
+        .sort((left, right) => left.name.localeCompare(right.name));
+    } catch (error) {
+      if (isNotFoundError(error)) {
+        return undefined;
+      }
+      throw new FileSystemError(`Failed to read directory: ${absolutePath}`, absolutePath, {
         cause: error,
       });
     }

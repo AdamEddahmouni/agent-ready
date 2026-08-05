@@ -366,83 +366,145 @@ introduce the first adapter plugin mechanism — all behind ADRs.
 
 #### 1. `agent-ready analyze --architecture`
 
-- [ ] **ADR-0037: Architecture-dependency drift analysis.** Extends
-
-`agent-ready analyze` with an optional `--architecture` flag that
-checks the `architecture.boundaries` declarations (from v0.5.0)
-against the actual import graph of the repository's TypeScript/JavaScript
-source files. **This ADR formally reopens the "architecture-dependency
-analysis beyond declared documentation links" non-goal from
-ROADMAP.md** — the v0.7.0 scope is bounded to JS/TS import-graph
-checking against declared `architecture.boundaries`, not open-ended
-architecture analysis.
+- [x] **[ADR-0037: Architecture-dependency drift analysis](docs/decisions/0037-architecture-dependency-analysis.md).**
+      Accepted; implementation pending. Adds an optional, additive
+      `architecture.boundary_rules` contract field and an opt-in
+      `agent-ready analyze --architecture` flag that checks it against the
+      actual import graph of the repository's TypeScript/JavaScript source
+      files. **This ADR formally reopens the "architecture-dependency
+      analysis beyond declared documentation links" non-goal from
+      ROADMAP.md** — the v0.7.0 scope is bounded to repository-relative
+      JS/TS import-graph checking against declared `boundary_rules`, not
+      open-ended architecture analysis.
 
 Scope:
 
+- Adds `architecture.boundary_rules`, an array of
+  `{ from, must_not_import }` objects holding literal repository-relative
+  path prefixes:
+
+  ```yaml
+  architecture:
+    boundaries:
+      - "src/contract/ must not depend on CLI presentation modules."
+    boundary_rules:
+      - from: "src/contract/"
+        must_not_import:
+          - "src/cli/"
+  ```
+
+  The existing `boundaries` field is **unchanged** — it stays free-form
+  prose for agents to read and is never parsed. ADR-0032 shipped it as
+  1–500-character strings and its reconsideration trigger called for
+  exactly this separately structured form; parsing it in place would
+  retype a shipped field and break additive-only guiding principle #2.
+
 - Parses `import`/`export`/`require` statements in `.ts`/`.js`/`.mjs`/
   `.cjs` files using a bounded, dependency-free scanner (no AST
-  framework — regex-based extraction with strict line-level parsing,
-  same discipline as the Markdown link scanner).
-- For each `boundaries` entry, evaluates whether any import crosses
-  the declared boundary. Boundary entries use a simple
-  `from → to` or `must not import` syntax validated at contract-load
-  time.
-- Read-only; never modifies source files.
-- False-positive policy: boundary declarations are _assertions_, and
-  a violation is always reported — the user adjusts either the code
-  or the declaration. No heuristic suppression.
-- New diagnostics: `ARCHITECTURE_BOUNDARY_VIOLATED`,
+  framework — regex-based extraction with strict line-level parsing and
+  comment/string masking, same discipline as the Markdown link scanner).
+- Read-only; never modifies source files. Opt-in behind `--architecture`,
+  not enforced at `validate` time.
+- False-positive policy: boundary rules are _assertions_, and a violation
+  is always reported — the user adjusts either the code or the
+  declaration. No heuristic suppression, no inline-ignore mechanism.
+- New diagnostics: `ARCHITECTURE_BOUNDARY_RULE_INVALID` (semantic
+  validation), `ARCHITECTURE_BOUNDARY_VIOLATED`,
   `ARCHITECTURE_ANALYSIS_SCAN_FAILED`.
+- Bare module specifiers (`commander`, `node:fs/promises`) and inverse
+  "only X may import Y" rules are out of scope for v0.7.0; both are
+  reconsideration triggers on ADR-0037.
 - Limited to JS/TS initially; a `--language` flag or auto-detection
   for Python/Go/Rust is a future enhancement, not in this release.
 
 #### 2. Framework-specific example repositories
 
-- [ ] Add `examples/python-fastapi/` — a minimal FastAPI repository
-      with `agent-ready.yaml` declaring `runtimes.python`, `pip` as
-      package manager (requires `doctor` to gain Python probing — see
-      v0.8.0), `pytest` as the test command, and all five adapters enabled.
-      Note: `doctor` will warn `RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED` for
-      these runtimes until v0.8.0 ships multi-language probing; the examples
-      are valid contracts, but a fully clean `doctor` run requires v0.8.0.
-- [ ] Add `examples/rust-cli/` — a minimal Rust CLI repository with
-      `agent-ready.yaml` declaring `runtimes.rust`, `cargo` commands, and
-      adapter output.
-- [ ] Add `examples/go-service/` — a minimal Go microservice with
-      `agent-ready.yaml` declaring `runtimes.go`, `go test`/`go build`,
-      and adapter output.
-- [ ] Each example gets golden fixtures in the compatibility corpus
-      and is exercised in CI's "valid examples pass" smoke test.
+- [x] Add `examples/python-fastapi/` — a minimal FastAPI repository with
+      `agent-ready.yaml` declaring `runtimes.python`, `pytest` as the test
+      command, and all five adapters enabled. **Deviation from the original
+      plan:** it does not declare `environment.packageManager: pip`.
+      `packageManager.name` is schema-restricted to `"npm" | "pnpm" | "yarn"`
+      — the package managers `doctor`'s `BinaryClient` can probe by name —
+      and widening that enum remains out of scope. (ADR-0038 was expected to
+      cover it; it does not. That ADR widens `BinaryTarget` for
+      `environment.runtimes` probing only, and explicitly leaves
+      `packageManager.name` alone — a `pip` package-manager probe would need
+      its own decision.) `pip` is instead declared the same way every other
+      tool in this contract is, as a `commands.install` entry whose `run` is
+      `pip install -r requirements.txt`, which needs no schema support since
+      commands are inert, unparsed strings (ADR-0006). As of ADR-0038 the `python` runtime
+      is probed for real, so this example's `doctor` run passes on a host with
+      Python installed rather than warning.
+- [x] Add `examples/rust-cli/` — a minimal Rust CLI repository with
+      `agent-ready.yaml` declaring `runtimes.rust`, `cargo` commands
+      (`format`/`lint`/`test`/`build`), and adapter output. Same
+      `environment.packageManager` omission as Python, for the same reason:
+      Cargo is not one of the three probeable package managers.
+- [x] Add `examples/go-service/` — a minimal Go microservice with
+      `agent-ready.yaml` declaring `runtimes.go`, `go vet`/`go test`/
+      `go build` commands, and adapter output.
+- [x] Each example's generated adapter output (`AGENTS.md`, `CLAUDE.md`,
+      `.cursorrules`, `.github/copilot-instructions.md`, `GEMINI.md`) is
+      committed and drift-checked in CI via `generate --check`, the same
+      mechanism `verify --execute --check-generate` (ADR-0036) already relies
+      on. **Deviation from the original plan:** these are not added as cases
+      in `compatibility/adapter-output/v{1,2}/manifest.json`. That corpus is
+      scoped to byte-exact rendering of specific schema-version field
+      combinations (see `docs/decisions/0018-versioned-adapter-output-compatibility.md`),
+      not full example repositories, and none of these three examples
+      exercises a field the existing v1/v2 cases don't already cover. The
+      committed per-example output _is_ the golden fixture, matching how
+      `examples/complete-phase-1/` already works. CI's "valid examples pass",
+      "generate dry run", "generate --check", and "doctor warns but does not
+      fail" smoke-test steps exercise all three.
 
 ### v0.7.0 exit criteria
 
 - `agent-ready analyze --architecture` detects import-graph boundary
   violations with zero false positives on the project's own
-  `architecture.boundaries` declarations (dogfooded).
-- Three framework-specific examples pass validation and generate
-  correct adapter output.
+  `architecture.boundary_rules` declarations (dogfooded). This repository
+  declares structured rules for both boundaries it currently states in
+  prose: `src/contract/` must not import `src/cli/`, and
+  `src/generate/adapters/` must not import `src/filesystem/nodeFileSystem.ts`.
+- Contracts without `boundary_rules` produce byte-identical adapter output
+  to v0.6.1 (additive-only proof).
+- Three framework-specific examples (`examples/python-fastapi/`,
+  `examples/rust-cli/`, `examples/go-service/`) pass validation and generate
+  correct, drift-free adapter output — verified in CI.
 - Analysis remains local, read-only, deterministic, and LLM-free.
 
 ### v0.8.0 — Multi-language doctor & adapter extensibility
 
 #### 1. Extended `doctor` runtime probing
 
-- [ ] **ADR-0038: Multi-language runtime probing in `doctor`.** Extends
-      the `BinaryClient` boundary (from [ADR-0023](docs/decisions/0023-agent-ready-doctor-command.md))
-      to probe `python`,
-      `rust`/`cargo`, and `go` in addition to `node`/`pnpm`/`npm`/`yarn`.
-      Each new runtime gets the same `--version` probe pattern. The
+- [x] **[ADR-0038: Multi-language runtime probing in `doctor`](docs/decisions/0038-multi-language-runtime-probing.md).**
+      Accepted and implemented. Extends the `BinaryClient` boundary (from
+      [ADR-0023](docs/decisions/0023-agent-ready-doctor-command.md)) to probe
+      `python`, `rust`/`cargo`, and `go` in addition to
+      `node`/`pnpm`/`npm`/`yarn`. The
       `RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED` diagnostic is retired for
       these runtimes (they become fully supported); it remains for any
       runtime not yet probed.
-  - Doctor's `--json` output gains a `probedRuntimes` array listing
-    which runtimes were checked and their detected versions.
+  - **Deviation from the sketch above:** each new runtime does _not_ get
+    "the same `--version` probe pattern". `go --version` is rejected by
+    Go's CLI; the correct invocation is the bare subcommand `go version`,
+    so `probe`'s argv became a hardcoded per-target lookup rather than one
+    shared literal. `go`'s output also needs its own version-string
+    normalization (`go version go1.22.0 linux/amd64`, plus Go's
+    two-component `go1.21` initial releases).
+  - **Deviation:** doctor's `--json` gains no `probedRuntimes` array.
+    Results are reported through `runtime-<name>` check rows, parallel to
+    the existing `runtime-node` row, rather than a second reporting
+    channel carrying the same facts in a different shape.
+  - `rust` is probed via the `cargo` binary — there is no `rust`
+    executable.
   - The v0.7.0 framework examples' `doctor` runs now pass instead of
     warning.
 
 #### 2. Adapter extensibility (first step)
 
-- [ ] **ADR-0039: External adapter registration.** Introduces a
+- [x] **[ADR-0039: External adapter registration](docs/decisions/0039-external-adapter-registration.md).**
+      Accepted; implementation pending. Introduces a
       _minimal_ mechanism for registering a custom adapter renderer
       without modifying Agent-Ready's source code:
 
@@ -479,6 +541,22 @@ Scope:
     mechanism is reintroduced; full plugin architecture with lifecycle
     hooks remains permanently out of scope (see below).
 
+  Deviations settled by the accepted ADR:
+  - `render` returns `GeneratedFile`, not `string` — that is the existing
+    exported `AdapterRenderer` signature, so no new type is introduced.
+    The returned `relativePath` is ignored in favor of the contract's
+    `output`, keeping path authority outside loaded code.
+  - The module is loaded in the CLI layer and injected through the
+    existing `RendererRegistry` seam, _not_ imported inside
+    `planGeneration`. Dynamic `import()` is asynchronous file-system
+    access, and `planGeneration` is documented as synchronous and
+    file-system-pure.
+  - Four diagnostics, not one: `CUSTOM_ADAPTER_OUTPUT_INVALID`
+    (validation-time path check), `CUSTOM_ADAPTER_LOAD_FAILED`,
+    `CUSTOM_ADAPTER_RENDER_FAILED`, and `CUSTOM_ADAPTER_MARKER_MISSING`
+    (output omitting `GENERATED_FILE_MARKER`, which would otherwise
+    surface a run later as a confusing `unmanaged` refusal).
+
 ### v0.8.0 exit criteria
 
 - `doctor` probes Python, Rust, and Go runtimes; the v0.7.0 framework
@@ -503,7 +581,7 @@ SemVer guarantees.
 
 #### 1. Public API stabilization
 
-- [ ] **ADR-0040: Public API freeze for 1.0.** Reviews everything
+- [ ] **ADR-0041: Public API freeze for 1.0.** Reviews everything
       exported from `src/index.ts` and categorizes each export as:
   - **Stable for 1.0** — the export's shape is frozen; breaking
     changes require a major version bump.
@@ -517,7 +595,7 @@ SemVer guarantees.
     this ADR, the "experimental" qualifier from ADR-0009 is removed for
     all Stable exports.
 - [ ] Add a `api-audit.test.ts` that asserts the exact set of exports
-      from `src/index.ts` matches the ADR-0040 manifest, preventing
+      from `src/index.ts` matches the ADR-0041 manifest, preventing
       accidental public-surface drift.
 
 #### 2. Pre-1.0 audit — ADR reconsideration triggers
@@ -526,13 +604,13 @@ SemVer guarantees.
       trigger that has been satisfied (by subsequent work), add a
       "Resolution" note. For triggers that remain open, confirm they are
       still relevant or mark them as addressed.
-- [ ] **ADR-0041: Pre-1.0 audit and ADR reconciliation.** Documents
+- [ ] **ADR-0042: Pre-1.0 audit and ADR reconciliation.** Documents
       the audit results, any ADRs being superseded, and any triggers being
       formally closed.
 
 #### 3. Remaining threat-model hardening
 
-- [ ] **ADR-0042: Case-insensitive path conflict detection.** Adds an
+- [ ] **ADR-0043: Case-insensitive path conflict detection.** Adds an
       optional `--case-insensitive` flag to path-category conflict
       detection (defaulting to the host OS's behavior: on on Windows/macOS,
       case-insensitive; on Linux, case-sensitive). Closes the
@@ -541,13 +619,13 @@ SemVer guarantees.
 boolean` field, default `false` on Windows/macOS, `true` on Linux),
       not just CLI-level, so CI on Linux can enforce the repo's intended
       semantics.
-- [ ] **ADR-0043: Symlink boundary enforcement for `generate --write`.**
+- [ ] **ADR-0044: Symlink boundary enforcement for `generate --write`.**
       Adds an `lstat` check before writing generated files: if the target
       path is a symlink, generation refuses with `GENERATE_TARGET_SYMLINK`
       unless `--allow-symlinks` is explicitly passed. Closes the
       "symlinked contract files" and "generate --write follows symlinks"
       known limitations.
-- [ ] **ADR-0044: `verify --execute` SIGKILL escalation.** On POSIX,
+- [ ] **ADR-0045: `verify --execute` SIGKILL escalation.** On POSIX,
       if a timed-out process group does not exit within 5 seconds of
       `SIGTERM`, escalate to `SIGKILL`. On Windows, `taskkill /t /f` is
       already a force-kill. Closes the "timeout kill is best-effort"
@@ -600,7 +678,7 @@ not just a version number.
 
 #### 1. Final ADR sweep
 
-- [ ] **ADR-0045: 1.0.0 release decision.** Documents that all
+- [ ] **ADR-0046: 1.0.0 release decision.** Documents that all
       Milestone 1–4 exit criteria are met, the pre-1.0 stability policy
       ([ADR-0009](docs/decisions/0009-pre-1.0-stability-policy.md))
       is superseded by full SemVer guarantees, and the
@@ -677,12 +755,17 @@ not just a version number.
 | 0037 | v0.7.0  | Architecture-dependency drift analysis              |
 | 0038 | v0.8.0  | Multi-language runtime probing in `doctor`          |
 | 0039 | v0.8.0  | External adapter registration                       |
-| 0040 | v0.9.0  | Public API freeze for 1.0                           |
-| 0041 | v0.9.0  | Pre-1.0 audit and ADR reconciliation                |
-| 0042 | v0.9.0  | Case-insensitive path conflict detection            |
-| 0043 | v0.9.0  | Symlink boundary enforcement for `generate --write` |
-| 0044 | v0.9.0  | `verify --execute` SIGKILL escalation               |
-| 0045 | v1.0.0  | 1.0.0 release decision                              |
+| 0041 | v0.9.0  | Public API freeze for 1.0                           |
+| 0042 | v0.9.0  | Pre-1.0 audit and ADR reconciliation                |
+| 0043 | v0.9.0  | Case-insensitive path conflict detection            |
+| 0044 | v0.9.0  | Symlink boundary enforcement for `generate --write` |
+| 0045 | v0.9.0  | `verify --execute` SIGKILL escalation               |
+| 0046 | v1.0.0  | 1.0.0 release decision                              |
+
+**0040 is not in this table.** It was taken by
+[ADR-0040: Release and version taxonomy](docs/decisions/0040-release-and-version-taxonomy.md),
+accepted out of this roadmap's sequence. The v0.9.0/v1.0.0 identifiers above are
+renumbered accordingly; an earlier revision of this table collided with it.
 
 ---
 

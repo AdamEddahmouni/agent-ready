@@ -1,3 +1,8 @@
+import { analyzeArchitecture } from "../../analyze/analyzeArchitecture.js";
+import type {
+  ArchitectureRuleResult,
+  BoundaryViolationFinding,
+} from "../../analyze/analyzeArchitecture.js";
 import {
   analyzeDeclaredMarkdownFiles,
   analyzeDocumentation,
@@ -13,11 +18,15 @@ import type { CliOutcome } from "./validate.js";
 export interface AnalyzeArgs {
   readonly json: boolean;
   readonly config?: string;
+  /** Opt in to import-graph boundary checking (ADR-0037). */
+  readonly architecture?: boolean;
 }
 
 /**
- * Checks declared instruction sources for deterministic documentation drift.
- * Never writes files, invokes Git, or executes contract-declared commands.
+ * Checks declared instruction sources for deterministic documentation drift,
+ * and with --architecture, declared boundary rules against the real import
+ * graph. Never writes files, invokes Git, or executes contract-declared
+ * commands.
  */
 export async function runAnalyze(
   fs: FileSystem,
@@ -45,10 +54,19 @@ export async function runAnalyze(
       field: `/agents/context_files/${String(index)}`,
     })),
   ]);
+  const architecture =
+    args.architecture === true
+      ? await analyzeArchitecture(fs, repoRoot, contract.architecture.boundaryRules, [
+          ...contract.paths.generated,
+          ...contract.paths.ignored,
+        ])
+      : undefined;
+
   const diagnostics: Diagnostic[] = [
     ...result.diagnostics,
     ...analysis.diagnostics,
     ...declaredFiles.diagnostics,
+    ...(architecture?.diagnostics ?? []),
   ];
   return finish(args, diagnostics, {
     contractPath,
@@ -57,6 +75,14 @@ export async function runAnalyze(
     linksChecked: analysis.linksChecked,
     findings: analysis.findings,
     declaredFiles: declaredFiles.files,
+    ...(architecture !== undefined && {
+      architecture: {
+        rules: architecture.rules,
+        filesScanned: architecture.filesScanned,
+        importsChecked: architecture.importsChecked,
+        boundaryFindings: architecture.findings,
+      },
+    }),
   });
 }
 
@@ -74,6 +100,12 @@ interface AnalyzeContext {
     column: number;
   }[];
   readonly declaredFiles?: readonly { kind: string; path: string; exists: boolean }[];
+  readonly architecture?: {
+    readonly rules: readonly ArchitectureRuleResult[];
+    readonly filesScanned: number;
+    readonly importsChecked: number;
+    readonly boundaryFindings: readonly BoundaryViolationFinding[];
+  };
 }
 
 function finish(
@@ -97,6 +129,7 @@ function finish(
             ...(context.linksChecked !== undefined && { linksChecked: context.linksChecked }),
             ...(context.findings !== undefined && { findings: context.findings }),
             ...(context.declaredFiles !== undefined && { declaredFiles: context.declaredFiles }),
+            ...(context.architecture !== undefined && { architecture: context.architecture }),
             diagnostics: renderDiagnosticsJson(diagnostics),
           },
           null,
@@ -108,11 +141,20 @@ function finish(
 
   if (ok) {
     const lines = [
-      "No documentation drift found.",
+      context.architecture !== undefined
+        ? "No documentation drift or boundary violations found."
+        : "No documentation drift found.",
       `  instruction sources checked: ${String(context.sources?.length ?? 0)}`,
       `  local links checked: ${String(context.linksChecked ?? 0)}`,
       `  declared architecture/context files checked: ${String(context.declaredFiles?.length ?? 0)}`,
     ];
+    if (context.architecture !== undefined) {
+      lines.push(
+        `  boundary rules checked: ${String(context.architecture.rules.length)}`,
+        `  source files scanned: ${String(context.architecture.filesScanned)}`,
+        `  repository-relative imports checked: ${String(context.architecture.importsChecked)}`,
+      );
+    }
     if (diagnostics.length > 0) lines.push("", renderDiagnosticsHuman(diagnostics));
     return { exitCode, stdout: lines.join("\n") + "\n", stderr: "" };
   }

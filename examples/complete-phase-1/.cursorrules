@@ -66,52 +66,76 @@ will fail CI. Patterns use the glob syntax documented in
 ### Protected (DO NOT modify without explicit approval)
 
 These files must never be changed by an AI coding agent:
+
 - `.env*`
 
 ### Generated (produced by build, do not hand-edit)
 
 These files are build artifacts. Never edit them directly:
+
 - `src/generated/**`
 
 ### Ignored (do not include in agent output or consideration)
 
 These paths are out of scope for agent operations:
+
 - `dist/**`
 - `node_modules/**`
 
 ## Architecture
 
 ### Boundaries (must not)
+
 - Features must not import another feature directly.
 
 ### Invariants (always)
+
 - Shared utilities remain dependency-light.
 
 ### Key Decisions
+
 - [docs/decisions/0001-modular-features.md](docs/decisions/0001-modular-features.md) — Features communicate through the shared layer.
 
 ## Agent Constraints
 
 ### Do Not
+
 - Modify generated files by hand.
 
 ### Ask Before
+
 - Changes to CI configuration.
 
 ### Context Files
+
 - [docs/architecture.md](docs/architecture.md)
 - [docs/decisions/0001-modular-features.md](docs/decisions/0001-modular-features.md)
 
 ## Further Context
 
+## Conventions
+
+- Use `const` over `let` wherever possible.
+- Prefer explicit return types on exported functions.
+- Format with `prettier`, lint with `eslint`.
+
+## Architecture
+
+This project follows a modular structure. Each feature lives in
+its own directory under `src/` with its own tests and types.
+Shared utilities live in `src/shared/`. Never import across
+feature boundaries except through the shared layer.
+
 See these files for detailed project documentation. If you need deeper
 context about architecture, conventions, or design rationale, start here:
+
 - [README.md](README.md)
 - [docs/architecture.md](docs/architecture.md)
 
 ## Before Submitting Work
 
 After making changes, confirm everything still passes:
+
 - Run `pnpm lint`
 - Run `pnpm typecheck`
 - Run `pnpm test`

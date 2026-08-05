@@ -241,13 +241,46 @@ each with `kind`, `path`, and `exists`.
 ```bash
 agent-ready analyze
 agent-ready analyze --json
+agent-ready analyze --architecture
 agent-ready analyze --config path/to/agent-ready.yaml
 ```
 
 | Option            | Description                                                                                            |
 | ----------------- | ------------------------------------------------------------------------------------------------------ |
 | `--json`          | Print structured source counts, findings, and diagnostics.                                             |
+| `--architecture`  | Also check `architecture.boundary_rules` against the repository's import graph.                        |
 | `--config <path>` | Use this exact contract file instead of discovery; see [discovery.md](discovery.md#explicit---config). |
+
+### `--architecture`
+
+Opt-in import-graph boundary checking
+([ADR-0037](../decisions/0037-architecture-dependency-analysis.md)). Without the
+flag, `analyze` behaves exactly as it did before the flag existed and reads no
+source files. The check remains read-only and never modifies source.
+
+For each `architecture.boundary_rules` entry, every `.ts`/`.js`/`.mjs`/`.cjs`
+file under `from` is scanned for `import`/`export ... from`, and `import()`/
+`require()` with a literal argument. Repository-relative specifiers are resolved
+against the importing file and matched against `must_not_import`; a match is
+reported as `ARCHITECTURE_BOUNDARY_VIOLATED`.
+
+Bounded by design, and documented as such rather than approximated:
+
+- Bare module specifiers (`commander`, `node:fs/promises`) are ignored.
+- Non-literal dynamic specifiers (`import(name)`) are ignored, never guessed.
+- Comments and string literals are masked before scanning, so import-shaped
+  prose is not a finding.
+- Symlinked entries are never followed; `paths.generated` and `paths.ignored`
+  are excluded; each file is capped at 5,000,000 bytes.
+- Anything that could not be scanned reports
+  `ARCHITECTURE_ANALYSIS_SCAN_FAILED` rather than passing silently.
+
+There is no suppression mechanism: a violation is always reported, and the fix
+is to change either the code or the declaration.
+
+JSON output adds an `architecture` object with `rules` (per-rule `from`,
+`filesScanned`, `importsChecked`), repository-wide `filesScanned` and
+`importsChecked`, and `boundaryFindings`.
 
 The bounded scanner recognizes inline links, image destinations, and reference
 definitions. Fenced code, inline code, URI-scheme links, protocol-relative
@@ -555,13 +588,14 @@ agent-ready doctor --config path/to/agent-ready.yaml
 
 **Per-check axes (in document order):**
 
-| Check axis             | Always emitted?  | Notes                                                                                                           |
-| ---------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------- |
-| `runtime-node`         | yes              | Detected via `process.version` vs declared `environment.runtimes.node`. Warn when not declared.                 |
-| `runtime-other-<name>` | yes, one per key | One row per non-`node` declaration under `environment.runtimes`. Warn-only: doctor does not probe non-Node yet. |
-| `package-manager`      | only if declared | Detected via `BinaryClient.probe(<name>, root)` vs declared `environment.packageManager`.                       |
-| `git-on-path`          | yes              | Detected via `BinaryClient.probe('git', root)`. Required iff `paths.protected` is non-empty (else warn-only).   |
-| `git-repository`       | yes              | Detected via `GitClient.isRepository(root)`. Warn-only on mismatch when `paths.protected` is non-empty.         |
+| Check axis             | Always emitted?  | Notes                                                                                                         |
+| ---------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| `runtime-node`         | yes              | Detected via `process.version` vs declared `environment.runtimes.node`. Warn when not declared.               |
+| `runtime-<name>`       | yes, one per key | One row per declared `python`, `rust`, or `go` runtime. Probed via `BinaryClient` (`python`, `cargo`, `go`).  |
+| `runtime-other-<name>` | yes, one per key | One row per remaining non-`node` declaration. Warn-only: doctor does not probe that runtime.                  |
+| `package-manager`      | only if declared | Detected via `BinaryClient.probe(<name>, root)` vs declared `environment.packageManager`.                     |
+| `git-on-path`          | yes              | Detected via `BinaryClient.probe('git', root)`. Required iff `paths.protected` is non-empty (else warn-only). |
+| `git-repository`       | yes              | Detected via `GitClient.isRepository(root)`. Warn-only on mismatch when `paths.protected` is non-empty.       |
 
 **Human output** (success):
 
@@ -592,11 +626,17 @@ repoRoot, checks, diagnostics }`:
       "detected": "v20.10.0"
     },
     {
-      "check": "runtime-other-python",
-      "status": "warn",
+      "check": "runtime-python",
+      "status": "pass",
       "declared": ">=3.10",
+      "detected": { "version": "3.13.14", "path": "/usr/bin/python" }
+    },
+    {
+      "check": "runtime-other-ruby",
+      "status": "warn",
+      "declared": ">=3.0",
       "detected": null,
-      "summary": "doctor does not probe python in this ADR."
+      "summary": "doctor does not probe ruby."
     },
     {
       "check": "package-manager",
@@ -622,9 +662,9 @@ repoRoot, checks, diagnostics }`:
     {
       "code": "RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED",
       "severity": "warning",
-      "summary": "Declared runtime python is not probed by doctor in this ADR.",
-      "field": "/environment/runtimes/python",
-      "remediation": "Track ADR-0023 follow-ups; future ADRs may graduate python to a first-class BinaryClient.probe target."
+      "summary": "Declared runtime ruby is not probed by doctor.",
+      "field": "/environment/runtimes/ruby",
+      "remediation": "Track ADR-0023 follow-ups; future ADRs may graduate ruby to a first-class BinaryClient.probe target."
     },
     {
       "code": "PACKAGE_MANAGER_UNAVAILABLE",
@@ -642,9 +682,10 @@ row carries `check` and `status`; `declared`, `detected`, `required`,
 and `summary` appear only where ADR-0023 calls for them. `summary` is
 present whenever a row's `status` is `"warn"` or `"fail"`.
 
-Five additive diagnostic codes per
+Seven additive diagnostic codes per
 [ADR-0009](../decisions/0009-pre-1.0-stability-policy.md):
 [`RUNTIME_VERSION_MISMATCH`, `RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED`,
+`RUNTIME_PROBE_UNAVAILABLE`, `RUNTIME_PROBE_VERSION_MISMATCH`,
 `PACKAGE_MANAGER_UNAVAILABLE`, `PACKAGE_MANAGER_VERSION_MISMATCH`,
 `GIT_REQUIRED_BUT_UNAVAILABLE`](diagnostics.md).
 

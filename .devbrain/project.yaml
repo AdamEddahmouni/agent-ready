@@ -1,0 +1,60 @@
+# Agentic Development Brain — Project Registration
+
+project:
+  key: agent-ready
+  display_name: Agent-Ready
+  description: >-
+    Open, vendor-neutral specification and CLI for defining, generating,
+    and verifying the instructions, constraints, commands, and evidence
+    AI coding agents need to work safely in a repository.
+  version: 0.6.1
+  repository: https://github.com/AdamEddahmouni/agent-ready
+  license: Apache-2.0
+
+brain:
+  registration:
+    provider: local
+    registration_id: agent-ready-main
+  allowed_repository_root: .
+
+graph:
+  provider: graphify
+  output_path: docs/graph/
+  freshness_max_age_hours: 24
+
+documentation:
+  locations:
+    - docs/
+    - README.md
+    - CONTRIBUTING.md
+    - agent-ready.yaml
+    - CLAUDE.md
+    - AGENTS.md
+  required_context:
+    - agent-ready.yaml
+    - docs/STATUS.md
+    - docs/project-standing.md
+    - docs/architecture/overview.md
+    - docs/security/threat-model.md
+    - docs/decisions/README.md
+
+excluded:
+  paths:
+    - node_modules/
+    - dist/
+    - coverage/
+    - .pnpm-store/
+    - .git/
+    - .claude/
+    - .agents/
+    - compatibility/
+    - examples/
+    - assets/
+
+session:
+  protocol_files:
+    - CLAUDE.md
+    - AGENTS.md
+  log_directory: docs/SESSION_LOGS/
+  work_log: docs/WORK_LOG.md
+  lessons_file: docs/LESSONS.md

@@ -239,6 +239,40 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
     },
   ],
   [
+    "ARCHITECTURE_BOUNDARY_RULE_INVALID",
+    {
+      what: "An architecture.boundary_rules entry is malformed: its from or must_not_import path is not a safe repository-relative literal path, the same from is declared twice, an import prefix is repeated within one rule, or a rule forbids its own origin from importing itself.",
+      why: "Unlike architecture.boundaries, which is prose an agent reads, boundary rules are executable policy for analyze --architecture. A malformed rule is a contract error rather than an analysis finding, so it is caught before any source file is scanned (ADR-0037).",
+      fix: "1. Use literal repository-relative paths for from and every must_not_import entry; globs are not accepted.\n2. Declare each origin once, listing all of its disallowed imports together.\n3. Point must_not_import outside the rule's own from path.\n4. Re-run validate.",
+      fields: ["/architecture/boundary_rules"],
+      related: [
+        "PATH_PATTERN_INVALID",
+        "PATH_TRAVERSAL_DISALLOWED",
+        "ARCHITECTURE_BOUNDARY_VIOLATED",
+      ],
+    },
+  ],
+  [
+    "ARCHITECTURE_BOUNDARY_VIOLATED",
+    {
+      what: "A source file under a boundary rule's from path imports something under one of that rule's must_not_import paths.",
+      why: "A boundary rule is an assertion about the repository's real import graph. Agent-Ready always reports a violation rather than suppressing it heuristically: either the code drifted from the declared architecture, or the declaration is now wrong (ADR-0037).",
+      fix: "1. Remove the import, or route it through an allowed boundary such as an injected interface.\n2. If the architecture intentionally changed, update the rule in architecture.boundary_rules.\n3. Re-run analyze --architecture.",
+      fields: ["/architecture/boundary_rules"],
+      related: ["ARCHITECTURE_BOUNDARY_RULE_INVALID", "ARCHITECTURE_ANALYSIS_SCAN_FAILED"],
+    },
+  ],
+  [
+    "ARCHITECTURE_ANALYSIS_SCAN_FAILED",
+    {
+      what: "Architecture analysis could not scan a declared boundary: the rule's from directory does not exist, a directory could not be read, or a source file was unreadable or larger than the 5 MB per-file limit.",
+      why: "Analysis reports what it could not check instead of silently passing. A boundary rule that scans nothing would otherwise look identical to a boundary rule that found no violations.",
+      fix: "1. Point the rule's from at a directory that exists.\n2. Check filesystem permissions on the reported path.\n3. Split any source file larger than the per-file limit, or exclude its directory via paths.ignored.\n4. Re-run analyze --architecture.",
+      fields: ["/architecture/boundary_rules"],
+      related: ["ARCHITECTURE_BOUNDARY_VIOLATED", "INSTRUCTION_SOURCE_TOO_LARGE"],
+    },
+  ],
+  [
     "AGENT_CONTEXT_FILE_INVALID",
     {
       what: "An agents.context_files entry is malformed, duplicated, not a repository-relative Markdown path, or its referenced file is missing when analyzed.",
@@ -513,6 +547,26 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
       why: "Doctor currently only probes Node and package managers. Non-Node runtime probing may be added in a future ADR.",
       fix: "No action required. This is informational only. Track ADR-0023 follow-ups for future runtime probe support.",
       fields: ["/environment/runtimes"],
+    },
+  ],
+  [
+    "RUNTIME_PROBE_UNAVAILABLE",
+    {
+      what: "The contract declares a runtime (python, rust, or go) whose binary — python, cargo, or go respectively — is not installed or not on your PATH. Agent-Ready tried to probe it and could not find it, or the probe itself failed.",
+      why: "Doctor graduated python/rust/go from a warn-only advisory to a real pass/fail check (ADR-0038), mirroring how it already checks node and the declared package manager. A missing toolchain binary means the commands this contract declares for that ecosystem will fail with 'command not found'.",
+      fix: "1. Install the missing toolchain (python, rustup for cargo, or the Go toolchain).\n2. Verify it is on your PATH, e.g.:\n     python --version\n     cargo --version\n     go version\n3. Or, remove the runtime declaration from environment.runtimes if this repository does not need it.\n4. Re-run `agent-ready doctor` to confirm.",
+      fields: ["/environment/runtimes"],
+      related: ["RUNTIME_PROBE_VERSION_MISMATCH", "RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED"],
+    },
+  ],
+  [
+    "RUNTIME_PROBE_VERSION_MISMATCH",
+    {
+      what: "Doctor probed a declared python/rust/go runtime and its detected version does not satisfy the declared semver range in environment.runtimes.",
+      why: "The contract declares which version range of this runtime the project supports. Running with a version outside that range means the commands this contract declares for it may behave differently or fail outright.",
+      fix: '1. Install a version of the toolchain satisfying the declared range.\n2. Or, update agent-ready.yaml to match the installed version, e.g.:\n     environment:\n       runtimes:\n         python: ">=3.11"\n3. Re-run `agent-ready doctor` to confirm.',
+      fields: ["/environment/runtimes"],
+      related: ["RUNTIME_PROBE_UNAVAILABLE"],
     },
   ],
   [

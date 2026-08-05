@@ -45,7 +45,9 @@ src/
 │   └── fakeCommandRunner.ts     Deterministic test double; no real process ever spawned in tests.
 ├── analyze/
 │   ├── markdownLinks.ts         Bounded Markdown link scanner; pure and deterministic.
-│   └── analyzeDocumentation.ts  Size-bounded instruction-source target resolution and diagnostics.
+│   ├── analyzeDocumentation.ts  Size-bounded instruction-source target resolution and diagnostics.
+│   ├── importSpecifiers.ts      Bounded import scanner; pure, comment/string-masked, no AST framework.
+│   └── analyzeArchitecture.ts   Boundary-rule checking against the real import graph (opt-in).
 ├── upgrade/
 │   └── upgrade.ts               Evidence-backed additive migration planner and field-level diff.
 ├── generate/
@@ -133,9 +135,13 @@ letting them propagate as raw stack traces to the CLI.
 
 All disk access in domain code (`contract/`, `generate/`, `analyze/`, `upgrade/`)
 goes through
-the narrow `FileSystem` interface (`readTextFile`, `stat`, `realPath`,
-`cwd`, `writeTextFile`) defined in `filesystem/types.ts`. `writeTextFile`
-is the only write method anywhere in the codebase. It is used by
+the narrow `FileSystem` interface (`readTextFile`, `stat`, `readDirectory`,
+`realPath`, `cwd`, `writeTextFile`) defined in `filesystem/types.ts`.
+`readDirectory` lists one directory's immediate entries without recursing or
+following symlinks; it exists so `analyze --architecture` can enumerate the
+sources under a declared boundary (see
+[ADR-0037](../decisions/0037-architecture-dependency-analysis.md)).
+`writeTextFile` is the only write method anywhere in the codebase. It is used by
 `generate --write`, `init --write`, `upgrade --write`, and
 `verify --execute --record` (see
 [ADR-0010](../decisions/0010-generate-write-boundary.md) and

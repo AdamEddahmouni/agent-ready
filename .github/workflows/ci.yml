@@ -79,17 +79,55 @@ jobs:
           node dist/cli/index.js validate --config examples/minimal/agent-ready.yaml
           node dist/cli/index.js validate --config examples/complete-phase-1/agent-ready.yaml
           node dist/cli/index.js inspect --config examples/complete-phase-1/agent-ready.yaml --json
+          node dist/cli/index.js validate --config examples/python-fastapi/agent-ready.yaml
+          node dist/cli/index.js validate --config examples/rust-cli/agent-ready.yaml
+          node dist/cli/index.js validate --config examples/go-service/agent-ready.yaml
 
       - name: CLI smoke test - generate dry run
         shell: bash
         run: |
           set -e
-          output="$(node dist/cli/index.js generate --config examples/complete-phase-1/agent-ready.yaml --json)"
-          echo "$output"
-          if echo "$output" | grep -q "ADAPTER_NOT_YET_IMPLEMENTED"; then
-            echo "Expected all five example adapters to be implemented" >&2
-            exit 1
-          fi
+          for example in complete-phase-1 python-fastapi rust-cli go-service; do
+            output="$(node dist/cli/index.js generate --config "examples/$example/agent-ready.yaml" --json)"
+            echo "$output"
+            if echo "$output" | grep -q "ADAPTER_NOT_YET_IMPLEMENTED"; then
+              echo "Expected all five example adapters to be implemented for $example" >&2
+              exit 1
+            fi
+          done
+
+      - name: CLI smoke test - generate --check (every example, no drift)
+        shell: bash
+        run: |
+          set -e
+          for example in complete-phase-1 adversarial-content python-fastapi rust-cli go-service; do
+            output="$(node dist/cli/index.js generate --config "examples/$example/agent-ready.yaml" --check --json)"
+            echo "$output"
+            echo "$output" | grep -q '"ok": true'
+          done
+
+      - name: CLI smoke test - doctor probes graduated runtimes
+        shell: bash
+        run: |
+          set -e
+          # ADR-0038 graduated python/rust/go from a warn-only
+          # `runtime-other-<name>` row to a real probe, so this asserts the
+          # row shape rather than pass/fail: whether the probe passes depends
+          # on which toolchains this runner happens to have installed, and
+          # that varies across the OS matrix. A missing toolchain now exits
+          # non-zero by design, hence `|| true` on the capture.
+          set -- python-fastapi:python rust-cli:rust go-service:go
+          for pair in "$@"; do
+            example="${pair%%:*}"
+            runtime="${pair##*:}"
+            output="$(node dist/cli/index.js doctor --config "examples/$example/agent-ready.yaml" --json || true)"
+            echo "$output"
+            echo "$output" | grep -q "\"check\": \"runtime-$runtime\""
+            if echo "$output" | grep -q 'RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED'; then
+              echo "examples/$example: $runtime is probed as of ADR-0038 and must not report it unsupported" >&2
+              exit 1
+            fi
+          done
 
       - name: CLI smoke test - analyze documentation drift
         shell: bash

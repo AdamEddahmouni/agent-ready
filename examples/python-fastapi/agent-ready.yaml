@@ -1,0 +1,56 @@
+version: 1
+
+project:
+  name: python-fastapi-example
+  description: Minimal FastAPI service demonstrating a non-Node runtime declaration.
+
+environment:
+  runtimes:
+    python: ">=3.11 <3.14"
+
+commands:
+  install:
+    run: pip install -r requirements.txt
+  lint:
+    run: ruff check .
+  typecheck:
+    run: mypy app
+  test:
+    run: pytest
+    description: Runs the unit test suite.
+
+verification:
+  required:
+    - lint
+    - typecheck
+    - test
+
+paths:
+  protected:
+    - ".env*"
+  ignored:
+    - "__pycache__/**"
+    - ".venv/**"
+    - ".pytest_cache/**"
+
+instructions:
+  sources:
+    - README.md
+  content: |
+    ## Conventions
+
+    - Type hints are required on every public function signature.
+    - Format with `ruff format`, lint with `ruff check`.
+    - Routes live in `app/routes/`; keep `app/main.py` limited to app wiring.
+
+adapters:
+  agentsMd:
+    enabled: true
+  claude:
+    enabled: true
+  cursor:
+    enabled: true
+  copilot:
+    enabled: true
+  gemini:
+    enabled: true

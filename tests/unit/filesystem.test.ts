@@ -74,3 +74,66 @@ describe("NodeFileSystem secure writes", () => {
     }
   });
 });
+
+describe("readDirectory", () => {
+  it("lists immediate entries and classifies them, in both implementations", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agent-ready-fs-readdir-"));
+    try {
+      await mkdir(join(root, "nested"));
+      await writeFile(join(root, "b.ts"), "export const b = 1;", "utf8");
+      await writeFile(join(root, "a.ts"), "export const a = 1;", "utf8");
+      await writeFile(join(root, "nested", "deep.ts"), "export const d = 1;", "utf8");
+
+      const node = new NodeFileSystem();
+      const memory = new InMemoryFileSystem("/repo");
+      memory.addFile("/repo/b.ts", "export const b = 1;");
+      memory.addFile("/repo/a.ts", "export const a = 1;");
+      memory.addFile("/repo/nested/deep.ts", "export const d = 1;");
+
+      const nodeEntries = await node.readDirectory(root);
+      const memoryEntries = await memory.readDirectory("/repo");
+
+      const shape = (entries: readonly { name: string; isFile: boolean; isDirectory: boolean }[]) =>
+        entries.map(({ name, isFile, isDirectory }) => ({ name, isFile, isDirectory }));
+
+      const expected = [
+        { name: "a.ts", isFile: true, isDirectory: false },
+        { name: "b.ts", isFile: true, isDirectory: false },
+        { name: "nested", isFile: false, isDirectory: true },
+      ];
+      expect(shape(nodeEntries ?? [])).toEqual(expected);
+      expect(shape(memoryEntries ?? [])).toEqual(expected);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("returns undefined for a path that does not exist, in both implementations", async () => {
+    const node = new NodeFileSystem();
+    const memory = new InMemoryFileSystem("/repo");
+    await expect(node.readDirectory(join(tmpdir(), "agent-ready-absent-directory"))).resolves.toBe(
+      undefined,
+    );
+    await expect(memory.readDirectory("/repo/absent")).resolves.toBe(undefined);
+  });
+
+  it("reports a symlinked entry without following it", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agent-ready-fs-readdir-link-"));
+    try {
+      await mkdir(join(root, "real"));
+      await writeFile(join(root, "real", "file.ts"), "export const f = 1;", "utf8");
+      try {
+        await symlink(join(root, "real"), join(root, "link"), "dir");
+      } catch {
+        return; // Windows without developer mode cannot create symlinks.
+      }
+
+      const entries = (await new NodeFileSystem().readDirectory(root)) ?? [];
+      const link = entries.find((entry) => entry.name === "link");
+      expect(link?.isSymbolicLink).toBe(true);
+      expect(link?.isDirectory).toBe(false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});

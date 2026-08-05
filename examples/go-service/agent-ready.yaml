@@ -1,0 +1,49 @@
+version: 1
+
+project:
+  name: go-service-example
+  description: Minimal Go microservice demonstrating go-tooling commands.
+
+environment:
+  runtimes:
+    go: ">=1.22"
+
+commands:
+  lint:
+    run: go vet ./...
+  test:
+    run: go test ./...
+  build:
+    run: go build ./...
+    description: Compiles every package.
+
+verification:
+  required:
+    - lint
+    - test
+    - build
+
+paths:
+  ignored:
+    - "bin/**"
+
+instructions:
+  sources:
+    - README.md
+  content: |
+    ## Conventions
+
+    - Run `gofmt -l .` before committing; unformatted files fail review.
+    - Return wrapped errors with `fmt.Errorf("...: %w", err)`.
+
+adapters:
+  agentsMd:
+    enabled: true
+  claude:
+    enabled: true
+  cursor:
+    enabled: true
+  copilot:
+    enabled: true
+  gemini:
+    enabled: true

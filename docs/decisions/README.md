@@ -47,4 +47,7 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0034](0034-structured-handoff-evidence.md)                   | Structured handoff evidence                                     |
 | [0035](0035-per-command-timeout.md)                           | Per-command verification timeout                                |
 | [0036](0036-verify-generate-preflight.md)                     | Generated-file drift preflight for verify                       |
+| [0037](0037-architecture-dependency-analysis.md)              | Architecture-dependency drift analysis                          |
+| [0038](0038-multi-language-runtime-probing.md)                | Multi-language runtime probing in `doctor`                      |
+| [0039](0039-external-adapter-registration.md)                 | External adapter registration                                   |
 | [0040](0040-release-and-version-taxonomy.md)                  | Release and version taxonomy                                    |

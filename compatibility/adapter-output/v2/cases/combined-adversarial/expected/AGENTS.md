@@ -17,23 +17,29 @@ combined-adversarial
 ## Architecture
 
 ### Boundaries (must not)
+
 - \# Not a heading
 
 ### Invariants (always)
+
 - Always \<escape\> this
 
 ### Key Decisions
+
 - [docs/decision (draft).md](<docs/decision (draft).md>) — \*Escaped\* summary
 
 ## Agent Constraints
 
 ### Do Not
+
 - \- not a list
 
 ### Ask Before
+
 - Use \`deploy\` only after review.
 
 ### Context Files
+
 - [docs/context (ops).md](<docs/context (ops).md>)
 
 ## Further Context

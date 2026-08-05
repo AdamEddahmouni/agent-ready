@@ -16,6 +16,7 @@ export default [
       parserOptions: {
         projectService: {
           allowDefaultProject: ["eslint.config.js", "vitest.config.ts", "scripts/*.mjs"],
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 16,
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -38,6 +39,15 @@ export default [
     files: ["**/*.mjs", "eslint.config.js"],
     languageOptions: {
       globals: globals.node,
+    },
+    rules: {
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/no-unsafe-return": "off",
+      "@typescript-eslint/no-unsafe-argument": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/prefer-nullish-coalescing": "off",
+      "@typescript-eslint/prefer-regexp-exec": "off",
     },
   },
   prettierConfig,

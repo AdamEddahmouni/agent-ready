@@ -49,16 +49,37 @@ paths:
     - "coverage/**"
 
 instructions:
+  content: |
+    ## Code conventions
+
+    - Do not add comments unless a convention or security boundary requires it.
+    - Prefer explicit return types on exported functions.
+    - Every pipeline stage returns `DiagnosticResult<T>` — never throws for contract errors.
+
+    ## Brain integration
+
+    This repository is integrated with the Agentic Development Brain. Every
+    agent session must follow the startup and completion protocols defined in
+    CLAUDE.md / AGENTS.md. The canonical project description, commands,
+    restrictions, and architecture are in this file (agent-ready.yaml).
   sources:
     - README.md
     - CONTRIBUTING.md
     - docs/architecture/overview.md
     - docs/security/threat-model.md
+    - docs/project-standing.md
 
 architecture:
   boundaries:
     - src/contract/ must not depend on CLI presentation modules.
     - Generated adapters must not depend on a concrete filesystem implementation.
+  boundary_rules:
+    - from: src/contract
+      must_not_import:
+        - src/cli
+    - from: src/generate/adapters
+      must_not_import:
+        - src/filesystem/nodeFileSystem.ts
   invariants:
     - Every pipeline stage returns structured diagnostics instead of throwing for contract errors.
     - Agent-Ready remains deterministic and makes no LLM or network calls at runtime.
@@ -78,6 +99,8 @@ agents:
   context_files:
     - docs/architecture/overview.md
     - docs/security/threat-model.md
+    - docs/project-standing.md
+    - docs/STATUS.md
 
 adapters:
   agentsMd:

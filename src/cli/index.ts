@@ -127,7 +127,12 @@ program
   )
   .option("--json", "Print results as machine-readable JSON.", false)
   .option("--config <path>", "Explicit path to the contract file.")
-  .action(async (opts: { json: boolean; config?: string }) => {
+  .option(
+    "--architecture",
+    "Also check architecture.boundary_rules against the repository's import graph.",
+    false,
+  )
+  .action(async (opts: { json: boolean; config?: string; architecture: boolean }) => {
     const fs = new NodeFileSystem();
     const outcome = await runAnalyze(fs, opts);
     if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);

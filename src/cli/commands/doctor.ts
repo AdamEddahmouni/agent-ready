@@ -39,6 +39,20 @@ interface DoctorFinishContext {
 const SUPPORTED_PACKAGE_MANAGERS: readonly BinaryTarget[] = ["pnpm", "npm", "yarn"];
 
 /**
+ * Declared runtime names that have graduated from the warn-only
+ * `runtime-other-<name>` row to a real, pass/fail-checked probe (ADR-0038).
+ * `rust` maps to `cargo`: there is no `rust` executable, and `cargo` is
+ * what a Rust project's declared commands actually invoke. A runtime name
+ * not present here keeps the original ADR-0023 warn-only behavior
+ * unchanged.
+ */
+const RUNTIME_PROBE_TARGETS: Readonly<Record<string, BinaryTarget>> = {
+  python: "python",
+  rust: "cargo",
+  go: "go",
+};
+
+/**
  * Inspects the host environment for fitness to run Agent-Ready against
  * the contract: declared Node range, declared package manager, declared
  * non-Node runtimes, Git on PATH, and Git working-tree membership. Read
@@ -69,8 +83,16 @@ export async function runDoctor(
   // Check 1: Node runtime (always emitted; warn-only when not declared).
   pushRuntimeNodeCheck(checks, diagnostics, contract.environment.runtimes);
 
-  // Check 2: one `runtime-other-<name>` row per non-`node` declared runtime.
-  pushRuntimeOtherChecks(checks, diagnostics, contract.environment.runtimes);
+  // Check 2: one row per non-`node` declared runtime — a real probe for
+  // graduated runtimes (ADR-0038), a warn-only `runtime-other-<name>` row
+  // for everything else (ADR-0023, unchanged).
+  await pushOtherRuntimeChecks(
+    checks,
+    diagnostics,
+    binary,
+    repoRoot,
+    contract.environment.runtimes,
+  );
 
   // Check 3: package manager (only emitted when declared).
   await pushPackageManagerCheck(
@@ -148,13 +170,20 @@ function pushRuntimeNodeCheck(
   }
 }
 
-function pushRuntimeOtherChecks(
+async function pushOtherRuntimeChecks(
   checks: CheckRow[],
   diagnostics: Diagnostic[],
+  binary: BinaryClient,
+  repoRoot: string,
   runtimes: readonly { readonly name: string; readonly range: string }[],
-): void {
+): Promise<void> {
   for (const runtime of runtimes) {
     if (runtime.name === "node") continue;
+    const probeTarget = RUNTIME_PROBE_TARGETS[runtime.name];
+    if (probeTarget !== undefined) {
+      await pushProbedRuntimeCheck(checks, diagnostics, binary, repoRoot, runtime, probeTarget);
+      continue;
+    }
     checks.push({
       check: `runtime-other-${runtime.name}`,
       status: "warn",
@@ -170,6 +199,99 @@ function pushRuntimeOtherChecks(
       field: `/environment/runtimes/${runtime.name}`,
       remediation:
         "Track ADR-0023 follow-ups; future ADRs may graduate additional runtimes to first-class `BinaryClient.probe` targets.",
+    });
+  }
+}
+
+/**
+ * Probes a graduated runtime (ADR-0038) and compares against its declared
+ * range, exactly like the `node` and `package-manager` checks: pass on
+ * match, fail on a missing binary or a version that doesn't satisfy. Uses
+ * dedicated diagnostic codes rather than reusing `RUNTIME_VERSION_MISMATCH`/
+ * `PACKAGE_MANAGER_UNAVAILABLE`, whose `explain` text names Node/package-
+ * manager remediation specifically and would be inaccurate here.
+ */
+async function pushProbedRuntimeCheck(
+  checks: CheckRow[],
+  diagnostics: Diagnostic[],
+  binary: BinaryClient,
+  repoRoot: string,
+  runtime: { readonly name: string; readonly range: string },
+  probeTarget: BinaryTarget,
+): Promise<void> {
+  const checkName = `runtime-${runtime.name}`;
+  const field = `/environment/runtimes/${runtime.name}`;
+
+  let probeResult: Awaited<ReturnType<BinaryClient["probe"]>>;
+  try {
+    probeResult = await binary.probe(probeTarget, repoRoot);
+  } catch (error) {
+    const detail =
+      error instanceof BinaryClientError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : "Unknown probe error.";
+    diagnostics.push({
+      code: "RUNTIME_PROBE_UNAVAILABLE",
+      severity: "error",
+      summary: `Declared runtime ${runtime.name} probe failed.`,
+      detail,
+      field,
+      remediation: `Investigate why \`${probeTarget}\` failed to report its version on this host.`,
+    });
+    checks.push({
+      check: checkName,
+      status: "fail",
+      declared: runtime.range,
+      detected: null,
+      summary: `${probeTarget} probe failed.`,
+    });
+    return;
+  }
+
+  if (probeResult === undefined) {
+    checks.push({
+      check: checkName,
+      status: "fail",
+      declared: runtime.range,
+      detected: null,
+      summary: `Declared runtime ${runtime.name} (${probeTarget}) is not on PATH.`,
+    });
+    diagnostics.push({
+      code: "RUNTIME_PROBE_UNAVAILABLE",
+      severity: "error",
+      summary: `Declared runtime ${runtime.name} is not on PATH.`,
+      detail: `The contract declares environment.runtimes.${runtime.name} = "${runtime.range}", but \`${probeTarget}\` could not be resolved on PATH.`,
+      field,
+      remediation: `Install ${probeTarget}, or update the contract if this repository does not need the ${runtime.name} runtime.`,
+    });
+    return;
+  }
+
+  const satisfiesRange = semver.satisfies(probeResult.version, runtime.range, {
+    includePrerelease: true,
+  });
+  checks.push({
+    check: checkName,
+    status: satisfiesRange ? "pass" : "fail",
+    declared: runtime.range,
+    detected: { version: probeResult.version, path: probeResult.path },
+    ...(satisfiesRange
+      ? {}
+      : {
+          summary: `Detected ${runtime.name} ${probeResult.version} does not satisfy declared "${runtime.range}".`,
+        }),
+  });
+  if (!satisfiesRange) {
+    diagnostics.push({
+      code: "RUNTIME_PROBE_VERSION_MISMATCH",
+      severity: "error",
+      summary: `Detected ${runtime.name} version does not satisfy declared "${runtime.range}".`,
+      detail: `Agent-Ready probed \`${probeTarget}\` and got "${probeResult.version}", but the contract declares environment.runtimes.${runtime.name} = "${runtime.range}".`,
+      field,
+      remediation:
+        "Install a version satisfying the declared range, or update the contract to match the detected version.",
     });
   }
 }

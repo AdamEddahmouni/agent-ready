@@ -8,3 +8,5 @@ Thumbs.db
 *.tsbuildinfo
 agent-ready-verify-result.json
 .claude/
+graphify-out/
+docs/graph/
