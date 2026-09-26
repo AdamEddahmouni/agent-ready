@@ -48,3 +48,6 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0035](0035-per-command-timeout.md)                           | Per-command verification timeout                                |
 | [0036](0036-verify-generate-preflight.md)                     | Generated-file drift preflight for verify                       |
 | [0040](0040-release-and-version-taxonomy.md)                  | Release and version taxonomy                                    |
+| [0041](0041-vnext-autonomous-software-evolution.md)           | vNext direction: autonomous software evolution control plane    |
+| [0042](0042-v1-freeze-and-parallel-vnext-surface.md)          | Freeze the v1 contract and CLI; add vNext as a parallel surface |
+| [0043](0043-core-posture-and-integration-quarantine.md)       | Deterministic-core posture and quarantined integrations         |
