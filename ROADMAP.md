@@ -1,5 +1,19 @@
 # Roadmap
 
+> **This document records shipped phase history. Forward planning moved to
+> [VISION.md](VISION.md) in September 2026.**
+>
+> The phase-by-phase sections below remain the authoritative record of what
+> shipped and when. The forward-looking sections, including the v0.7-to-v1.0
+> release sequence that used to be summarized at the end of this file, are
+> superseded: the project selected a vNext design phase via
+> [ADR-0041](docs/decisions/0041-vnext-autonomous-software-evolution.md), and the
+> earlier forward plan is preserved as
+> [docs/archive/roadmap-v1.md](docs/archive/roadmap-v1.md).
+>
+> Read the history here; read the direction in [VISION.md](VISION.md) and
+> [docs/vnext/RFC-0001-autonomous-software-evolution.md](docs/vnext/RFC-0001-autonomous-software-evolution.md).
+
 ## Foundation (Phase 0/1) — complete
 
 - Public open-source project scaffolding: license, governance,
@@ -297,12 +311,16 @@ Path A is now complete: `schema` → `doctor` → `explain` → `init`, all
 four shipped behind their own ADRs per
 [ADR-0021](docs/decisions/0021-cli-package-maturity-direction.md).
 
-The forward release plan from v0.4.0 through v1.0.0 is documented in
-[ROADMAP-TO-1.0.md](ROADMAP-TO-1.0.md) — five milestones, seven
-releases, and 19 planned ADRs covering npm publication, richer contract
-fields, architecture-dependency analysis, ecosystem extensibility,
-stabilization, and the 1.0.0 release. That document supersedes the
-"Long-term open-source direction" section above for planning purposes.
+The forward release plan from v0.4.0 through v1.0.0 was documented in
+what is now [docs/archive/roadmap-v1.md](docs/archive/roadmap-v1.md) —
+five milestones, seven releases, and 19 planned ADRs covering npm
+publication, richer contract fields, architecture-dependency analysis,
+ecosystem extensibility, stabilization, and the 1.0.0 release. That plan
+superseded the "Long-term open-source direction" section above for
+planning purposes, and is now itself superseded: the project entered a
+vNext design phase in September 2026 (see [VISION.md](VISION.md)). Its
+completed-phase history above remains the authoritative record of what
+shipped; its forward-looking sections do not.
 
 The three Phase 11 candidates enumerated in
 [ADR-0019](docs/decisions/0019-phase-10-direction.md) remain valid

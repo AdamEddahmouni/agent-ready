@@ -1,13 +1,34 @@
 # Roadmap to 1.0
 
+> **Status: archived on 2026-09-25. Historical record only. Not authoritative for
+> planning.**
+>
+> The project entered a vNext design phase in September 2026. The direction
+> selected by
+> [ADR-0041](../../docs/decisions/0041-vnext-autonomous-software-evolution.md)
+> supersedes this document. See [VISION.md](../../VISION.md) and
+> [RFC-0001](../../docs/vnext/RFC-0001-autonomous-software-evolution.md) for what
+> comes next.
+>
+> What is still true: the completed milestones listed here describe work that
+> actually shipped, and [ROADMAP.md](../../ROADMAP.md) remains the authoritative
+> record of completed phase history.
+>
+> What is no longer true: the forward-looking milestones (v0.7 through v1.0), the
+> 19 planned ADRs, and the release sequencing. The planned ADRs numbered 0037
+> through 0039 were never written and will not be. Do not treat any milestone
+> below as current work. The document is preserved rather than deleted because
+> the pivot is part of the project's intellectual history
+> ([VISION.md §45](../../VISION.md)).
+
 This document is the **forward-looking release plan** for Agent-Ready,
 covering every release from v0.4.0 through v1.0.0. It supersedes the
 "Recommended next phase" and "Long-term open-source direction" sections
-of [ROADMAP.md](ROADMAP.md) for planning purposes — the completed-phase
+of [ROADMAP.md](../../ROADMAP.md) for planning purposes — the completed-phase
 history in that document remains the authoritative record of what has
 shipped.
 
-[ROADMAP.md](ROADMAP.md)'s "Strict non-goals for the current phase" list
+[ROADMAP.md](../../ROADMAP.md)'s "Strict non-goals for the current phase" list
 remains authoritative unless a specific ADR in this roadmap formally
 reopens a non-goal. Where this happens, the ADR's acceptance must update
 ROADMAP.md's non-goals list in the same PR — otherwise the two documents
@@ -29,7 +50,7 @@ criteria that must be met before the next milestone begins.
    field, diagnostic code, or architectural shift gets its own ADR
    before implementation begins. No exceptions.
 2. **Additive-only schema evolution within `version: 1`.** Per
-   [ADR-0009](docs/decisions/0009-pre-1.0-stability-policy.md), no
+   [ADR-0009](../../docs/decisions/0009-pre-1.0-stability-policy.md), no
    existing field is removed, retyped, or made required without a
    contract `version: 2` bump. New fields are optional and additive.
 3. **Safe by default.** Every new command is read-only unless it
@@ -165,7 +186,7 @@ Markdown-escaping discipline.
 
 The implementation sequence, prerelease ladder, explicit non-goals, and
 verification matrix are defined in
-[the v0.5.0 implementation plan](docs/v0.5.0-implementation-plan.md).
+[the v0.5.0 implementation plan](../../docs/v0.5.0-implementation-plan.md).
 
 #### 1. `architecture` block
 
@@ -238,7 +259,7 @@ verification matrix are defined in
     and has no deterministic enforcement path. The ADR explains this
     rejection explicitly.
   - `default_instructions` from the draft is **dropped** —
-    `instructions.content` ([ADR-0026](docs/decisions/0026-instructions-content-field.md))
+    `instructions.content` ([ADR-0026](../../docs/decisions/0026-instructions-content-field.md))
     already serves this purpose.
   - The `quality_gates` block from the config-evolution draft is
     **not included** in this roadmap — it substantially overlaps with
@@ -267,7 +288,7 @@ verification matrix are defined in
 - [x] **ADR-0034: Structured handoff evidence model.** Extends
       `verify --execute --record` to produce a richer evidence file that
       includes the structured fields proposed in
-      [docs/specification/evidence.md](docs/specification/evidence.md):
+      [docs/specification/evidence.md](../../docs/specification/evidence.md):
 
   ```json
   {
@@ -324,7 +345,7 @@ verification matrix are defined in
     CLI-level `--timeout` default (900s) applies. If present, it
     overrides the CLI default for this command only.
   - No `env` or `workingDirectory` fields — these were considered and
-    rejected in [ADR-0006](docs/decisions/0006-command-representation.md)'s
+    rejected in [ADR-0006](../../docs/decisions/0006-command-representation.md)'s
     "Alternatives" and remain non-goals (environment interpolation is a
     security boundary; working directory is always the repo root).
   - Schema-additive; existing contracts without `timeout` validate
@@ -428,7 +449,7 @@ Scope:
 #### 1. Extended `doctor` runtime probing
 
 - [ ] **ADR-0038: Multi-language runtime probing in `doctor`.** Extends
-      the `BinaryClient` boundary (from [ADR-0023](docs/decisions/0023-agent-ready-doctor-command.md))
+      the `BinaryClient` boundary (from [ADR-0023](../../docs/decisions/0023-agent-ready-doctor-command.md))
       to probe `python`,
       `rust`/`cargo`, and `go` in addition to `node`/`pnpm`/`npm`/`yarn`.
       Each new runtime gets the same `--version` probe pattern. The
@@ -602,7 +623,7 @@ not just a version number.
 
 - [ ] **ADR-0045: 1.0.0 release decision.** Documents that all
       Milestone 1–4 exit criteria are met, the pre-1.0 stability policy
-      ([ADR-0009](docs/decisions/0009-pre-1.0-stability-policy.md))
+      ([ADR-0009](../../docs/decisions/0009-pre-1.0-stability-policy.md))
       is superseded by full SemVer guarantees, and the
       "experimental" qualifier is removed from all public API exports.
       This ADR is the formal sign-off that the project is ready for 1.0.
@@ -703,10 +724,10 @@ but are excluded from the 1.0 scope by design:
   documentation surface through 1.0. A marketing/docs website is a
   post-1.0 consideration.
 - **Monorepo contract inheritance / nested contracts** — explicitly
-  rejected in [ADR-0004](docs/decisions/0004-repository-and-contract-discovery.md);
+  rejected in [ADR-0004](../../docs/decisions/0004-repository-and-contract-discovery.md);
   revisiting requires a new ADR and is not planned for 1.0.
 - **`env` / `workingDirectory` fields on commands** — rejected in
-  [ADR-0006](docs/decisions/0006-command-representation.md); the
+  [ADR-0006](../../docs/decisions/0006-command-representation.md); the
   security boundary (no environment interpolation, repo root is always
   the working directory) is permanent.
 - **`quality_gates` schema block** — overlaps substantially with the
@@ -733,5 +754,5 @@ but are excluded from the 1.0 scope by design:
   command modifies only `agent-ready.yaml` itself.
 - **Capturing command stdout/stderr as evidence** — the security
   boundary of never capturing command output is permanent, per
-  [ADR-0014](docs/decisions/0014-verification-execution.md) and
-  [ADR-0015](docs/decisions/0015-verification-evidence-recording.md).
+  [ADR-0014](../../docs/decisions/0014-verification-execution.md) and
+  [ADR-0015](../../docs/decisions/0015-verification-evidence-recording.md).
