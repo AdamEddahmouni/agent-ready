@@ -51,3 +51,4 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0041](0041-vnext-autonomous-software-evolution.md)           | vNext direction: autonomous software evolution control plane    |
 | [0042](0042-v1-freeze-and-parallel-vnext-surface.md)          | Freeze the v1 contract and CLI; add vNext as a parallel surface |
 | [0043](0043-core-posture-and-integration-quarantine.md)       | Deterministic-core posture and quarantined integrations         |
+| [0044](0044-repository-discovery-model.md)                    | Repository discovery model and its fact boundary                |

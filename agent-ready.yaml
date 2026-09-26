@@ -73,6 +73,8 @@ architecture:
       summary: vNext direction is a control plane for autonomous software evolution.
     - file: docs/decisions/0042-v1-freeze-and-parallel-vnext-surface.md
       summary: The v1 contract and shipped CLI are frozen; vNext is added beside them.
+    - file: docs/decisions/0044-repository-discovery-model.md
+      summary: A discovered fact carries its epistemic kind and evidence; unknown beats wrong.
     - file: docs/decisions/0043-core-posture-and-integration-quarantine.md
       summary: The deterministic core keeps its no-network, no-LLM posture permanently.
 
