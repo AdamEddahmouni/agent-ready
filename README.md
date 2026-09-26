@@ -16,7 +16,7 @@
 
 # <img src="assets/brand/agent-ready-icon.png" alt="" width="32" height="32" align="middle"> Agent-Ready
 
-**The missing contract between repositories and coding agents.**
+**Open infrastructure for constitutionally governed autonomous software evolution.**
 
 Agent-Ready is an open, vendor-neutral specification and deterministic CLI
 for describing how AI coding agents should work inside a software repository.
@@ -31,6 +31,32 @@ No API keys. No LLM calls. No network access. Zero cost per run.
 <p align="center">
   <img src="assets/cards/private-local-card.png" alt="Agent-Ready runs entirely locally — no API keys, no network, no LLM calls." width="100%">
 </p>
+
+## Direction: vNext
+
+The project is in a **design phase**. Everything below this point describes what
+ships today: the v0.6.x repository-contract CLI, which keeps releasing unchanged
+with its v1 contract, eleven commands, and pre-1.0 compatibility policy frozen.
+
+The next chapter is one level deeper than instruction files. Agent-Ready aims to
+become a control plane for autonomous software evolution — software that
+commissions agents under explicit, time-bounded authority; verifies their work
+independently of whoever produced it; deploys reversibly; observes what actually
+happened; and retains the causal knowledge afterwards.
+
+**None of that is built yet.** The direction is written down, reviewed, and
+deliberately falsifiable, including the conditions under which it should be
+abandoned:
+
+- [VISION.md](VISION.md) — the design thesis
+- [RFC-0001](docs/vnext/RFC-0001-autonomous-software-evolution.md) — the formal
+  proposal: concepts, phases, research questions, success criteria
+- [LANDSCAPE.md](docs/vnext/LANDSCAPE.md) — what Agent-Ready would own, and which
+  adjacent standards it refuses to rebuild
+- [Threat model: vNext](docs/security/threat-model-vnext.md) — the threat classes
+  this direction creates, **none of them mitigated today**
+- [Archived roadmap to 1.0](docs/archive/roadmap-v1.md) — the superseded forward
+  plan, kept as history
 
 ## Why Agent-Ready Exists
 
@@ -320,6 +346,13 @@ today, including the v0.4 `upgrade` command, the v0.5 architecture and
 agent-guidance blocks, and the v0.6 structured handoff evidence and
 per-command timeouts.
 
+**Direction.** In September 2026 the project selected a vNext design phase — see
+[Direction: vNext](#direction-vnext). The v1 contract, the eleven shipped
+commands, and the adapter-output compatibility corpus are **frozen and still
+releasing** ([ADR-0042](docs/decisions/0042-v1-freeze-and-parallel-vnext-surface.md)).
+vNext work lands beside them as additive, independently versioned surface. No
+control-plane capability exists in code today.
+
 CI runs 557 automated tests across 41 test files, exercising the full pipeline
 on Ubuntu, Windows, and macOS. Release tags are cut only from a green quality
 gate.
@@ -364,10 +397,15 @@ for the full reference.
 - [Architecture Decision Records](docs/decisions/README.md)
 - [Project standing](docs/project-standing.md)
 - [Roadmap](ROADMAP.md) — completed phase history and current non-goals
-- [Roadmap to 1.0](ROADMAP-TO-1.0.md) — forward release plan through v1.0.0
+- [Archived roadmap to 1.0](docs/archive/roadmap-v1.md) — superseded forward release plan, kept as history
 - [Adoption guide](docs/adoption-guide.md)
 - [Adoption and impact (verified evidence)](docs/adoption-and-impact.md)
 - [Threat model](docs/security/threat-model.md)
+- [Vision (vNext direction)](VISION.md) — design thesis, not a specification
+- [RFC-0001: autonomous software evolution](docs/vnext/RFC-0001-autonomous-software-evolution.md)
+- [Landscape](docs/vnext/LANDSCAPE.md) — positioning against adjacent standards
+- [Threat model: vNext](docs/security/threat-model-vnext.md) — proposed, unmitigated
+- [Archive](docs/archive/README.md) — superseded planning documents
 
 ## Dogfooding
 
