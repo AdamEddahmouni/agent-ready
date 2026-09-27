@@ -15,6 +15,10 @@ export default [
     languageOptions: {
       parserOptions: {
         projectService: {
+          // `scripts/regenerate-discover-fixture.ts` is the one typed script: it
+          // imports the implementation to generate the canonical discovery JSON
+          // fixture, so it is part of the TypeScript program and is type-checked
+          // by `pnpm typecheck` alongside the code it renders.
           allowDefaultProject: ["eslint.config.js", "vitest.config.ts", "scripts/*.mjs"],
         },
         tsconfigRootDir: import.meta.dirname,

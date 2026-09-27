@@ -90,21 +90,33 @@ export async function resolveRepositoryRoot(
 }
 
 /**
- * Builds the only capability probes receive: repository-relative reads and
- * stats. No writer, no process runner, no Git client, and no HTTP client is
- * reachable from a probe, which is the read-only guarantee from ADR-0044
- * enforced by construction rather than by review.
+ * Builds the only capability probes receive: repository-relative reads, stats,
+ * and directory listings. No writer, no process runner, no Git client, and no
+ * HTTP client is reachable from a probe, which is the read-only guarantee from
+ * ADR-0044 enforced by construction rather than by review.
+ *
+ * Two accessors are memos scoped to a single run. Neither changes an observable
+ * behaviour — each only avoids parsing or walking the same thing twice — but
+ * both matter for more than speed: without the layout memo, two probes could
+ * in principle report different views of the same repository, and the contract
+ * reader would be shared mutable state across concurrent probes.
  */
 export function createProbeContext(
   fs: FileSystem,
   repoRoot: string,
   readContract: DiscoveryProbeContext["readContract"],
+  readContractPackageManager: DiscoveryProbeContext["readContractPackageManager"],
+  readRepositoryLayout: DiscoveryProbeContext["readRepositoryLayout"],
 ): DiscoveryProbeContext {
   return {
     repoRoot,
     readTextFile: (relativePath) => fs.readTextFile(joinPath(repoRoot, relativePath)),
     stat: (relativePath) => fs.stat(joinPath(repoRoot, relativePath)),
+    listDirectory: (relativePath) => fs.listDirectory(joinPath(repoRoot, relativePath)),
+    realPath: (relativePath) => fs.realPath(joinPath(repoRoot, relativePath)),
     readContract,
+    readContractPackageManager,
+    readRepositoryLayout,
   };
 }
 

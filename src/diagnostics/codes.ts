@@ -57,13 +57,20 @@ export const DIAGNOSTIC_CODES = [
   "UPGRADE_NO_CHANGES_NEEDED",
   "UPGRADE_MANUAL_REVIEW_REQUIRED",
   "UPGRADE_WRITE_FAILED",
-  // Repository discovery (ADR-0044). Reserved namespace for `discover` and
-  // the discovery core. DISCOVERY_FACT_UNSUPPORTED is deliberately
-  // unreachable today, reserved for a fact kind outside the four defined by
-  // ADR-0044, following the ADAPTER_NOT_YET_IMPLEMENTED precedent.
+  // Repository discovery (ADR-0044, extended by ADR-0045). Reserved namespace
+  // for `discover` and the discovery core.
+  //
+  // DISCOVERY_FACT_UNSUPPORTED was reserved in ADR-0044 and became reachable in
+  // ADR-0045: it now reports a fact whose *shape* this implementation does not
+  // model (a `packageManager` field that is not `<name>@<version>`), rather than
+  // a kind outside the four defined kinds. The four epistemic kinds are
+  // unchanged; no fifth kind exists.
   "DISCOVERY_ROOT_UNREADABLE",
   "DISCOVERY_PARTIAL",
   "DISCOVERY_FACT_CONFLICT",
+  "DISCOVERY_FACT_INCOMPLETE",
+  "DISCOVERY_WORKSPACE_UNSUPPORTED",
+  "DISCOVERY_LOCKFILE_UNREADABLE",
   "DISCOVERY_NO_SIGNALS",
   "DISCOVERY_FACT_UNSUPPORTED",
 ] as const;
@@ -93,6 +100,9 @@ export const WARNING_DIAGNOSTIC_CODES = [
   "UPGRADE_MANUAL_REVIEW_REQUIRED",
   "DISCOVERY_PARTIAL",
   "DISCOVERY_FACT_CONFLICT",
+  "DISCOVERY_FACT_INCOMPLETE",
+  "DISCOVERY_WORKSPACE_UNSUPPORTED",
+  "DISCOVERY_LOCKFILE_UNREADABLE",
   "DISCOVERY_NO_SIGNALS",
   "DISCOVERY_FACT_UNSUPPORTED",
 ] as const satisfies readonly DiagnosticCode[];

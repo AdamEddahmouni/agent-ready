@@ -18,6 +18,18 @@ export interface FileSystem {
   readTextFile(absolutePath: string): Promise<string>;
   /** Returns file metadata, or undefined if nothing exists at that path. */
   stat(absolutePath: string): Promise<FileStat | undefined>;
+  /**
+   * Lists the immediate entries of a directory, in a deterministic order
+   * (code-unit by name). Returns an empty list for a directory with no
+   * entries. Throws FileSystemError if the path cannot be read, and never
+   * recurses.
+   *
+   * Added for repository discovery's workspace-pattern expansion, which cannot
+   * resolve a pattern such as `packages/*` from `stat` alone. Like `readTextFile`
+   * and `stat` it is a pure read: it adds no write, process, Git, or network
+   * capability, so ADR-0044's read-only guarantee is unaffected. See ADR-0045.
+   */
+  listDirectory(absolutePath: string): Promise<readonly FileSystemEntry[]>;
   /** Resolves symlinks to their real, absolute target path. */
   realPath(absolutePath: string): Promise<string>;
   /**
@@ -33,6 +45,14 @@ export interface FileSystem {
     content: string,
     options?: WriteTextFileOptions,
   ): Promise<void>;
+}
+
+export interface FileSystemEntry {
+  /** Entry name only, with no directory part. */
+  readonly name: string;
+  readonly isFile: boolean;
+  readonly isDirectory: boolean;
+  readonly isSymbolicLink: boolean;
 }
 
 export interface WriteTextFileOptions {

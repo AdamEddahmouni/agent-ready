@@ -84,6 +84,10 @@ export const contractValidityProbe: DiscoveryProbe = {
       case "absent":
         return {
           status: "unsupported",
+          // There is nothing to be valid. That is an absence, and it produces no
+          // diagnostic: `DISCOVERY_FACT_UNSUPPORTED` is raised from the manifest
+          // layout, for a shape that was read and deliberately not interpreted.
+          // A repository without a contract has no such shape.
           detail: "no contract exists, so its validity was not probed",
         };
       case "failed":

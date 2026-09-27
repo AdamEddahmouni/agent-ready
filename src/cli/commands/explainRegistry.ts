@@ -579,6 +579,33 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
     },
   ],
   [
+    "DISCOVERY_FACT_INCOMPLETE",
+    {
+      what: "A declared value is reported alongside evidence that contradicts it. The declaration is carried forward, the contradicting values are published in the fact's `contradictedBy`, and every claim is retained.",
+      why: 'A `packageManager` field is an assertion about which tool the repository uses; a lockfile is an observation that a tool-specific artifact exists. Those are not peers, so neither "they conflict, so the answer is unknown" nor "the lockfile wins" is honest. The first denies the repository said anything, which is false; the second is the confidently-wrong answer ADR-0044 exists to prevent. The disagreement is therefore published rather than resolved.',
+      fix: "1. Read the fact in `agent-ready discover --json` and look at `contradictedBy` — that is the list of managers the evidence does not support.\n2. Decide which is authoritative. Usually the stale artifact is the thing to remove or regenerate.\n3. Note that the value is the *declaration*; it is not a conclusion that the repository uses that tool.",
+      related: ["DISCOVERY_FACT_CONFLICT", "DISCOVERY_PARTIAL"],
+    },
+  ],
+  [
+    "DISCOVERY_WORKSPACE_UNSUPPORTED",
+    {
+      what: "A workspace declaration exists in a form this version does not model, or a declared pattern was refused as unsafe. Nothing was interpreted, and no workspace membership was derived from it.",
+      why: "Coercing an unrecognised layout into the nearest shape that happens to fit would report a workspace that is confidently not the one the repository declared. A pattern that is absolute or escapes the repository root is refused before any read, so an author-controlled declaration can never become arbitrary filesystem access.",
+      fix: "1. Supported forms are an array of strings, or an object with a `packages` array, plus `packages:` in pnpm-workspace.yaml.\n2. An unsupported *form* is reported, not repaired: check the file with `agent-ready discover --json` and read the fact's `unsupportedReason`.\n3. An unsupported *pattern* is a safety refusal. Rewrite it as a repository-relative pattern.",
+      related: ["DISCOVERY_FACT_UNSUPPORTED", "DISCOVERY_PARTIAL"],
+    },
+  ],
+  [
+    "DISCOVERY_LOCKFILE_UNREADABLE",
+    {
+      what: "A package-manager lockfile exists but could not be read, so its existence is not reported as evidence for that manager.",
+      why: "A lockfile is the only static signal that some tools have for the package manager in use. Treating an unreadable one as absent would let an I/O error silently erase the evidence for one manager while another manager's evidence stood unchallenged — producing a snapshot that looks coherent and is not.",
+      fix: "1. Check read permissions on the path named in the diagnostic.\n2. Re-run `agent-ready discover --json`. The fact becomes either agreed or conflicted once the file is readable.",
+      related: ["DISCOVERY_PARTIAL", "DISCOVERY_FACT_CONFLICT"],
+    },
+  ],
+  [
     "DISCOVERY_NO_SIGNALS",
     {
       what: "Every discovery probe completed successfully and none of them found any evidence. This is a valid, complete result — not a failure.",
@@ -589,10 +616,10 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
   [
     "DISCOVERY_FACT_UNSUPPORTED",
     {
-      what: "Reserved for a discovery fact whose kind falls outside the four defined by ADR-0044 (declared, derived, author-declared, unknown). Not currently reachable.",
-      why: "The registry reserves codes for conditions that are real but not yet reachable, the same way `ADAPTER_NOT_YET_IMPLEMENTED` and `COMMAND_DUPLICATE` do, so that a future release does not silently reuse a published string for a different meaning.",
-      fix: "N/A today. If you see this code, the discovery fact kinds have been extended and the documentation in docs/decisions/0044-repository-discovery-model.md should be updated with them.",
-      related: ["INTERNAL_INVARIANT_VIOLATION"],
+      what: "A discovery probe read something it deliberately does not interpret — for example a `packageManager` field that is not a `<name>@<version>` string. The fact is reported as `unknown` with reason `not-probed` rather than approximated.",
+      why: "This is a statement about this version's coverage, not about the repository's health. ADR-0044 reserved the code for a fact kind outside the four it defines; ADR-0045 made it reachable for a fact *shape* outside what the implementation models. Splitting a malformed declaration at its first `@` would produce a plausible-looking manager name that the repository never wrote, which is the exact failure the four kinds exist to prevent.",
+      fix: "1. Nothing needs fixing in the repository. Agent-Ready declined to guess.\n2. To see what was found, read the diagnostic's `detail` — it names the file and the raw value.\n3. Evidence from other sources for the same fact is still reported and may still establish it.",
+      related: ["DISCOVERY_WORKSPACE_UNSUPPORTED"],
     },
   ],
 ]);
