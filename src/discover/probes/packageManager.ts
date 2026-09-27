@@ -53,47 +53,9 @@ export const packageManagerDeclarationProbe: DiscoveryProbe = {
   factId: "repository.packageManager.root",
   kind: "declared",
   shape: "value",
-  async run(context) {
+  run: async (context) => {
     const layout = await context.readRepositoryLayout();
-    const claims: ProbeClaim[] = [];
-    // Typed as `FactId` rather than `string` so the ids are checked at the point
-    // they are produced rather than at the point they are consumed.
-    const unsupported: FactId[] = [];
-
-    for (const manifestPath of layout.manifestPaths) {
-      const read = await readManifest(context, manifestPath);
-      if (read.status !== "read") {
-        continue;
-      }
-      const field = readPackageManagerField(read.document, PACKAGE_MANAGER_FIELD);
-      if (!field.present) {
-        continue;
-      }
-      const scope = packageManagerScope(directoryOf(manifestPath));
-      if (!isSupportedDeclarationForm(field.raw)) {
-        // Routed to its own fact, so the package still appears in the snapshot
-        // as `unknown`/`not-probed` rather than vanishing because a sibling
-        // declared something we do understand.
-        unsupported.push(packageManagerFactId(scope));
-        continue;
-      }
-      claims.push({
-        factId: packageManagerFactId(scope),
-        kind: "declared",
-        // The field verbatim. The manager name is a projection of this, not a
-        // replacement for it, so the pinned version survives into the snapshot
-        // instead of being discarded in favour of a bare family name.
-        value: field.raw as string,
-        projected: managerFromDeclaration(field.raw),
-        evidence: [
-          {
-            source: manifestPath,
-            pointer: fieldPointer(PACKAGE_MANAGER_FIELD),
-            detail: "declared package manager",
-          },
-        ],
-      });
-    }
+    const { claims, unsupported } = await collectDeclarationClaims(context, layout.manifestPaths);
 
     if (claims.length === 0 && unsupported.length > 0) {
       // Every declaration present is in a form this implementation does not
@@ -122,6 +84,62 @@ export const packageManagerDeclarationProbe: DiscoveryProbe = {
 };
 
 /**
+ * The `packageManager` declarations every discovered manifest makes.
+ *
+ * Extracted from the probe so there is exactly one implementation of "what does
+ * this manifest say about its package manager". ADR-0046 §8 requires a command's
+ * structured invocation to be derived from the *published* package-manager
+ * fact, and a second reader of the same manifests could disagree with the first
+ * about what they declared. Sharing the collector makes that disagreement
+ * structurally impossible rather than a review question.
+ */
+export async function collectDeclarationClaims(
+  context: DiscoveryProbeContext,
+  manifestPaths: readonly string[],
+): Promise<{ claims: ProbeClaim[]; unsupported: FactId[] }> {
+  const claims: ProbeClaim[] = [];
+  // Typed as `FactId` rather than `string` so the ids are checked at the point
+  // they are produced rather than at the point they are consumed.
+  const unsupported: FactId[] = [];
+
+  for (const manifestPath of manifestPaths) {
+    const read = await readManifest(context, manifestPath);
+    if (read.status !== "read") {
+      continue;
+    }
+    const field = readPackageManagerField(read.document, PACKAGE_MANAGER_FIELD);
+    if (!field.present) {
+      continue;
+    }
+    const scope = packageManagerScope(directoryOf(manifestPath));
+    if (!isSupportedDeclarationForm(field.raw)) {
+      // Routed to its own fact, so the package still appears in the snapshot
+      // as `unknown`/`not-probed` rather than vanishing because a sibling
+      // declared something we do not understand.
+      unsupported.push(packageManagerFactId(scope));
+      continue;
+    }
+    claims.push({
+      factId: packageManagerFactId(scope),
+      kind: "declared",
+      // The field verbatim. The manager name is a projection of this, not a
+      // replacement for it, so the pinned version survives into the snapshot
+      // instead of being discarded in favour of a bare family name.
+      value: field.raw as string,
+      projected: managerFromDeclaration(field.raw),
+      evidence: [
+        {
+          source: manifestPath,
+          pointer: fieldPointer(PACKAGE_MANAGER_FIELD),
+          detail: "declared package manager",
+        },
+      ],
+    });
+  }
+  return { claims, unsupported };
+}
+
+/**
  * Observes manager-specific artifacts beside every discovered manifest.
  *
  * One claim per artifact, each citing only that artifact. The claim's value is
@@ -144,30 +162,9 @@ export const packageManagerLockfileProbe: DiscoveryProbe = {
   factId: "repository.packageManager.root",
   kind: "derived",
   shape: "value",
-  async run(context) {
+  run: async (context) => {
     const layout = await context.readRepositoryLayout();
-    const claims: ProbeClaim[] = [];
-    const unreadable: string[] = [];
-
-    for (const directory of dedupe(layout.manifestPaths.map(directoryOf))) {
-      for (const signal of LOCKFILE_SIGNALS) {
-        const artifactPath = joinRelative(directory, signal.path);
-        const outcome = await statArtifact(context, artifactPath);
-        if (outcome === "present") {
-          claims.push({
-            factId: packageManagerFactId(packageManagerScope(directory)),
-            kind: "derived",
-            value: artifactPath,
-            projected: signal.manager,
-            evidence: [{ source: artifactPath, detail: signal.detail }],
-          });
-          continue;
-        }
-        if (outcome === "failed") {
-          unreadable.push(artifactPath);
-        }
-      }
-    }
+    const { claims, unreadable } = await collectLockfileClaims(context, layout.manifestPaths);
 
     if (claims.length === 0) {
       if (unreadable.length > 0) {
@@ -199,6 +196,43 @@ export const packageManagerLockfileProbe: DiscoveryProbe = {
     return { status: "asserted", claims };
   },
 };
+
+/**
+ * The manager-specific artifacts beside every discovered manifest.
+ *
+ * Shared with the invocation resolver for the same reason as the declaration
+ * collector above: one reader, one answer, and no way for the executable a
+ * command is reported as runnable with to differ from the manager the snapshot
+ * publishes.
+ */
+export async function collectLockfileClaims(
+  context: DiscoveryProbeContext,
+  manifestPaths: readonly string[],
+): Promise<{ claims: ProbeClaim[]; unreadable: string[] }> {
+  const claims: ProbeClaim[] = [];
+  const unreadable: string[] = [];
+
+  for (const directory of dedupe(manifestPaths.map(directoryOf))) {
+    for (const signal of LOCKFILE_SIGNALS) {
+      const artifactPath = joinRelative(directory, signal.path);
+      const outcome = await statArtifact(context, artifactPath);
+      if (outcome === "present") {
+        claims.push({
+          factId: packageManagerFactId(packageManagerScope(directory)),
+          kind: "derived",
+          value: artifactPath,
+          projected: signal.manager,
+          evidence: [{ source: artifactPath, detail: signal.detail }],
+        });
+        continue;
+      }
+      if (outcome === "failed") {
+        unreadable.push(artifactPath);
+      }
+    }
+  }
+  return { claims, unreadable };
+}
 
 type ArtifactOutcome = "present" | "absent" | "failed";
 

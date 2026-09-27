@@ -106,6 +106,7 @@ export function createProbeContext(
   repoRoot: string,
   readContract: DiscoveryProbeContext["readContract"],
   readContractPackageManager: DiscoveryProbeContext["readContractPackageManager"],
+  readContractVerification: DiscoveryProbeContext["readContractVerification"],
   readRepositoryLayout: DiscoveryProbeContext["readRepositoryLayout"],
 ): DiscoveryProbeContext {
   return {
@@ -116,6 +117,7 @@ export function createProbeContext(
     realPath: (relativePath) => fs.realPath(joinPath(repoRoot, relativePath)),
     readContract,
     readContractPackageManager,
+    readContractVerification,
     readRepositoryLayout,
   };
 }

@@ -20,6 +20,8 @@ import { evidenceBudgetFor } from "./probe.js";
 import { isIncompleteFact } from "./types.js";
 import { contractPresenceProbe, contractValidityProbe } from "./probes/contract.js";
 import { contractPackageManagerClaimProbe } from "./probes/contractClaim.js";
+import { contractVerificationProbe } from "./probes/contractVerification.js";
+import { commandsProbe, verificationEntrypointsProbe } from "./probes/commands.js";
 import { declarationSurfaceProbe } from "./probes/declarationSurface.js";
 import {
   packageManagerDeclarationProbe,
@@ -70,6 +72,9 @@ export const DEFAULT_PROBES: readonly DiscoveryProbe[] = [
   packageManagerDeclarationProbe,
   packageManagerLockfileProbe,
   contractPackageManagerClaimProbe,
+  commandsProbe,
+  verificationEntrypointsProbe,
+  contractVerificationProbe,
 ];
 
 export interface DiscoverOptions {
@@ -116,6 +121,7 @@ export async function discoverRepository(
     repoRoot,
     createContractReader(fs, repoRoot),
     createContractPackageManagerReader(fs, repoRoot),
+    createContractVerificationReader(fs, repoRoot),
     createLayoutReader(layoutContext),
   );
 
@@ -520,6 +526,33 @@ async function describeLayout(context: DiscoveryProbeContext): Promise<Discovery
     });
   }
 
+  for (const located of layout.scripts) {
+    if (located.status === "unsupported") {
+      described.push({
+        code: "DISCOVERY_FACT_UNSUPPORTED",
+        severity: "warning",
+        summary: `The scripts declaration in ${located.manifestPath} is in a form this version does not model.`,
+        detail:
+          located.unsupportedReason ??
+          `${located.manifestPath} declares an unmodelled scripts shape.`,
+        remediation:
+          "Use a JSON object of name/command-string pairs. Other forms are left uninterpreted rather than approximated, and every command in every other package is still reported.",
+        metadata: { path: located.manifestPath, field: "scripts" },
+      });
+    }
+    for (const entry of located.unmodelled) {
+      described.push({
+        code: "DISCOVERY_FACT_UNSUPPORTED",
+        severity: "warning",
+        summary: `A script in ${located.manifestPath} is not a command string and was not interpreted.`,
+        detail: `${located.manifestPath} declares ${entry.pointer}, which is ${entry.reason}. It was not converted to a command; every string-valued entry beside it still is.`,
+        remediation:
+          "Package script values must be strings. Nothing about the other declared scripts changed.",
+        metadata: { path: located.manifestPath, script: entry.name, pointer: entry.pointer },
+      });
+    }
+  }
+
   for (const broken of layout.brokenManifests) {
     described.push({
       code: "DISCOVERY_PARTIAL",
@@ -697,6 +730,53 @@ async function readContractPackageManager(
 }
 
 /**
+ * Reads the contract's verification sequence, at most once per run.
+ *
+ * A separate memo for the same reason as the package-manager one: it answers a
+ * different question from `readContract`, and folding content accessors into a
+ * status accessor is how a maintainer's description reaches a discovered fact
+ * without its `author-declared` label.
+ *
+ * Returns undefined for an absent, invalid, or unreadable contract. Command
+ * discovery is downstream of this and must not fail when it is absent — the
+ * repository's own commands are the primary answer, and the contract is only
+ * ever a second, author-declared one.
+ */
+function createContractVerificationReader(
+  fs: FileSystem,
+  repoRoot: string,
+): () => Promise<readonly string[] | undefined> {
+  let pending: Promise<readonly string[] | undefined> | undefined;
+  return () => {
+    pending ??= readContractVerification(fs, repoRoot);
+    return pending;
+  };
+}
+
+async function readContractVerification(
+  fs: FileSystem,
+  repoRoot: string,
+): Promise<readonly string[] | undefined> {
+  const loaded = await loadContract({ fs, startDir: repoRoot });
+  if (!loaded.ok) {
+    return undefined;
+  }
+  const required = loaded.value.contract.verification.required;
+  // The normalized contract always carries a `verification` block and defaults
+  // `required` to the empty list, so "absent" and "declared empty" arrive here
+  // as the same value. That is not a guess: the v1 schema requires at least one
+  // entry, so a valid contract cannot declare an empty verification sequence and
+  // the empty list can only mean the block was not written.
+  if (required.length === 0) {
+    return undefined;
+  }
+  // Verbatim, and deliberately unsorted. Verification sequence ordering is
+  // source semantics (ADR-0046 §6), so canonicalising it would destroy a
+  // declaration in the act of reporting it.
+  return [...required];
+}
+
+/**
  * Builds the raw probe context used to gather the shared repository layout.
  *
  * Distinct from the context handed to probes so the layout is computed over the
@@ -709,7 +789,7 @@ function probeContextSource(fs: FileSystem, repoRoot: string): DiscoveryProbeCon
   const unavailable = (): never => {
     throw new Error("the layout must be read through the probe context, not the raw file system.");
   };
-  return createProbeContext(fs, repoRoot, unavailable, unavailable, unavailable);
+  return createProbeContext(fs, repoRoot, unavailable, unavailable, unavailable, unavailable);
 }
 
 /**

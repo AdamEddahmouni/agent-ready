@@ -83,8 +83,8 @@ process.stdout.write("regenerated discover fixtures\n");
  * went stale the moment the vocabulary grew and then guarded nothing at all.
  *
  * So the check is on the thing that matters: the fixture must actually contain
- * the snapshot the implementation produces, including the package and workspace
- * facts that distinguish it from the pre-#37 four-fact output.
+ * the snapshot the implementation produces, including the package, workspace, and
+ * command facts that distinguish it from the pre-#37 four-fact output.
  */
 function assertFixtureIsCurrent(text: string): void {
   const required = [
@@ -93,6 +93,9 @@ function assertFixtureIsCurrent(text: string): void {
     "repository.workspace.declarations",
     "repository.workspace.members",
     "repository.packageManager.root",
+    "repository.commands",
+    "repository.verificationEntrypoints",
+    "repository.contract.verification",
     '"snapshotVersion": 0',
   ];
   const missing = required.filter((marker) => !text.includes(marker));

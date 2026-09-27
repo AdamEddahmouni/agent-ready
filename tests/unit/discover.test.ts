@@ -61,21 +61,18 @@ describe("the production probe set is the substrate plus the package domain", ()
       "package-manager.declaration",
       "package-manager.lockfiles",
       "contract.package-manager-claim",
+      "commands.inventory",
+      "commands.verification",
+      "contract.verification",
     ]);
   });
 
-  it("reads no command, verification, or module-graph signal", () => {
-    // Those are Issues #38 and #39. If a probe for one of them appears here,
-    // the layering has been lost: a domain arriving early would put the next
-    // issue's architecture decisions in this review.
-    const laterIssues = [
-      "commands.discovery",
-      "verification.discovery",
-      "module-graph",
-      "imports",
-      "dependency-graph",
-      "ownership",
-    ];
+  it("reads no module-graph signal", () => {
+    // Issue #39. If a probe for one of these appears here, the layering has
+    // been lost: the graph domain arriving early would put the next issue's
+    // architecture decisions in this review. Command and verification
+    // discovery landed in #38 and are therefore no longer in this list.
+    const laterIssues = ["module-graph", "imports", "dependency-graph", "ownership"];
     for (const probe of DEFAULT_PROBES) {
       expect(laterIssues).not.toContain(probe.id);
     }

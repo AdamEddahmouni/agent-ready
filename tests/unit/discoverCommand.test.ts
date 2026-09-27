@@ -32,6 +32,17 @@ const EXPECTED_SNAPSHOT = `{
   "snapshotVersion": 0,
   "root": ".",
   "facts": {
+    "repository.commands": {
+      "id": "repository.commands",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": ".",
+          "detail": "no package manifest was found"
+        }
+      ]
+    },
     "repository.contract.present": {
       "id": "repository.contract.present",
       "kind": "derived",
@@ -61,6 +72,17 @@ const EXPECTED_SNAPSHOT = `{
       "kind": "unknown",
       "reason": "not-probed",
       "evidence": []
+    },
+    "repository.contract.verification": {
+      "id": "repository.contract.verification",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "agent-ready.yaml",
+          "detail": "declares no verification sequence"
+        }
+      ]
     },
     "repository.declarationSurface.present": {
       "id": "repository.declarationSurface.present",
@@ -153,6 +175,12 @@ const EXPECTED_SNAPSHOT = `{
         "corroborated": false
       }
     },
+    "repository.verificationEntrypoints": {
+      "id": "repository.verificationEntrypoints",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": []
+    },
     "repository.workspace.candidates": {
       "id": "repository.workspace.candidates",
       "kind": "unknown",
@@ -215,9 +243,9 @@ const EXPECTED_SNAPSHOT = `{
     }
   },
   "summary": {
-    "facts": 10,
+    "facts": 13,
     "known": 3,
-    "unknown": 7,
+    "unknown": 10,
     "conflicts": 0,
     "complete": true
   },
@@ -310,10 +338,17 @@ describe("discover human output", () => {
         "Package manager",
         "  Manager (root)  unknown (no-evidence)",
         "",
+        "Commands",
+        "  Declared   unknown (no-evidence)",
+        "",
+        "Verification",
+        "  Entrypoints unknown (no-evidence)",
+        "  Required   unknown (no-evidence)",
+        "",
         "Discovery",
-        "  Facts      10",
+        "  Facts      13",
         "  Known      3",
-        "  Unknown    7",
+        "  Unknown    10",
         "  Conflicts  0",
         "  Complete   yes",
       ].join("\n") + "\n",

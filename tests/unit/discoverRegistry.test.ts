@@ -373,6 +373,9 @@ describe("the human rendering adds no claim the JSON snapshot does not contain",
     "repository.workspace.declarations": "Declared",
     "repository.workspace.candidates": "Matched",
     "repository.workspace.members": "Members",
+    "repository.commands": "Declared",
+    "repository.verificationEntrypoints": "Entrypoints",
+    "repository.contract.verification": "Required",
   };
 
   /**

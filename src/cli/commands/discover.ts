@@ -4,16 +4,19 @@ import { resolveExitCode } from "../../diagnostics/exitCodes.js";
 import type { FileSystem } from "../../filesystem/types.js";
 import { discoverRepository } from "../../discover/discover.js";
 import { compareCodeUnits } from "../../discover/ordering.js";
-import {
-  managerForLockfile,
-  managerFromDeclaration,
-} from "../../discover/packages/packageManager.js";
+import { managerNameOfClaimValue } from "../../discover/packages/packageManager.js";
+import { roleForScriptName } from "../../discover/commands/role.js";
 import type { DiscoveryProbe } from "../../discover/probe.js";
 import type {
+  CommandEntry,
   DiscoverySnapshot,
   Fact,
+  InvocationStatus,
   JsonValue,
+  PackageCommandsEntry,
   PackageEntry,
+  UnmodelledScriptEntry,
+  VerificationEntrypointEntry,
   WorkspaceCandidateEntry,
   WorkspaceDeclarationEntry,
 } from "../../discover/types.js";
@@ -32,6 +35,31 @@ export interface DiscoverArgs {
  * — has to fit without truncation.
  */
 const MANAGER_LABEL_WIDTH = 15;
+
+/**
+ * Column width for a command name, and the width a body may occupy.
+ *
+ * A body is truncated for the terminal only; the machine JSON always carries the
+ * declared string verbatim, and a snapshot that is canonical and a display that
+ * is readable are not allowed to disagree about what the repository said.
+ */
+const COMMAND_NAME_WIDTH = 18;
+const ROLE_WIDTH = 7;
+const ENTRYPOINT_LABEL_WIDTH = 22;
+const BODY_WIDTH = 60;
+
+/**
+ * Longest a declared body may render in a terminal before it is elided.
+ *
+ * Deliberately a display limit and not a model limit. A shell command can be
+ * arbitrarily long, and truncating it here while the JSON keeps it whole is the
+ * only honest way to keep a terminal readable: the alternative is a summary
+ * presented as though it were the declaration.
+ */
+function elideBody(body: string): string {
+  const single = body.replace(/\s+/g, " ").trim();
+  return single.length <= BODY_WIDTH ? single : `${single.slice(0, BODY_WIDTH - 1)}…`;
+}
 
 /**
  * `agent-ready discover` reports evidence about a repository. It does not
@@ -167,6 +195,14 @@ function renderHuman(snapshot: DiscoverySnapshot, repoRoot: string): string {
   }
   lines.push("");
 
+  lines.push("Commands");
+  lines.push(...renderCommands(snapshot));
+  lines.push("");
+
+  lines.push("Verification");
+  lines.push(...renderVerification(snapshot));
+  lines.push("");
+
   const { facts, known, unknown, conflicts, complete } = snapshot.summary;
   lines.push("Discovery");
   lines.push(`  Facts      ${String(facts)}`);
@@ -267,31 +303,14 @@ function describeManager(fact: Fact): string {
 /**
  * The manager name a claim value indicates.
  *
- * A `declared` value is the field verbatim, so the name is the text before the
- * first `@`. A `derived` value is the **artifact path**, which for a workspace
- * member is nested (`packages/odd/yarn.lock`) while the signal table is keyed by
- * bare file name. The basename is therefore tried as well — without it, a
- * nested package's manager rendered as a raw quoted path, which is technically
- * accurate and useless to a reader.
- *
- * The merge already computed this projection internally; it is not published on
- * the fact, so it is recomputed here from the same two fixed rules rather than
- * carried through as a second source of truth.
+ * Delegates to the single projection in `packages/packageManager.ts`, which
+ * Issue #38 needed too: a command's derived executable is computed from a
+ * package-manager fact, and a renderer carrying its own copy of that rule could
+ * print one executable while the snapshot published another. One function, two
+ * callers, no drift.
  */
 function managerNameOf(value: JsonValue): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  const fromDeclaration = managerFromDeclaration(value);
-  if (fromDeclaration !== undefined) {
-    return fromDeclaration;
-  }
-  const asPath = managerForLockfile(value);
-  if (asPath !== undefined) {
-    return asPath;
-  }
-  const lastSeparator = Math.max(value.lastIndexOf("/"), value.lastIndexOf("\\"));
-  return lastSeparator < 0 ? undefined : managerForLockfile(value.slice(lastSeparator + 1));
+  return managerNameOfClaimValue(value);
 }
 
 function distinctManagerNames(values: readonly JsonValue[]): string[] {
@@ -303,6 +322,199 @@ function distinctManagerNames(values: readonly JsonValue[]): string[] {
     }
   }
   return names.sort(compareCodeUnits);
+}
+
+/**
+ * Renders every declared command, grouped by the package that declares it.
+ *
+ * Two things this section is careful not to do.
+ *
+ * It does not **infer**. A script whose name is not in the role grammar is
+ * rendered with an em dash, because Agent-Ready did not classify it — not
+ * because the repository is missing a test command. And the body is shown as
+ * the declared string it is, so a reader can see that `test:watch` is `vitest`
+ * and `test:package` is `pnpm build && …` for themselves.
+ *
+ * It does not **hide known absence**. A package with no `scripts` field, a
+ * package with an empty one, and a package whose manifest could not be parsed
+ * are three different states and get three different lines. The unreadable one
+ * in particular must never be rendered as an empty list, which would assert a
+ * package declares nothing when the truth is that nothing could be read.
+ */
+function renderCommands(snapshot: DiscoverySnapshot): string[] {
+  const fact = snapshot.facts["repository.commands"];
+  const lines = factRow("Declared", fact, describeCommandInventory);
+  const entries = readPackageCommands(fact);
+  if (entries.length === 0) {
+    return lines;
+  }
+  lines.push("");
+  for (const entry of entries) {
+    lines.push(`  ${entry.packagePath}`);
+    if (entry.scriptsStatus === "unobservable") {
+      lines.push(`${COMMAND_INDENT}(manifest could not be interpreted)`);
+      continue;
+    }
+    if (entry.scriptsStatus === "unsupported") {
+      lines.push(`${COMMAND_INDENT}(scripts field in a form this version does not model)`);
+      continue;
+    }
+    if (entry.commands.length === 0) {
+      // Known empty, and the wording is load-bearing. "no declared scripts" is a
+      // fact about the package. It is emphatically not a claim that the package
+      // has no tests, which is a different and much stronger statement.
+      lines.push(`${COMMAND_INDENT}(no declared scripts)`);
+    }
+    for (const command of entry.commands) {
+      lines.push(commandRow(command.name, readCommandRole(command.name), command.body));
+    }
+    for (const unmodelled of entry.unmodelledScripts) {
+      lines.push(
+        `${COMMAND_INDENT}${unmodelled.name.padEnd(COMMAND_NAME_WIDTH)} ${"—".padEnd(ROLE_WIDTH)} not a command string`,
+      );
+    }
+  }
+  return lines;
+}
+
+/**
+ * The command inventory's own epistemic state, rendered in one line.
+ *
+ * An `unknown` inventory reads as `unknown (reason)` rather than as zero, which
+ * is the property the human renderer must never lose: "no package was found"
+ * and "every package declares no scripts" are both "no commands appear below",
+ * and only one of them is a fact about the repository.
+ */
+function describeCommandInventory(fact: Fact | undefined): string {
+  if (fact === undefined) {
+    return "not probed";
+  }
+  if (fact.kind === "unknown") {
+    return `unknown (${fact.reason})`;
+  }
+  if (!("value" in fact)) {
+    return "conflicting";
+  }
+  if (fact.contradictedBy !== undefined) {
+    return "incomplete";
+  }
+  const entries = readPackageCommands(fact);
+  const scripts = entries.reduce((total, entry) => total + entry.commands.length, 0);
+  return `${String(scripts)} script(s) in ${String(entries.length)} package(s)`;
+}
+
+const COMMAND_INDENT = "    ";
+
+function commandRow(name: string, role: string | undefined, body: string | undefined): string {
+  const roleCell = (role ?? "—").padEnd(ROLE_WIDTH);
+  return `${COMMAND_INDENT}${name.padEnd(COMMAND_NAME_WIDTH)} ${roleCell} ${
+    body === undefined ? "" : elideBody(body)
+  }`.trimEnd();
+}
+
+/**
+ * The role a *display* shows for a script name.
+ *
+ * The renderer's own call to the same grammar the snapshot used, rather than
+ * reading a role back out of the entry. A command inventory entry is the
+ * declaration and carries no role — roles live in the verification fact, by
+ * design — so the human view derives the label with the identical published rule
+ * instead of inventing a second one that could drift.
+ */
+function readCommandRole(name: string): string | undefined {
+  return roleForScriptName(name)?.role;
+}
+
+/**
+ * Renders the recognised verification entrypoints, grouped by package.
+ *
+ * Every wording here is chosen to avoid claiming a runtime result. Nothing was
+ * executed, so nothing is "passed", "verified", or "working"; a command is
+ * **declared**, an invocation is **available**, and where no invocation could be
+ * derived the reason is named rather than papered over with a default
+ * executable. Printing `npm run test` for a package whose manager is unknown
+ * would be the single most misleading thing this command could do.
+ */
+function renderVerification(snapshot: DiscoverySnapshot): string[] {
+  const fact = snapshot.facts["repository.verificationEntrypoints"];
+  const lines = factRow("Entrypoints", fact, describeEntrypointCount);
+  const requiredFact = snapshot.facts["repository.contract.verification"];
+  const required = readContractVerification(requiredFact);
+  // Prefixed with its epistemic source, because this row is a different *kind*
+  // of answer from the ones above it. Reading a maintainer's list as a
+  // repository finding is the exact confusion the separation exists to prevent,
+  // and the label is the cheapest place to prevent it.
+  lines.push(
+    ...factRow("Required", requiredFact, (fact) =>
+      required === undefined ? describeBoolean(fact) : `author-declared: ${required.join(", ")}`,
+    ),
+  );
+
+  const entrypoints = readVerificationEntrypoints(fact);
+  if (entrypoints.length === 0) {
+    return lines;
+  }
+  lines.push("");
+  for (const entry of entrypoints) {
+    if (entry.first) {
+      lines.push(`  ${entry.entry.packagePath}`);
+    }
+    lines.push(`${COMMAND_INDENT}${describeEntrypoint(entry.entry)}`);
+  }
+  return lines;
+}
+
+/**
+ * The recognised-entrypoint count, in its own epistemic state.
+ *
+ * Zero rendered as `0` means "the roles were looked for and none matched" —
+ * knowledge. It is deliberately not phrased as anything about whether the
+ * repository has tests, because that is a different and much stronger claim.
+ */
+function describeEntrypointCount(fact: Fact | undefined): string {
+  if (fact === undefined) {
+    return "not probed";
+  }
+  if (fact.kind === "unknown") {
+    return `unknown (${fact.reason})`;
+  }
+  if (!("value" in fact)) {
+    return "conflicting";
+  }
+  if (fact.contradictedBy !== undefined) {
+    return "incomplete";
+  }
+  return String(readVerificationEntrypoints(fact).length);
+}
+
+function describeEntrypoint(entry: VerificationEntrypointEntry): string {
+  // A namespaced entry is labelled `role (script)` so the reader can see which
+  // declaration is being reported, and the two columns are separated by a
+  // space rather than being padded against each other: a long namespaced label
+  // produces a ragged row, never a run-together one.
+  const label = entry.primary ? entry.role : `${entry.role} (${entry.script})`;
+  const invocation = entry.invocation;
+  if (invocation === null) {
+    // The script, its role, and its body are all still known. Only the
+    // invocation is missing, and the reason says which gap it is. No default
+    // executable is printed: `npm run test` here would be a guess presented as
+    // an answer.
+    return `${label.padEnd(ENTRYPOINT_LABEL_WIDTH)} declared (${entry.script}); invocation unresolved — ${unresolvedReason(entry.invocationStatus)}`;
+  }
+  const command = `${invocation.executable} ${invocation.args.join(" ")}`;
+  const location = invocation.cwd === "." ? command : `cwd=${invocation.cwd} · ${command}`;
+  return `${label.padEnd(ENTRYPOINT_LABEL_WIDTH)} ${location}`;
+}
+
+function unresolvedReason(status: InvocationStatus): string {
+  switch (status) {
+    case "package-manager-conflict":
+      return "package manager contested";
+    case "package-manager-incomplete":
+      return "package manager declaration contradicted";
+    default:
+      return "package manager unknown";
+  }
 }
 
 function summarizePackages(fact: Fact | undefined): string {
@@ -457,6 +669,79 @@ function readDeclarations(value: JsonValue): readonly WorkspaceDeclarationEntry[
 }
 
 /**
+ * The per-package command inventories, narrowed defensively.
+ *
+ * Same reasoning as the readers above, extended to the nested shape: a renderer
+ * that trusted a missing field would print `undefined` as though the repository
+ * had said so. Each entry must carry the two fields the renderer actually reads
+ * before its commands are looked at at all.
+ */
+function readPackageCommands(fact: Fact | undefined): readonly PackageCommandsEntry[] {
+  if (fact === undefined || fact.kind === "unknown" || !("value" in fact)) {
+    return [];
+  }
+  return readObjects(fact.value)
+    .filter(
+      (item): item is PackageCommandsEntry =>
+        typeof item["packagePath"] === "string" &&
+        Array.isArray(item["commands"]) &&
+        Array.isArray(item["unmodelledScripts"]),
+    )
+    .map((entry) => ({
+      ...entry,
+      commands: readObjects(entry.commands).filter(
+        (command): command is CommandEntry =>
+          typeof command["name"] === "string" && typeof command["body"] === "string",
+      ),
+      unmodelledScripts: readObjects(entry.unmodelledScripts).filter(
+        (item): item is UnmodelledScriptEntry => typeof item["name"] === "string",
+      ),
+    }));
+}
+
+interface DisplayedEntrypoint {
+  readonly entry: VerificationEntrypointEntry;
+  /** True on the first entry of its package, so the heading prints once. */
+  readonly first: boolean;
+}
+
+function readVerificationEntrypoints(fact: Fact | undefined): readonly DisplayedEntrypoint[] {
+  if (fact === undefined || fact.kind === "unknown" || !("value" in fact)) {
+    return [];
+  }
+  const entries = readObjects(fact.value).filter(
+    (item): item is VerificationEntrypointEntry =>
+      typeof item["packagePath"] === "string" &&
+      typeof item["script"] === "string" &&
+      typeof item["role"] === "string" &&
+      typeof item["body"] === "string",
+  );
+  let previousPackage: string | undefined;
+  return entries.map((entry) => {
+    const first = entry.packagePath !== previousPackage;
+    previousPackage = entry.packagePath;
+    return { entry, first };
+  });
+}
+
+/**
+ * The contract's author-declared verification sequence, or undefined when the
+ * contract declares none.
+ *
+ * Returned in the order the maintainer wrote it, never sorted. This is the one
+ * ordered list in the snapshot whose order is source semantics.
+ */
+function readContractVerification(fact: Fact | undefined): readonly string[] | undefined {
+  if (fact === undefined || fact.kind === "unknown" || !("value" in fact)) {
+    return undefined;
+  }
+  if (!Array.isArray(fact.value)) {
+    return undefined;
+  }
+  return fact.value.filter((item): item is string => typeof item === "string");
+}
+
+/**
  * One fact as a labelled row, followed by its corroborating claims when it has
  * any. Returns the row and its evidence as a unit so the two can never drift
  * apart in the output.
@@ -508,7 +793,24 @@ function factRow(
   fact: Fact | undefined,
   describe: (fact: Fact | undefined) => string = describeBoolean,
 ): string[] {
-  return [`  ${label.padEnd(11)}${describe(fact)}`, ...renderEvidence(fact, "    ")];
+  return [`  ${labelCell(label)}${describe(fact)}`, ...renderEvidence(fact, "    ")];
+}
+
+/** Width the fact-row labels are padded to. */
+const FACT_LABEL_WIDTH = 11;
+
+/**
+ * Pads a label to the fact column, guaranteeing a separating space.
+ *
+ * `padEnd` returns a label that already fills the column unchanged, which ran the
+ * value straight into it — `Entrypointsunknown (no-evidence)`. A row that has
+ * run together is not a formatting nit: it is a rendering that reads as one
+ * token, and a reader cannot see where the label ends and the repository's
+ * answer begins. Long labels produce a ragged row rather than an unreadable one,
+ * exactly as `row()` does for package-manager scopes.
+ */
+function labelCell(label: string): string {
+  return label.length >= FACT_LABEL_WIDTH ? `${label} ` : label.padEnd(FACT_LABEL_WIDTH);
 }
 
 /**

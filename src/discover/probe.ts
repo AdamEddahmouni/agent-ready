@@ -5,6 +5,7 @@ import type {
   JsonValue,
   KnownFactKind,
   PackageEntry,
+  ScriptsStatus,
   WorkspaceCandidateEntry,
   WorkspaceDeclarationForm,
 } from "./types.js";
@@ -215,6 +216,23 @@ export interface DiscoveryProbeContext {
    */
   readContractPackageManager(): Promise<ContractPackageManagerClaim | undefined>;
   /**
+   * The contract's `verification.required` names, in declared order, if any.
+   *
+   * A third narrow accessor for the same reason as the two above: ADR-0044
+   * allows the contract to contribute facts, but only as `author-declared`
+   * claims, and one accessor per claim kind keeps that channel from widening into
+   * a general "read anything from the contract" capability by accident.
+   *
+   * Order is returned **verbatim**. Verification sequence ordering is source
+   * semantics — a maintainer who lists `lint` before `test` has said something —
+   * and sorting it would destroy a declaration in the act of reporting it.
+   *
+   * Undefined for an absent, invalid, or unreadable contract. In all three cases
+   * there is nothing to declare, and command discovery must degrade on its own
+   * rather than lose its repository-derived facts.
+   */
+  readContractVerification(): Promise<readonly string[] | undefined>;
+  /**
    * The shared, per-run package and workspace view.
    *
    * Declared here as a structural interface so the probe protocol has no
@@ -251,6 +269,50 @@ export interface DiscoveryLayout {
     readonly path: string;
     readonly raw: unknown;
   }[];
+  /**
+   * Every discovered manifest's command declarations.
+   *
+   * Added by ADR-0046 §11 as an extension of this one authoritative parse. The
+   * alternative — a command reader that re-read the manifests — would be free to
+   * disagree with the package reader about a size cap, a nesting limit, or what
+   * "malformed" means, and the two answers would then both appear in one
+   * snapshot.
+   */
+  readonly scripts: readonly DiscoveryScripts[];
+}
+
+/**
+ * Where one package's command declarations were read, and what they say.
+ *
+ * The manifest path and the package directory are separate fields because they
+ * are different strings: `package.json` is the root package's manifest *and* the
+ * conventional filename everywhere, so deriving one from the other would make
+ * `.` correct for the root by accident rather than by rule.
+ */
+export interface DiscoveryScripts {
+  readonly manifestPath: string;
+  /** Repository-relative package directory; `.` for the root. */
+  readonly packagePath: string;
+  readonly status: ScriptsStatus;
+  readonly commands: readonly DiscoveryCommand[];
+  readonly unmodelled: readonly DiscoveryUnmodelledScript[];
+  readonly unsupportedReason: string | null;
+}
+
+export interface DiscoveryCommand {
+  readonly name: string;
+  /** The declared string, verbatim. Never interpreted. */
+  readonly body: string;
+  readonly source: string;
+  readonly pointer: string;
+}
+
+export interface DiscoveryUnmodelledScript {
+  readonly name: string;
+  readonly value: JsonValue;
+  readonly reason: string;
+  /** JSON Pointer to the entry, so the diagnostic names the exact field. */
+  readonly pointer: string;
 }
 
 export interface DiscoveryDeclaration {

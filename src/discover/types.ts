@@ -37,6 +37,14 @@ export type JsonValue = JsonPrimitive | readonly JsonValue[] | { readonly [k: st
  *
  * `repository.packageManager` is the one deliberate exception, and it is
  * handled by `ScopedFactId` below rather than by enumerating paths here.
+ *
+ * `repository.commands` and `repository.verificationEntrypoints` are likewise
+ * *not* enumerated per script, despite being scoped to one. They are concepts a
+ * repository has — the commands it declares, and the verification entrypoints
+ * among them — and the entities inside them are addressed by `packagePath` and
+ * `name`. An id per script would be generated from repository content, which is
+ * exactly what makes the union reviewable in the first place (ADR-0045 §1,
+ * ADR-0046 §10).
  */
 export const FACT_IDS = [
   "repository.root",
@@ -48,6 +56,9 @@ export const FACT_IDS = [
   "repository.workspace.declarations",
   "repository.workspace.candidates",
   "repository.workspace.members",
+  "repository.commands",
+  "repository.verificationEntrypoints",
+  "repository.contract.verification",
 ] as const;
 
 /**
@@ -302,8 +313,173 @@ export function isKnownFact(fact: Fact): fact is AgreedFact | IncompleteFact | C
  * stability — reserving a version bump for routine vocabulary growth would
  * make the number carry no information at all. The bump is held for a change a
  * consumer could not survive. See ADR-0045.
+ *
+ * Issue #38 added three more facts on the same reasoning: nothing was removed,
+ * nothing changed meaning, and the three are projections of declarations ADR-0045
+ * already published. See ADR-0046 §10.
  */
 export const DISCOVERY_SNAPSHOT_VERSION = 0;
+
+// ---------------------------------------------------------------------------
+// Command and verification value shapes (ADR-0046)
+// ---------------------------------------------------------------------------
+
+/**
+ * The semantic roles the role grammar can assign, and the *only* ones.
+ *
+ * A role is a statement about a script's **name**, never about its body. Four
+ * roles is the whole vocabulary because a role that is ever wrong is worse than
+ * a role that is missing, and the grammar that produces them is the entire
+ * defence. `verify` is deliberately absent: a `verify` script's meaning lives
+ * entirely in its body, which is opaque here, so a `verify` role would be the
+ * one role asserting meaning rather than naming (ADR-0046 §3).
+ */
+export type CommandRole = "test" | "build" | "lint" | "typecheck";
+
+/**
+ * What became of a package's `scripts` declaration.
+ *
+ * Four states because the honest answer has four cases, and collapsing any pair
+ * of them produces a claim the repository did not make.
+ *
+ * - `declared`    — parsed, and `scripts` is a JSON object. `commands` holds
+ *                   every string-valued entry, which may legitimately be none.
+ * - `absent`      — parsed, and there is no `scripts` key. **Known empty.** This
+ *                   is a fact about the package, not ignorance, and reporting it
+ *                   as unknown would be a false negative.
+ * - `unsupported` — parsed, and `scripts` is present in a shape this version
+ *                   does not model. Not coerced, and not reported as empty.
+ * - `unobservable` — the manifest was malformed or unreadable, so it was never
+ *                   inspected. Reported, and explicitly *not* as empty.
+ */
+export type ScriptsStatus = "declared" | "absent" | "unsupported" | "unobservable";
+
+/**
+ * Why a structured invocation could not be derived.
+ *
+ * Not a new partial-state system: these are ADR-0045's existing outcomes
+ * spelled out at the point of use. `resolved` ↔ `AgreedFact`, `conflict` ↔
+ * `ConflictedFact`, `incomplete` ↔ `IncompleteFact`, and `unknown` ↔
+ * `UnknownFact`. The `package-manager-` prefix is kept on each non-resolved
+ * member so a rendered reason reads on its own without the field name beside it.
+ */
+export type InvocationStatus =
+  | "resolved"
+  | "package-manager-unknown"
+  | "package-manager-conflict"
+  | "package-manager-incomplete";
+
+/**
+ * One declared package script.
+ *
+ * `body` is the repository's string **verbatim**. No trimming, no shell-operator
+ * splitting, no executable canonicalization: those all require modelling a
+ * shell, which ADR-0046 §2 refuses, and a normalized body would be a claim about
+ * what the string meant rather than a reproduction of it. An empty string is a
+ * valid body — a declared no-op is still a declaration, and truthiness testing
+ * would delete it.
+ *
+ * `source` and `pointer` are per-entry so the citation is precise. "Which field
+ * of which file" is the difference between a claim a consumer can re-derive and
+ * one it has to take on trust (ADR-0046 §1).
+ */
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- see PackageEntry: an object type is assignable to JsonValue, an interface is not
+export type CommandEntry = {
+  readonly name: string;
+  readonly body: string;
+  /** Repository-relative manifest path, e.g. `packages/api/package.json`. */
+  readonly source: string;
+  /** JSON Pointer to the field, e.g. `/scripts/test`. */
+  readonly pointer: string;
+};
+
+/**
+ * A `scripts` entry that exists but whose value is not a string.
+ *
+ * Retained rather than dropped, with the raw JSON value, so that dropping it is
+ * a visible decision. Coercing it with `String(value)` would publish `42`,
+ * `null`, and `[object Object]` as though the repository had declared them as
+ * commands (ADR-0046 §7).
+ */
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- see PackageEntry: an object type is assignable to JsonValue, an interface is not
+export type UnmodelledScriptEntry = {
+  readonly name: string;
+  readonly value: JsonValue;
+  readonly reason: string;
+  /** JSON Pointer to the entry, so a diagnostic can name the exact field. */
+  readonly pointer: string;
+};
+
+/**
+ * Every command one package declares, plus what became of its `scripts` field.
+ *
+ * Nested by package rather than flattened into composite keys such as
+ * `.:test`. Flattening would invent an identity the repository never wrote, and
+ * it would make "this package's inventory could not be observed" inexpressible —
+ * a collection of commands has no way to say that one of its sources is missing.
+ * Per-package grouping is what lets the value distinguish three packages whose
+ * commands are fully known from one whose commands were never inspected, which
+ * is the case ADR-0046 §7 and §9 are about.
+ */
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- see PackageEntry: an object type is assignable to JsonValue, an interface is not
+export type PackageCommandsEntry = {
+  /** Repository-relative package directory; `.` for the root. */
+  readonly packagePath: string;
+  readonly scriptsStatus: ScriptsStatus;
+  readonly commands: readonly CommandEntry[];
+  readonly unmodelledScripts: readonly UnmodelledScriptEntry[];
+  /** Why `scriptsStatus` is `unsupported`, or null. */
+  readonly unsupportedReason: string | null;
+};
+
+/**
+ * A shell-independent description of how a command could be run.
+ *
+ * Structured rather than a shell string because `cd packages/api && pnpm run
+ * test` bakes POSIX quoting, path escaping, and a shell dialect into a format
+ * that has to be byte-identical on Windows. `cwd` and `argv` are stated
+ * separately, and the later Change Transaction runtime can render a
+ * platform-specific string *from* this at execution time.
+ *
+ * It is a derived description of an interface. `discover` never runs it, and
+ * never validates it by running it (ADR-0046 §8).
+ */
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- see PackageEntry: an object type is assignable to JsonValue, an interface is not
+export type CommandInvocation = {
+  /** Repository-relative directory to run in; `.` for the root. */
+  readonly cwd: string;
+  readonly executable: string;
+  readonly args: readonly string[];
+};
+
+/**
+ * One recognised verification entrypoint.
+ *
+ * `script` and `body` are the **declaration**, verbatim. The role is a
+ * projection computed over the name and never replaces it: a `test:unit` entry
+ * keeps `script: "test:unit"`, because the declaration is authoritative and the
+ * role is a label (ADR-0046 §3).
+ *
+ * `primary` means exactly one thing — the name equals the role root. It is not a
+ * safety claim, a recommendation, or a ranking; `lint:fix` is in the `lint`
+ * namespace and is not claimed to be non-mutating (ADR-0046 §4).
+ *
+ * `invocation` is present **iff** `invocationStatus` is `"resolved"`. The three
+ * unresolved statuses mean the script, its role, and its body are all still
+ * known: an unresolved invocation costs one field, not the entry.
+ */
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- see PackageEntry: an object type is assignable to JsonValue, an interface is not
+export type VerificationEntrypointEntry = {
+  readonly packagePath: string;
+  readonly script: string;
+  readonly role: CommandRole;
+  readonly body: string;
+  readonly primary: boolean;
+  readonly invocation: CommandInvocation | null;
+  readonly invocationStatus: InvocationStatus;
+  readonly source: string;
+  readonly pointer: string;
+};
 
 // ---------------------------------------------------------------------------
 // Structured value shapes

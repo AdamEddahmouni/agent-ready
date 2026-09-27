@@ -86,6 +86,38 @@ export function managerForLockfile(path: string): string | undefined {
  * `unknown`/`not-probed` with `DISCOVERY_FACT_UNSUPPORTED` says precisely what
  * happened, which is that this version does not model the shape.
  */
+/**
+ * The manager a *merged claim value* indicates, across both claim shapes.
+ *
+ * A `declared` value is the field verbatim (`pnpm@10.0.0`), so the name is the
+ * text before the first `@`. A `derived` value is the **artifact path**, which
+ * for a workspace member is nested (`packages/odd/yarn.lock`) while the signal
+ * table is keyed by bare file name, so the basename is tried too — without it a
+ * nested package's manager reads as a raw quoted path, which is accurate and
+ * useless.
+ *
+ * This is the single implementation of that projection. The merge computes the
+ * same answer internally and deliberately does not publish it, and the human
+ * renderer used to carry its own copy of this function. One copy, called by
+ * everything that needs to name a manager, is what keeps a rendered command's
+ * executable and the published fact from drifting apart.
+ */
+export function managerNameOfClaimValue(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const fromDeclaration = managerFromDeclaration(value);
+  if (fromDeclaration !== undefined) {
+    return fromDeclaration;
+  }
+  const asPath = managerForLockfile(value);
+  if (asPath !== undefined) {
+    return asPath;
+  }
+  const lastSeparator = Math.max(value.lastIndexOf("/"), value.lastIndexOf("\\"));
+  return lastSeparator < 0 ? undefined : managerForLockfile(value.slice(lastSeparator + 1));
+}
+
 export function managerFromDeclaration(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined;

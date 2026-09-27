@@ -18,7 +18,7 @@
 
 import { CANONICAL_CONTRACT_FILENAME } from "../../contract/discovery.js";
 import { compareCodeUnits } from "../ordering.js";
-import type { DiscoveryLayout, DiscoveryProbeContext } from "../probe.js";
+import type { DiscoveryLayout, DiscoveryProbeContext, DiscoveryScripts } from "../probe.js";
 import { safeRead } from "../read.js";
 import type { JsonValue, ManifestStatus, PackageEntry, WorkspaceCandidateEntry } from "../types.js";
 import { expandPatterns, normalizeWorkspacePattern } from "./expand.js";
@@ -28,9 +28,11 @@ import {
   interpretManifest,
   readManifest,
   readPackageManagerField,
+  readScripts,
+  unobservableScripts,
   unreadableEntry,
 } from "./manifest.js";
-import type { ManifestRead } from "./manifest.js";
+import type { ManifestRead, ScriptDeclaration } from "./manifest.js";
 import {
   PACKAGE_MANAGER_FIELD,
   PNPM_WORKSPACE_FILE,
@@ -52,6 +54,22 @@ export interface LocatedDeclaration {
   readonly patterns: readonly NormalizedPattern[];
   /** Patterns rejected as unsafe or malformed, with the reason. */
   readonly rejected: readonly PatternNormalization[];
+}
+
+/**
+ * Where a package's command declarations were read, and what they say.
+ *
+ * The manifest path and the package directory are both carried because they are
+ * different strings and conflating them would be a defect: `package.json` is the
+ * root package's manifest *and* the conventional filename everywhere, so a
+ * consumer reading `packagePath` off a manifest path would get `.` for the root
+ * by accident rather than by rule.
+ */
+export interface LocatedScripts {
+  readonly manifestPath: string;
+  /** Repository-relative package directory; `.` for the root. */
+  readonly packagePath: string;
+  readonly declaration: ScriptDeclaration;
 }
 
 export interface RepositoryLayout {
@@ -93,6 +111,17 @@ export interface RepositoryLayout {
    * is collected here rather than by the probe that builds the claims.
    */
   readonly unmodelledPackageManagers: readonly { readonly path: string; readonly raw: unknown }[];
+  /**
+   * Every discovered manifest's command declarations, code-unit sorted by
+   * manifest path.
+   *
+   * Added by ADR-0046 §11 as an extension of this one authoritative parse, not
+   * as a second pass. A command reader that re-read the manifests would be free
+   * to disagree with `readRepositoryLayout` about a size cap, a nesting limit,
+   * or what "malformed" means — and the two answers would then disagree about
+   * the same file in the same snapshot.
+   */
+  readonly scripts: readonly LocatedScripts[];
 }
 
 /**
@@ -126,6 +155,18 @@ export function toDiscoveryLayout(layout: RepositoryLayout): DiscoveryLayout {
     workspaceRootManifest: layout.workspaceRootManifest,
     brokenManifests: layout.brokenManifests,
     unmodelledPackageManagers: layout.unmodelledPackageManagers,
+    scripts: layout.scripts.map(toDiscoveryScripts),
+  };
+}
+
+function toDiscoveryScripts(located: LocatedScripts): DiscoveryScripts {
+  return {
+    manifestPath: located.manifestPath,
+    packagePath: located.packagePath,
+    status: located.declaration.status,
+    commands: located.declaration.commands,
+    unmodelled: located.declaration.unmodelled,
+    unsupportedReason: located.declaration.unsupportedReason,
   };
 }
 
@@ -165,8 +206,10 @@ export async function readRepositoryLayout(
   const packages: PackageEntry[] = [];
   const brokenManifests: { path: string; status: ManifestStatus }[] = [];
   const unmodelledPackageManagers: { path: string; raw: unknown }[] = [];
+  const scripts: LocatedScripts[] = [];
   if (rootManifestRead.status !== "absent") {
     packages.push(entryFor(ROOT_DIRECTORY, rootManifestRead));
+    scripts.push(locateScripts(ROOT_DIRECTORY, ROOT_MANIFEST, rootManifestRead));
     if (rootManifestRead.status !== "read") {
       brokenManifests.push({ path: ROOT_MANIFEST, status: rootManifestRead.status });
     } else {
@@ -185,6 +228,7 @@ export async function readRepositoryLayout(
       continue;
     }
     packages.push(entryFor(directory, read));
+    scripts.push(locateScripts(directory, manifestPath, read));
     if (read.status !== "read") {
       brokenManifests.push({ path: manifestPath, status: read.status });
     } else {
@@ -204,6 +248,28 @@ export async function readRepositoryLayout(
     unmodelledPackageManagers: unmodelledPackageManagers.sort((a, b) =>
       compareCodeUnits(a.path, b.path),
     ),
+    scripts: scripts.sort((a, b) => compareCodeUnits(a.manifestPath, b.manifestPath)),
+  };
+}
+
+/**
+ * Records what a manifest's `scripts` field declares.
+ *
+ * A manifest that never parsed yields `unobservable` rather than an empty list.
+ * That distinction is the whole point: a malformed `package.json` does not
+ * declare no commands, it declares that its commands could not be established,
+ * and reporting the first would be a false claim about the second (ADR-0046 §9).
+ */
+function locateScripts(
+  packagePath: string,
+  manifestPath: string,
+  read: ManifestRead,
+): LocatedScripts {
+  return {
+    manifestPath,
+    packagePath,
+    declaration:
+      read.status === "read" ? readScripts(read.document, manifestPath) : unobservableScripts(),
   };
 }
 
