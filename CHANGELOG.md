@@ -5,8 +5,50 @@ All notable changes to Agent-Ready are documented here. The project follows
 
 ## Unreleased
 
-Documentation only. No behavioral, CLI, schema, or dependency change ships with
-this entry; the v1 contract and the eleven commands are unchanged.
+Adds `agent-ready discover` as the twelfth command, on the parallel vNext
+track. The v1 contract, the eleven v1 commands, the adapter-output corpus, and
+the public JSON Schema are unchanged.
+
+### Added
+
+- `agent-ready discover [--root <path>] [--json]` builds a deterministic,
+  evidence-bearing model of a repository, and works **with or without** an
+  `agent-ready.yaml`: a missing contract is reported as a fact rather than as
+  `CONTRACT_NOT_FOUND`. Strictly read-only — the only capability a probe
+  receives is repository-relative reading and stat-ing, so there is no
+  `--write`, no process execution, no Git, and no network path. See
+  [ADR-0044](docs/decisions/0044-repository-discovery-model.md).
+- A discovery fact model with an explicit epistemic boundary: every fact is a
+  record carrying `declared` / `derived` / `author-declared` / `unknown`, and
+  every known fact cites the evidence behind it. `unknown` is a first-class
+  value with a reason, so an honest gap stays distinguishable from an absent
+  field. Contradictory sources produce a fact with no value and both claims
+  retained, never a ranked winner.
+- Five `DISCOVERY_*` diagnostic codes in the shared registry
+  (`DISCOVERY_ROOT_UNREADABLE`, `DISCOVERY_PARTIAL`, `DISCOVERY_FACT_CONFLICT`,
+  `DISCOVERY_NO_SIGNALS`, and the deliberately unreachable
+  `DISCOVERY_FACT_UNSUPPORTED`), reusing the existing diagnostic shape,
+  renderers, `explain` registry, and exit-code mapping. The full contract is in
+  [docs/specification/diagnostics.md](docs/specification/diagnostics.md#repository-discovery-diagnostics).
+- `WARNING_DIAGNOSTIC_CODES` as the single source of truth for which codes are
+  emitted as `severity: "warning"`. `agent-ready explain` now derives the
+  severity it reports from it instead of restating a hardcoded list.
+- `discover` in the reusable composite action's accepted subcommands and in the
+  CI `dogfood-action` matrix, plus a CLI smoke step that exercises determinism,
+  path-independence, the empty-repository case, the fatal-root exit code, and
+  explainability of every discovery code.
+- ADR-0041 (vNext direction), ADR-0042 (v1 freeze and parallel vNext surface),
+  ADR-0043 (deterministic core and quarantined integrations), and ADR-0044 (the
+  repository discovery model and its fact boundary).
+- [LANDSCAPE.md](docs/vnext/LANDSCAPE.md), positioning the direction against
+  AGENTS.md, MCP, SLSA/in-toto, OpenTelemetry, Git, isolation substrates, and
+  agent orchestrators, including what Agent-Ready would decline to rebuild.
+- [docs/security/threat-model-vnext.md](docs/security/threat-model-vnext.md),
+  enumerating fourteen threat classes created by the vNext direction, the
+  proposed trusted computing boundary, and the trust strata. None are mitigated
+  today.
+- [docs/vnext/PHASE-1-ISSUES.md](docs/vnext/PHASE-1-ISSUES.md), draft issue text
+  for the repository-intelligence phase. Drafts only; nothing is filed.
 
 ### Changed
 
@@ -24,18 +66,28 @@ this entry; the v1 contract and the eleven commands are unchanged.
 - Amend the no-network, no-LLM posture: the ban is permanent for the deterministic
   core, and networked integrations are quarantined behind individual design ADRs.
 
-### Added
+### Fixed
 
-- ADR-0041 (vNext direction), ADR-0042 (v1 freeze and parallel vNext surface), and
-  ADR-0043 (deterministic core and quarantined integrations).
-- [LANDSCAPE.md](docs/vnext/LANDSCAPE.md), positioning the direction against
-  AGENTS.md, MCP, SLSA/in-toto, OpenTelemetry, Git, isolation substrates, and
-  agent orchestrators, including what Agent-Ready would decline to rebuild.
-- [docs/security/threat-model-vnext.md](docs/security/threat-model-vnext.md),
-  enumerating fourteen threat classes created by the vNext direction, the proposed
-  trusted computing boundary, and the trust strata. None are mitigated today.
-- [docs/vnext/PHASE-1-ISSUES.md](docs/vnext/PHASE-1-ISSUES.md), draft issue text
-  for the repository-intelligence phase. Drafts only; nothing is filed.
+- `agent-ready explain --code <CODE> --json` reported `severity: "error"` for
+  every code outside a hardcoded list of three, so a newly registered
+  informational code was described as an error. It now derives the severity
+  from the shared registry.
+- `DISCOVERY_NO_SIGNALS` could be emitted alongside `DISCOVERY_PARTIAL`, which
+  made a single snapshot both claim that every probe completed and report that
+  one could not. It is now emitted only when no probe failed.
+- `corroboration.corroborated` was true for a fact supported by a single
+  source, which read as independent verification. It is now true only when at
+  least two claims support the value from different evidence; the weaker
+  question is answered by `corroboration.kinds`.
+- `hasEvidence` returned `false` for a fact whose probe failed — a legitimate
+  state, since a failed probe is precisely how nothing gets cited. The
+  predicate now matches its documented contract, and a separate
+  `isSelfDescribing` expresses the observability question.
+- `DISCOVERY_PARTIAL` did not set `sourcePath`, so its own remediation text
+  pointed at a field that was never populated.
+- `DISCOVERY_ROOT_UNREADABLE` resolved to the generic validation-failure exit
+  code. It now resolves to exit `2`, alongside `CONTRACT_READ_FAILED` and
+  `GIT_REPOSITORY_NOT_FOUND`.
 
 ## 0.6.1 - 2026-07-12
 

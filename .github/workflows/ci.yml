@@ -71,6 +71,7 @@ jobs:
           node dist/cli/index.js explain --help
           node dist/cli/index.js init --help
           node dist/cli/index.js upgrade --help
+          node dist/cli/index.js discover --help
           node dist/cli/index.js verify --help
 
       - name: CLI smoke test - valid examples pass
@@ -119,6 +120,57 @@ jobs:
           echo "$output"
           echo "$output" | grep -q '"mode": "dry-run"'
           echo "$output" | grep -q '"id": "build"'
+
+      # `discover` is the one command that must succeed on a repository with
+      # no contract, so it is exercised here on a synthetic empty directory
+      # as well as on this repository. The snapshot must stay byte-identical
+      # across runs, and no absolute path may leak into it.
+      - name: CLI smoke test - discover (JSON and human)
+        shell: bash
+        run: |
+          set -e
+          output="$(node dist/cli/index.js discover --json)"
+          echo "$output"
+          echo "$output" | grep -q '"ok": true'
+          echo "$output" | grep -q '"snapshotVersion": 0'
+          echo "$output" | grep -q '"repository.packageManager"'
+          echo "$output" | grep -q '"complete": true'
+
+          again="$(node dist/cli/index.js discover --json)"
+          if [ "$output" != "$again" ]; then
+            echo "discover --json is not byte-identical across runs" >&2
+            exit 1
+          fi
+
+          if echo "$output" | grep -q "$PWD"; then
+            echo "discover --json leaked an absolute path into the snapshot" >&2
+            exit 1
+          fi
+
+          node dist/cli/index.js discover
+
+          empty="$(mktemp -d)"
+          output="$(node dist/cli/index.js discover --root "$empty" --json)"
+          echo "$output"
+          # An empty directory is a valid, complete, empty result - not a
+          # CONTRACT_NOT_FOUND failure.
+          echo "$output" | grep -q '"DISCOVERY_NO_SIGNALS"'
+          if echo "$output" | grep -q '"CONTRACT_NOT_FOUND"'; then
+            echo "discover must never report CONTRACT_NOT_FOUND" >&2
+            exit 1
+          fi
+          echo "$output" | grep -q '"complete": true'
+
+          # A root that does not exist is the one fatal condition.
+          if node dist/cli/index.js discover --root "$empty/nope" --json; then
+            echo "Expected an unreadable discovery root to fail" >&2
+            exit 1
+          fi
+
+          # Every code discovery can emit must be explainable.
+          for code in DISCOVERY_ROOT_UNREADABLE DISCOVERY_PARTIAL DISCOVERY_FACT_CONFLICT DISCOVERY_NO_SIGNALS DISCOVERY_FACT_UNSUPPORTED; do
+            node dist/cli/index.js explain --code "$code" --json | grep -q "\"$code\""
+          done
 
       - name: CLI smoke test - verify --execute (synthetic contract, real process spawning)
         shell: bash
@@ -225,7 +277,19 @@ jobs:
       fail-fast: false
       matrix:
         command:
-          [validate, inspect, generate, check, analyze, schema, doctor, explain, upgrade, verify]
+          [
+            validate,
+            inspect,
+            generate,
+            check,
+            analyze,
+            schema,
+            doctor,
+            explain,
+            upgrade,
+            discover,
+            verify,
+          ]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -233,7 +297,7 @@ jobs:
         uses: ./
         with:
           command: ${{ matrix.command }}
-          config: ${{ matrix.command != 'schema' && 'examples/complete-phase-1/agent-ready.yaml' || '' }}
+          config: ${{ matrix.command != 'schema' && matrix.command != 'discover' && 'examples/complete-phase-1/agent-ready.yaml' || '' }}
           code: ${{ matrix.command == 'explain' && 'CONTRACT_NOT_FOUND' || '' }}
           json: "true"
 

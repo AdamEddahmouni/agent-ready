@@ -57,9 +57,52 @@ export const DIAGNOSTIC_CODES = [
   "UPGRADE_NO_CHANGES_NEEDED",
   "UPGRADE_MANUAL_REVIEW_REQUIRED",
   "UPGRADE_WRITE_FAILED",
+  // Repository discovery (ADR-0044). Reserved namespace for `discover` and
+  // the discovery core. DISCOVERY_FACT_UNSUPPORTED is deliberately
+  // unreachable today, reserved for a fact kind outside the four defined by
+  // ADR-0044, following the ADAPTER_NOT_YET_IMPLEMENTED precedent.
+  "DISCOVERY_ROOT_UNREADABLE",
+  "DISCOVERY_PARTIAL",
+  "DISCOVERY_FACT_CONFLICT",
+  "DISCOVERY_NO_SIGNALS",
+  "DISCOVERY_FACT_UNSUPPORTED",
 ] as const;
 
 export type DiagnosticCode = (typeof DIAGNOSTIC_CODES)[number];
+
+/**
+ * The codes emitted as `severity: "warning"` rather than `"error"`.
+ *
+ * Warning diagnostics describe a real condition that must not fail the
+ * command: an enabled-but-unimplemented adapter, a contract with nothing to
+ * verify, a runtime doctor does not probe yet, an upgrade that is a no-op, and
+ * the discovery conditions that leave a snapshot usable but incomplete or
+ * empty. Every other code is an error.
+ *
+ * This is a single source of truth on purpose. The list used to be restated
+ * inside `agent-ready explain`, which meant a newly registered informational
+ * code was reported by `explain` with the wrong severity until someone
+ * remembered to edit a second list. `explain` now derives from here, and a
+ * unit test asserts the two never diverge.
+ */
+export const WARNING_DIAGNOSTIC_CODES = [
+  "ADAPTER_NOT_YET_IMPLEMENTED",
+  "VERIFICATION_NOT_DECLARED",
+  "RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED",
+  "UPGRADE_NO_CHANGES_NEEDED",
+  "UPGRADE_MANUAL_REVIEW_REQUIRED",
+  "DISCOVERY_PARTIAL",
+  "DISCOVERY_FACT_CONFLICT",
+  "DISCOVERY_NO_SIGNALS",
+  "DISCOVERY_FACT_UNSUPPORTED",
+] as const satisfies readonly DiagnosticCode[];
+
+export type WarningDiagnosticCode = (typeof WARNING_DIAGNOSTIC_CODES)[number];
+
+/** True when the code is documented as informational rather than fatal. */
+export function isWarningDiagnosticCode(code: DiagnosticCode): boolean {
+  return (WARNING_DIAGNOSTIC_CODES as readonly string[]).includes(code);
+}
 
 export function isDiagnosticCode(value: string): value is DiagnosticCode {
   return (DIAGNOSTIC_CODES as readonly string[]).includes(value);

@@ -97,6 +97,7 @@ The required `command:` input below accepts exactly one of:
 - `explain`
 - `init`
 - `upgrade`
+- `discover`
 - `verify`
 
 This list is the source of truth shared with `action.yml`'s
@@ -125,7 +126,7 @@ Path A note further down in this section.
 
 A step's exit code is exactly the CLI's exit code (see
 [cli-reference.md](cli-reference.md#exit-codes)) — a failing
-`validate`/`check`/`analyze`/`schema`/`doctor`/`explain`/`init`/`upgrade`/`verify`
+`validate`/`check`/`analyze`/`schema`/`doctor`/`explain`/`init`/`upgrade`/`discover`/`verify`
 fails the job with no extra
 wiring. The action never captures or parses the CLI's stdout/stderr; it
 flows straight to the job log exactly as if you had run the command
@@ -134,7 +135,9 @@ required inputs in the same PR, so the composite action does not advertise a
 subcommand it cannot invoke. The
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) `dogfood-action`
 matrix grows the same way; if a future command does not accept `--config` (since `agent-ready schema` does not, per
-[ADR-0022](../decisions/0022-agent-ready-schema-command.md)),
+[ADR-0022](../decisions/0022-agent-ready-schema-command.md), and neither does
+`agent-ready discover`, which takes `--root` instead — see
+[ADR-0044](../decisions/0044-repository-discovery-model.md)),
 extend the `config:` line's `if(...)` predicate so its matrix entry
 also gets an empty `config:` value — otherwise the bash step appends a
 `--config` flag that commander rejects.

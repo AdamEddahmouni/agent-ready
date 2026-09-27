@@ -153,10 +153,10 @@ Adam Eddahmouni is currently the sole maintainer and is responsible for:
 - **Specification design** — the `agent-ready.yaml` contract shape and
   evolution policy.
 - **Schema maintenance** — `schemas/v1/agent-ready.schema.json`.
-- **CLI development** — all eleven commands and the public API.
+- **CLI development** — all twelve commands and the public API.
 - **Adapter development** — the five agent-instruction renderers.
 - **Documentation** — specification docs, ADRs, roadmap, threat model.
-- **Testing** — 557 passing unit/integration tests across 41 files (plus 2 skipped).
+- **Testing** — 659 passing unit/integration tests across 45 files (plus 2 skipped).
 - **Release management** — npm publication, GitHub Releases, changelog.
 - **Issue triage** — currently minimal by volume; no external issue
   traffic yet.

@@ -545,4 +545,54 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
       related: ["GIT_UNAVAILABLE"],
     },
   ],
+
+  // ── discover ─────────────────────────────────────────────────────────
+  //
+  // Discovery diagnostics describe the discovery operation, not the
+  // repository. A DISCOVERY_* code says something about what Agent-Ready was
+  // able to establish; the accompanying fact says what is known. See
+  // docs/decisions/0044-repository-discovery-model.md.
+  [
+    "DISCOVERY_ROOT_UNREADABLE",
+    {
+      what: "`agent-ready discover` could not read the directory it was asked to inspect. This is the only condition that prevents discovery from producing a snapshot.",
+      why: "Everything discovery reports is repository-relative to a root. Without a readable root there is nothing to be relative to, so no snapshot can be constructed at all.",
+      fix: "1. Point --root at a directory that exists and is readable:\n     agent-ready discover --root /path/to/repo\n2. If the path is correct, check its permissions:\n     ls -ld /path/to/repo",
+    },
+  ],
+  [
+    "DISCOVERY_PARTIAL",
+    {
+      what: "A discovery probe could not complete, usually because a path was unreadable. The fact it was investigating is reported as `unknown` with reason `probe-failed`.",
+      why: "A probe that failed has established nothing, which is different from a probe that completed and found nothing. Reporting a failure as absence would be a false claim, so the affected fact stays unknown and the snapshot is marked incomplete.",
+      fix: "1. Check read permissions on the path named in the diagnostic's `sourcePath`.\n2. Re-run `agent-ready discover --json` and look at the affected fact: it should become known once the path is readable.\n3. The command still exits successfully — partial knowledge is a valid result.",
+      related: ["DISCOVERY_NO_SIGNALS"],
+    },
+  ],
+  [
+    "DISCOVERY_FACT_CONFLICT",
+    {
+      what: "Two or more sources disagree about the same repository fact. Every claim is retained with its evidence, and the fact is reported with no value at all.",
+      why: "Agent-Ready does not rank lockfiles, declarations, and contract claims against each other. A snapshot that silently picked a winner would be indistinguishable from a correct one, and a confidently wrong model is worse than an honest gap.",
+      fix: "1. Inspect the retained claims and their evidence with `agent-ready discover --json`.\n2. Decide which source is authoritative, then make the repository agree with itself: usually by removing the stale lockfile or correcting the declaration.\n3. If the disagreement is intentional, document it so the next reader does not treat it as a defect.",
+      related: ["DISCOVERY_PARTIAL"],
+    },
+  ],
+  [
+    "DISCOVERY_NO_SIGNALS",
+    {
+      what: "Every discovery probe completed successfully and none of them found any evidence. This is a valid, complete result — not a failure.",
+      why: "A repository that contains none of the probed signals is a legitimate repository. The diagnostic exists so that an empty result is never mistaken for a command that silently did nothing.",
+      fix: "1. Confirm --root points at the repository you meant to inspect:\n     agent-ready discover --root /path/to/repo\n2. If the repository does have a package.json or a contract, check the fact for it with `agent-ready discover --json` — it will be `unknown` with reason `no-evidence` rather than a value.",
+    },
+  ],
+  [
+    "DISCOVERY_FACT_UNSUPPORTED",
+    {
+      what: "Reserved for a discovery fact whose kind falls outside the four defined by ADR-0044 (declared, derived, author-declared, unknown). Not currently reachable.",
+      why: "The registry reserves codes for conditions that are real but not yet reachable, the same way `ADAPTER_NOT_YET_IMPLEMENTED` and `COMMAND_DUPLICATE` do, so that a future release does not silently reuse a published string for a different meaning.",
+      fix: "N/A today. If you see this code, the discovery fact kinds have been extended and the documentation in docs/decisions/0044-repository-discovery-model.md should be updated with them.",
+      related: ["INTERNAL_INVARIANT_VIOLATION"],
+    },
+  ],
 ]);

@@ -1,7 +1,7 @@
 name: "Agent-Ready"
 description: >-
   Validate, inspect, generate, check, analyze, schema, doctor, explain, init,
-  upgrade, and verify a repository's agent-ready.yaml contract, using this repository's own
+  upgrade, discover, and verify a repository's agent-ready.yaml contract, using this repository's own
   CLI built from source. See docs/specification/ci-integration.md.
 author: "Agent-Ready"
 
@@ -9,7 +9,7 @@ inputs:
   command:
     description: >-
       The agent-ready subcommand to run: validate, inspect, generate,
-      check, analyze, schema, doctor, explain, init, upgrade, or verify.
+      check, analyze, schema, doctor, explain, init, upgrade, discover, or verify.
     required: true
   config:
     description: "Explicit path to the contract file (agent-ready.yaml)."
@@ -100,8 +100,8 @@ runs:
         # Bash does not parse `|` from a variable expansion as case-pattern
         # alternation. Keep an explicit regex for validation and a matching
         # display list for errors; update both with the command input prose.
-        readonly accepted_subcommands_regex='^(validate|inspect|generate|check|analyze|schema|doctor|explain|init|upgrade|verify)$'
-        readonly accepted_subcommands_display='validate, inspect, generate, check, analyze, schema, doctor, explain, init, upgrade, verify'
+        readonly accepted_subcommands_regex='^(validate|inspect|generate|check|analyze|schema|doctor|explain|init|upgrade|discover|verify)$'
+        readonly accepted_subcommands_display='validate, inspect, generate, check, analyze, schema, doctor, explain, init, upgrade, discover, verify'
 
         if [[ ! "$INPUT_COMMAND" =~ $accepted_subcommands_regex ]]; then
           echo >&2 "::error::agent-ready: unknown command '$INPUT_COMMAND'. Accepted: $accepted_subcommands_display."

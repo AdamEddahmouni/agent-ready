@@ -1,5 +1,5 @@
 import { loadContract } from "../../contract/pipeline.js";
-import { isDiagnosticCode } from "../../diagnostics/codes.js";
+import { isDiagnosticCode, isWarningDiagnosticCode } from "../../diagnostics/codes.js";
 import type { DiagnosticCode } from "../../diagnostics/codes.js";
 import { ExitCode } from "../../diagnostics/exitCodes.js";
 import { resolveExitCode } from "../../diagnostics/exitCodes.js";
@@ -227,15 +227,14 @@ function formatValue(value: unknown): string {
   return JSON.stringify(value);
 }
 
+/**
+ * The severity `explain` reports for a code. Derived from the shared
+ * `WARNING_DIAGNOSTIC_CODES` list rather than restated here, so a code
+ * registered as informational cannot be reported as an error by one command
+ * and a warning by another.
+ */
 function codeToSeverity(code: DiagnosticCode): "error" | "warning" {
-  if (
-    code === "ADAPTER_NOT_YET_IMPLEMENTED" ||
-    code === "VERIFICATION_NOT_DECLARED" ||
-    code === "RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED"
-  ) {
-    return "warning";
-  }
-  return "error";
+  return isWarningDiagnosticCode(code) ? "warning" : "error";
 }
 
 interface ContractFieldEntry {

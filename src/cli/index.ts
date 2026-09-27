@@ -16,6 +16,7 @@ import { runDoctor } from "./commands/doctor.js";
 import { runExplain } from "./commands/explain.js";
 import { runInit } from "./commands/init.js";
 import { runUpgrade } from "./commands/upgrade.js";
+import { runDiscover } from "./commands/discover.js";
 
 interface PackageJson {
   readonly version: string;
@@ -31,7 +32,7 @@ program
   .name("agent-ready")
   .description(
     "Validate, inspect, generate, check, analyze, schema, doctor, explain,\n" +
-      "init, upgrade, verify, and inspect the bundled contract JSON Schema. This CLI never modifies the repository\n" +
+      "init, upgrade, verify, discover, and inspect the bundled contract JSON Schema. This CLI never modifies the repository\n" +
       "unless `generate --write`, `init --write`, or `verify --execute` is used.\n" +
       "Never executes repository commands unless `verify --execute` is used.",
   )
@@ -230,6 +231,27 @@ program
   .action(async (opts: { write: boolean; json: boolean; config?: string }) => {
     const fs = new NodeFileSystem();
     const outcome = await runUpgrade(fs, opts);
+    if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
+    if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
+    process.exitCode = outcome.exitCode;
+  });
+
+program
+  .command("discover")
+  .description(
+    "Build a deterministic, evidence-bearing model of a repository. Works\n" +
+      "with or without an agent-ready.yaml: a missing contract is reported as\n" +
+      "a fact, not as a failure. Strictly read-only — no write, force, process,\n" +
+      "Git, or network path exists. See docs/decisions/0044-repository-discovery-model.md.",
+  )
+  .option("--json", "Print the discovery snapshot as machine-readable JSON.", false)
+  .option("--root <path>", "Repository directory to inspect. Defaults to the working directory.")
+  .action(async (opts: { json: boolean; root?: string }) => {
+    const fs = new NodeFileSystem();
+    const outcome = await runDiscover(fs, {
+      json: opts.json,
+      ...(opts.root !== undefined && { root: opts.root }),
+    });
     if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
     if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
     process.exitCode = outcome.exitCode;

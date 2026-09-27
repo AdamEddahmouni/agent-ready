@@ -20,11 +20,16 @@ verify --execute`, which runs exactly the commands declared in
 `verification.required` (see [`agent-ready verify`](#agent-ready-verify)
 below and [ADR-0014](../decisions/0014-verification-execution.md)).
 
-This reference covers the eleven commands that exist today. Path A is
+This reference covers the twelve commands that exist today. Path A is
 complete: `agent-ready schema` ([ADR-0022](../decisions/0022-agent-ready-schema-command.md)),
 `agent-ready doctor` ([ADR-0023](../decisions/0023-agent-ready-doctor-command.md)),
 `agent-ready explain` ([ADR-0024](../decisions/0024-agent-ready-explain-command.md)),
 and `agent-ready init` ([ADR-0025](../decisions/0025-agent-ready-init-command.md)).
+`agent-ready discover`
+([ADR-0044](../decisions/0044-repository-discovery-model.md)) is the twelfth
+and is additive surface on the parallel vNext track: per
+[ADR-0042](../decisions/0042-v1-freeze-and-parallel-vnext-surface.md) it leaves
+the v1 contract and the other eleven commands untouched.
 
 ## `agent-ready --help` / `agent-ready --version`
 
@@ -772,6 +777,205 @@ Exit codes: `0` on success, `1` on unrecognized code or contract
 validation failure, `2` when `--config` is given but the contract is
 not found.
 
+## `agent-ready discover`
+
+Builds a deterministic, evidence-bearing model of a repository. Works **with or
+without** an `agent-ready.yaml`: a missing contract is reported as a fact, not
+as a failure. This is the one command that can describe a repository nobody has
+written a contract for. See
+[ADR-0044](../decisions/0044-repository-discovery-model.md) for the design
+rationale and
+[diagnostics.md](diagnostics.md#repository-discovery-diagnostics) for the full
+diagnostic contract.
+
+**Strictly read-only.** Unlike `generate --write`, `init --write`, and
+`verify --record`, this command exposes no mutation path at all: the only
+capability a probe receives is repository-relative reading and stat-ing. There
+is no writer, no process runner, no Git client, and no network client in the
+path, so it cannot modify the repository, execute anything, or reach the
+network. There is deliberately no `--write` and no `--force`; adding one would
+need its own decision.
+
+```bash
+agent-ready discover
+agent-ready discover --json
+agent-ready discover --root path/to/repo
+agent-ready discover --root path/to/repo --json
+```
+
+| Option          | Description                                                                           |
+| --------------- | ------------------------------------------------------------------------------------- |
+| `--json`        | Print the discovery snapshot as machine-readable JSON. This is the primary interface. |
+| `--root <path>` | Repository directory to inspect. Defaults to the working directory.                   |
+
+### Probe, evidence, fact
+
+Three things are deliberately kept apart:
+
+- A **probe** is a bounded, read-only inspection with a four-way outcome:
+  `found`, `not-found` (the inspection completed and the thing is absent),
+  `failed` (the inspection could not be completed), and `unsupported` (out of
+  scope for this repository). Collapsing any pair of those would be a
+  correctness bug, not a simplification.
+- **Evidence** is where a claim came from: a repository-relative `source`, an
+  optional `pointer` into that document, and a `detail`. A fact that makes a
+  positive claim must always cite it.
+- A **fact** is a record, never a bare value. Every fact carries an epistemic
+  `kind` — `declared` (a file asserts it), `derived` (a fixed rule in the code
+  computed it), `author-declared` (a human claimed it in `agent-ready.yaml`),
+  or `unknown` — plus the claims and evidence behind it.
+
+The boundary these enforce: **output claim strength ≤ support provided by the
+evidence contract.** Concretely, `discover` will not
+
+- turn a probe's success into more certainty than the probe supports;
+- turn a probe's failure into proof of absence (a failed probe yields `unknown`
+  with reason `probe-failed`, never `false`);
+- report two claims citing the same file as independent corroboration;
+- promote an `author-declared` claim over what the repository itself shows;
+- fall back to a default value where evidence is missing;
+- choose a winner between sources that disagree.
+
+### Facts reported today
+
+| Fact id                                 | Kind      | Meaning                                                                                                                 |
+| --------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `repository.root`                       | `derived` | The repository root, always the relative anchor `"."`.                                                                  |
+| `repository.contract.present`           | `derived` | Whether an `agent-ready.yaml` exists at the root.                                                                       |
+| `repository.contract.valid`             | `derived` | Whether that contract validates. `not-probed` when there is no contract.                                                |
+| `repository.declarationSurface.present` | `derived` | Whether any of a fixed, versioned set of agent-instruction or CI paths exists.                                          |
+| `repository.packageManager`             | varies    | The package manager, from `package.json` (`declared`), a lockfile (`derived`), and/or the contract (`author-declared`). |
+
+`corroboration` records how much independent support a fact has. `corroborated`
+is true only when at least two claims support the value from _different_
+evidence; a single source does not confirm itself, and the weaker question — is
+this more than the author's word? — is answered by `corroboration.kinds`.
+
+### Human output
+
+```text
+Agent-Ready repository discovery
+
+Repository
+  Root       /path/to/repo
+
+Agent-Ready contract
+  Present    yes
+  Valid      yes
+
+Repository signals
+  Surfaces   yes
+  Packages   pnpm
+    Evidence
+      author-declared "pnpm"  agent-ready.yaml/environment/packageManager/name
+      declared        "pnpm"  package.json/packageManager
+      derived         "pnpm"  pnpm-lock.yaml
+
+Discovery
+  Facts      5
+  Known      5
+  Unknown    0
+  Conflicts  0
+  Complete   yes
+```
+
+The evidence block is indented under the fact row it supports, so a citation can
+never be read as corroborating a different fact. A value that is `unknown` is
+printed as `unknown (<reason>)`, never as a value; a contradicted fact is
+printed as `conflicting` with every retained claim listed. There is
+deliberately no score, rating, ranking, or recommendation.
+
+### JSON output
+
+`--json` is a projection of the same snapshot with nothing added, dropped, or
+re-derived, so the two renderings cannot disagree. It carries its own
+`snapshotVersion` (currently `0`, meaning unstable and not covered by the
+pre-1.0 stability promise — independent of both the contract `version` and the
+package version). Every path in it is repository-relative, so byte-identical
+output does not depend on where the repository is checked out.
+
+```json
+{
+  "ok": true,
+  "snapshotVersion": 0,
+  "root": ".",
+  "facts": {
+    "repository.packageManager": {
+      "id": "repository.packageManager",
+      "kind": "declared",
+      "value": "pnpm",
+      "claims": [
+        {
+          "kind": "declared",
+          "value": "pnpm",
+          "evidence": [
+            {
+              "source": "package.json",
+              "pointer": "/packageManager",
+              "detail": "declared as \"pnpm@10.0.0\""
+            }
+          ]
+        },
+        {
+          "kind": "derived",
+          "value": "pnpm",
+          "evidence": [{ "source": "pnpm-lock.yaml", "detail": "a pnpm lockfile is present" }]
+        }
+      ],
+      "corroboration": {
+        "kinds": ["declared", "derived"],
+        "authorDeclared": false,
+        "corroborated": true
+      }
+    }
+  },
+  "summary": { "facts": 5, "known": 5, "unknown": 0, "conflicts": 0, "complete": true },
+  "diagnostics": []
+}
+```
+
+An `unknown` fact has no `value` property at all, and a contradicted fact has
+no `value` either — it keeps every claim with its evidence instead:
+
+```json
+{
+  "id": "repository.packageManager",
+  "kind": "declared",
+  "claims": [
+    {
+      "kind": "declared",
+      "value": "pnpm",
+      "evidence": [{ "source": "package.json", "pointer": "/packageManager" }]
+    },
+    { "kind": "derived", "value": "npm", "evidence": [{ "source": "package-lock.json" }] }
+  ],
+  "corroboration": {
+    "kinds": ["declared", "derived"],
+    "authorDeclared": false,
+    "corroborated": true
+  }
+}
+```
+
+### Determinism
+
+Two runs against an unchanged tree produce byte-identical output. There are no
+absolute paths, timestamps, durations, run identifiers, or process ids; every
+collection is sorted in code-unit order (never `localeCompare`, never
+filesystem iteration order); and no environment variable, network call, clock,
+or random source can influence a value. The probe set is a fixed, enumerable,
+versioned list of root-relative paths — discovery does not walk the tree and
+never reads `node_modules`.
+
+### Exit codes
+
+`0` for a snapshot with no diagnostics or warnings only — including a
+repository with no contract, no signals, a failed probe, or contradictory
+sources. `2` for `DISCOVERY_ROOT_UNREADABLE`, the only fatal condition. A
+missing `agent-ready.yaml` is never `CONTRACT_NOT_FOUND` for this command. See
+[Exit codes](#exit-codes) and
+[diagnostics.md](diagnostics.md#exit-code-mapping).
+
 ## `agent-ready verify`
 
 Runs the same pipeline as `validate`, then runs the contract's
@@ -886,13 +1090,13 @@ category (this is a single local file, not history or a dashboard).
 
 ## Exit codes
 
-| Code | Meaning                                                                                                                                                                                |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | Success                                                                                                                                                                                |
-| 1    | Validation failed (schema or semantic error), generated/protected/documentation drift was found, or a `verify --execute` command failed or timed out                                   |
-| 2    | Contract or analysis input was not readable; Git could not be read (`check`); or a `verify --execute` command could not be spawned                                                     |
-| 3    | Unsupported contract version                                                                                                                                                           |
-| 10   | Internal Agent-Ready failure, including a `generate --write` or `verify --execute --record` write failure or a bundled-`agent-ready schema` integrity failure (please report as a bug) |
+| Code | Meaning                                                                                                                                                                                                    |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | Success                                                                                                                                                                                                    |
+| 1    | Validation failed (schema or semantic error), generated/protected/documentation drift was found, or a `verify --execute` command failed or timed out                                                       |
+| 2    | Contract or analysis input was not readable; Git could not be read (`check`); a `verify --execute` command could not be spawned; or the `discover --root` path was missing, not a directory, or unreadable |
+| 3    | Unsupported contract version                                                                                                                                                                               |
+| 10   | Internal Agent-Ready failure, including a `generate --write` or `verify --execute --record` write failure or a bundled-`agent-ready schema` integrity failure (please report as a bug)                     |
 
 See [diagnostics.md](diagnostics.md) and
 [ADR-0008](../decisions/0008-diagnostics-and-exit-codes.md) for how a set

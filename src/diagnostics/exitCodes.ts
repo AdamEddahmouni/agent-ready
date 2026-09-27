@@ -49,7 +49,13 @@ export function resolveExitCode(diagnostics: readonly Diagnostic[]): ExitCode {
         d.code === "GIT_UNAVAILABLE" ||
         d.code === "VERIFICATION_COMMAND_SPAWN_FAILED" ||
         d.code === "DOCUMENTATION_SOURCE_READ_FAILED" ||
-        d.code === "DOCUMENTATION_LINK_CHECK_FAILED",
+        d.code === "DOCUMENTATION_LINK_CHECK_FAILED" ||
+        // The one fatal discovery condition: the directory the user pointed
+        // `discover` at is missing, is not a directory, or cannot be read.
+        // Same category as GIT_REPOSITORY_NOT_FOUND above — a location that
+        // was asked for and could not be used — rather than a validation
+        // failure, since nothing was validated.
+        d.code === "DISCOVERY_ROOT_UNREADABLE",
     )
   ) {
     return ExitCode.CONTRACT_NOT_FOUND;
