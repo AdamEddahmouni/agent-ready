@@ -53,3 +53,4 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0043](0043-core-posture-and-integration-quarantine.md)       | Deterministic-core posture and quarantined integrations         |
 | [0044](0044-repository-discovery-model.md)                    | Repository discovery model and its fact boundary                |
 | [0045](0045-package-and-workspace-discovery-semantics.md)     | Package and workspace discovery semantics                       |
+| [0046](0046-command-and-verification-discovery-semantics.md)  | Command and verification discovery semantics                    |

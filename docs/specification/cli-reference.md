@@ -790,11 +790,12 @@ diagnostic contract.
 
 **Strictly read-only.** Unlike `generate --write`, `init --write`, and
 `verify --record`, this command exposes no mutation path at all: the only
-capability a probe receives is repository-relative reading and stat-ing. There
-is no writer, no process runner, no Git client, and no network client in the
-path, so it cannot modify the repository, execute anything, or reach the
-network. There is deliberately no `--write` and no `--force`; adding one would
-need its own decision.
+capability a probe receives is repository-relative reading, stat-ing, and
+directory listing. There is no writer, no process runner, no Git client, and no
+network client in the path, so it cannot modify the repository, execute anything,
+or reach the network. A declared script is a fact about a string; it is never an
+instruction to run it. There is deliberately no `--write` and no `--force`;
+adding one would need its own decision.
 
 ```bash
 agent-ready discover
@@ -838,20 +839,31 @@ evidence contract.** Concretely, `discover` will not
 
 ### Facts reported today
 
-The vocabulary is deliberately **four facts wide**. This command's deliverable
-is the discovery substrate — provenance, explicit uncertainty, the
-absence-versus-failure distinction, contradiction preservation, and the
-read-only capability boundary — and all of that is provable without a
-substantive repository domain. Package, workspace, command, and module-graph
-facts are [#37](https://github.com/AdamEddahmouni/agent-ready/issues/37) onward,
-and they arrive as declared `FACT_IDS` rather than appearing unannounced.
+The vocabulary is deliberately **small and conceptual**. Every id is a property a
+repository has, never a property of one entity inside it: a repository with forty
+packages has one `repository.packages` fact holding forty entries, not forty
+facts, and a repository with three hundred scripts has one `repository.commands`
+fact holding three hundred of them. That is what keeps `FACT_IDS` a list a
+contributor can read in full and check against the specification, rather than a
+key space generated from repository content. Module-graph facts are
+[#39](https://github.com/AdamEddahmouni/agent-ready/issues/39) onward, and they
+will arrive as declared ids rather than appearing unannounced.
 
-| Fact id                                 | Kind      | Meaning                                                                        |
-| --------------------------------------- | --------- | ------------------------------------------------------------------------------ |
-| `repository.root`                       | `derived` | The repository root, always the relative anchor `"."`.                         |
-| `repository.contract.present`           | `derived` | Whether an `agent-ready.yaml` exists at the root as a regular file.            |
-| `repository.contract.valid`             | `derived` | Whether that contract validates. `not-probed` when there is no contract.       |
-| `repository.declarationSurface.present` | `derived` | Whether any of a fixed, versioned set of agent-instruction or CI paths exists. |
+| Fact id                                 | Kind              | Meaning                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `repository.root`                       | `derived`         | The repository root, always the relative anchor `"."`.                                                                                                                                                                                                                                                                                                            |
+| `repository.contract.present`           | `derived`         | Whether an `agent-ready.yaml` exists at the root as a regular file.                                                                                                                                                                                                                                                                                               |
+| `repository.contract.valid`             | `derived`         | Whether that contract validates. `not-probed` when there is no contract.                                                                                                                                                                                                                                                                                          |
+| `repository.declarationSurface.present` | `derived`         | Whether any of a fixed, versioned set of agent-instruction or CI paths exists.                                                                                                                                                                                                                                                                                    |
+| `repository.packages`                   | `derived`         | Every directory that holds a manifest, with what each declares.                                                                                                                                                                                                                                                                                                   |
+| `repository.workspace.declarations`     | `declared`        | Workspace patterns, verbatim and in declaration order.                                                                                                                                                                                                                                                                                                            |
+| `repository.workspace.candidates`       | `derived`         | Repository paths the declared patterns resolve to, and whether they exist.                                                                                                                                                                                                                                                                                        |
+| `repository.workspace.members`          | `derived`         | Candidates holding a readable manifest.                                                                                                                                                                                                                                                                                                                           |
+| `repository.workspace.root`             | `derived`         | The manifest carrying the workspace declaration, or null.                                                                                                                                                                                                                                                                                                         |
+| `repository.packageManager.<scope>`     | mixed             | One package manager per manifest. A declared value beside contradicting artifacts is reported as **incomplete**; disagreeing artifacts with nothing declared are a **conflict** with no value. Never defaults to `npm`. See [ADR-0045](https://github.com/AdamEddahmouni/agent-ready/blob/main/docs/decisions/0045-package-and-workspace-discovery-semantics.md). |
+| `repository.commands`                   | `declared`        | Every declared package script, scoped to the package that declares it, with its exact body and a `source`/`pointer` citation.                                                                                                                                                                                                                                     |
+| `repository.verificationEntrypoints`    | `derived`         | The subset whose **name** matches the role grammar, with a structured invocation where an agreed package manager allows one.                                                                                                                                                                                                                                      |
+| `repository.contract.verification`      | `author-declared` | The contract's `verification.required`, in declared order. Kept apart from repository findings.                                                                                                                                                                                                                                                                   |
 
 `declarationSurface` is present as a deliberately minimal heterogeneous
 existence probe: it shows the substrate working against something other than the
@@ -859,16 +871,176 @@ Agent-Ready contract, and it reads presence only — never what any of those fil
 say. Which paths count is code, not configuration, so the derivation of a
 `derived` fact cannot be tuned per repository.
 
-`corroboration` records how much independent support a fact has. `corroborated`
-is true only when at least two claims support the value from _different_
-evidence; a single source does not confirm itself, and the weaker question — is
-this more than the author's word? — is answered by `corroboration.kinds`. Every
-fact the production probe set produces today has exactly one source, so
-`corroborated` is `false` throughout; corroboration, contradiction, and the
-`author-declared` channel are built and tested here using injected probes, and
-get real multi-source signals in #37.
+`corroboration` records how much independent support a fact has. `corroborated` is
+true only when at least two **claims** support the value; a single source does
+not confirm itself, and the weaker question — is this more than the author's
+word? — is answered by `corroboration.kinds`. Two narrower rules keep the
+property meaningful: one claim is one source, so a claim citing four lockfiles
+still makes one assertion, and no probe may split one document into several
+claims, so independence can never be manufactured by re-reading a field. Package
+managers are the one place with genuinely multi-source evidence — a declaration
+and a lockfile are two documents, and they do corroborate each other.
 
-### Human output
+### Commands and verification
+
+`discover` answers **"how do I verify this package?"** from repository-declared
+interfaces, without executing anything and without a maintainer having to explain
+the repository. It does so from **names**, never from what a script's body looks
+like.
+
+A **command** is one key/value pair in a package manifest's `scripts` object,
+scoped to the package that declares it. Nothing else is a command — not a CI step,
+not a dependency, not a `vitest.config.ts`, not a Makefile target.
+
+#### The role grammar
+
+A role is assigned from a script's **name** and nothing else:
+
+```text
+name  := ROOT | ROOT ":" SUFFIX
+ROOT  := "test" | "build" | "lint" | "typecheck"
+```
+
+Anchored, exact, no substring matching, no case folding, no synonym table. So:
+
+| Name                                       | Role            |
+| ------------------------------------------ | --------------- |
+| `test`, `build`, `lint`, `typecheck`       | itself          |
+| `test:unit`, `build:prod`, `lint:fix`      | the root family |
+| `pretest`, `posttest`                      | _(none)_        |
+| `contest`, `testdata`, `rebuild`, `eslint` | _(none)_        |
+| `types`, `check:types`, `type-check`       | _(none)_        |
+
+`pretest` and `posttest` are real declared scripts and appear in the command
+inventory; they are package-manager **lifecycle hooks** rather than entrypoints,
+and modelling when a package manager fires them would mean emulating a package
+manager. Aliases such as `check:types` are deliberately unsupported: an alias
+table is a synonym dictionary that grows by accretion, and a name that does not
+fit is reported as what it is — a declared command with no recognised role.
+
+**Script bodies are never parsed.** A script named `deploy` whose body is
+`vitest run` is a command with **no role**, not a test entrypoint. Classifying
+from the body cannot be made trustworthy — commands wrap other scripts, tools
+span several roles, and `"deploy": "npm test && ship"` contains the token
+`npm test` while being nothing of the kind — so the body is stored exactly as
+declared and read for nothing. It is never passed to a shell, `eval`, or a
+process, and the bodies Agent-Ready reports verbatim are the strongest evidence
+that it did not: a script that would delete a file on execution is stored as
+that string, unmodified and unrun.
+
+Bodies are stored **exactly**: no trimming, no shell-operator splitting, no
+executable canonicalization. An empty-string body is a declared command, not an
+absent one.
+
+#### Declared versus unclassifiable
+
+```json
+{
+  "packagePath": ".",
+  "scriptsStatus": "declared",
+  "commands": [
+    {
+      "name": "test",
+      "body": "vitest run",
+      "source": "package.json",
+      "pointer": "/scripts/test"
+    }
+  ],
+  "unmodelledScripts": [],
+  "unsupportedReason": null
+}
+```
+
+`scriptsStatus` distinguishes four states, and the difference is the answer to
+"does this package have no tests?":
+
+| `scriptsStatus` | Means                                                       | Commands                    |
+| --------------- | ----------------------------------------------------------- | --------------------------- |
+| `declared`      | the manifest parsed and `scripts` is an object              | every string-valued entry   |
+| `absent`        | the manifest parsed and has no `scripts` key                | none — **known empty**      |
+| `unsupported`   | `scripts` is present in a shape this version does not model | none, and not claimed empty |
+| `unobservable`  | the manifest is malformed or unreadable                     | none, and not claimed empty |
+
+An **unknown semantic role is not an unknown command.** A script named `abc` is
+in the inventory with no role, and that is a true statement about the repository
+rather than a gap in the model. Missing verification roles raise no diagnostic:
+a package may deliberately have no `build`, `lint`, `test`, or `typecheck` script,
+and that is known absence. Discovery describes; it does not score.
+
+#### Structured invocation
+
+A verification entrypoint carries a shell-independent invocation where the
+package-manager evidence allows one:
+
+```json
+{
+  "packagePath": "packages/api",
+  "script": "test",
+  "role": "test",
+  "body": "vitest run",
+  "primary": true,
+  "invocation": { "cwd": "packages/api", "executable": "pnpm", "args": ["run", "test"] },
+  "invocationStatus": "resolved",
+  "source": "packages/api/package.json",
+  "pointer": "/scripts/test"
+}
+```
+
+Structured rather than `cd packages/api && pnpm run test`, because the shell
+form bakes POSIX quoting, path escaping, and a shell dialect into a format that
+has to be byte-identical on Windows. It is a **derived description** of an
+interface: `discover` never runs it, and never validates it by running it.
+
+`primary` means one thing only — the name **equals** the role root. It is not a
+safety claim. `lint:fix` is in the `lint` namespace and is just as likely to
+modify files; Agent-Ready claims the first from the name and says nothing about
+the second. When only `test:unit` and `test:integration` exist, neither is
+primary and both are reported, because choosing between them would be a guess.
+
+`invocationStatus` has four states, and three of them are successful results:
+
+| `invocationStatus`           | Meaning                                             |
+| ---------------------------- | --------------------------------------------------- |
+| `resolved`                   | an agreed package manager; `invocation` is present  |
+| `package-manager-unknown`    | no manager evidence at this scope or the root       |
+| `package-manager-conflict`   | the manager sources disagree; no winner is selected |
+| `package-manager-incomplete` | a declaration is contradicted by another artifact   |
+
+The script, its role, and its body are known in all four cases. An unresolved
+invocation costs one field, not the entry. There is **no default executable
+anywhere**: `npm` is never chosen because nothing was found, a package-local
+manager always wins over the root's (including when it disagrees), a contested
+declaration is never promoted to a canonical executable, and a package manager
+named only in `agent-ready.yaml` never selects one — a maintainer's description
+of the repository is not a statement by it.
+
+#### The contract's verification surface
+
+`repository.contract.verification` is the contract's `verification.required`,
+with `kind: "author-declared"`, in the order the maintainer wrote it — sequence
+order is declared information, and sorting it would destroy a declaration in the
+act of reporting it.
+
+It never overwrites, never becomes repository truth, and never changes a
+repository-derived fact. A contract requiring `test` in a package that declares
+no `test` script is a **disagreement to preserve**, not an error and not a reason
+to invent the script; `discover` is not a linter. A repository's package-command
+facts are byte-identical with and without a contract.
+
+#### What `discover` does not know
+
+- whether any command **succeeds**;
+- whether the command named `test` **runs tests**, or `build` produces correct output;
+- whether a `lint:*` command **modifies files**;
+- whether a script **calls other scripts** internally;
+- whether **CI** invokes any of them;
+- whether **dependencies are installed**.
+
+Agent-Ready discovers declared package scripts and applies a narrow deterministic
+role grammar to supported verification/build entrypoints. It does **not** claim
+to understand all repository commands, and the snapshot says so rather than
+implying coverage it does not have. See
+[ADR-0046](https://github.com/AdamEddahmouni/agent-ready/blob/main/docs/decisions/0046-command-and-verification-discovery-semantics.md).
 
 ```text
 Agent-Ready repository discovery
@@ -883,10 +1055,50 @@ Agent-Ready contract
 Repository signals
   Surfaces   yes
 
+Packages
+  Count      2, 2 named
+  Manifests  2
+
+Workspace
+  Manifest   package.json
+  Declared   1 source(s), 1 pattern(s)
+  Matched    1 present
+  Members    1
+
+Package manager
+  Manager (root)  pnpm
+    Evidence
+      declared  "pnpm@10.0.0"  package.json/packageManager
+      derived   "pnpm-lock.yaml"  pnpm-lock.yaml
+
+Commands
+  Declared   5 script(s) in 2 package(s)
+
+  .
+    build              build   vite build
+    dev                —       vite
+    lint               lint    eslint .
+    test               test    vitest run
+
+  packages/api
+    test               test    vitest run --coverage
+
+Verification
+  Entrypoints 3
+  Required   author-declared: lint, test, build
+
+  .
+    build   pnpm run build
+    lint    pnpm run lint
+    test    pnpm run test
+
+  packages/api
+    test    cwd=packages/api · pnpm run test
+
 Discovery
-  Facts      4
-  Known      4
-  Unknown    0
+  Facts      13
+  Known      12
+  Unknown    1
   Conflicts  0
   Complete   yes
 ```
@@ -894,11 +1106,19 @@ Discovery
 The evidence block is indented under the fact row it supports, so a citation can
 never be read as corroborating a different fact. A value that is `unknown` is
 printed as `unknown (<reason>)`, never as a value; a contradicted fact is
-printed as `conflicting` with every retained claim listed. Every fact the
-production probe set produces today has a single source, so the block appears
-only once a fact has more than one — see
-[Corroboration and contradiction](#facts-reported-today). There is deliberately
-no score, rating, ranking, or recommendation.
+printed as `conflicting` with every retained claim listed; a contested one is
+printed as `incomplete` with the contradicting values named, never as the
+retained declaration on its own. There is deliberately no score, rating,
+ranking, or recommendation.
+
+In the command rows, `—` means **Agent-Ready did not classify that name**, not
+that the command is missing or wrong; the body is shown beside it so a reader can
+judge for themselves. A verification entrypoint whose package manager is
+contested prints its declared script and the reason the invocation is
+unresolved, and prints no executable — `npm run test` as a fallback would be the
+single most misleading thing this command could do. The wording is
+`declared`, `available`, `entrypoint`, and `invocation`; never `passed`,
+`verified`, or `working`, because nothing was executed.
 
 ### JSON output
 
@@ -999,10 +1219,15 @@ evidence instead, and names no winner:
 }
 ```
 
-The last two shapes are not reachable from the production probe set, which
-produces one source per fact. They are specified here because they are part of the
-contract #37's probes will produce, and a consumer implementing against #36
-should not have to wait for #37 to learn them.
+A conflicted fact is produced whenever two manager-specific artifacts disagree —
+`pnpm-lock.yaml` beside `yarn.lock` beside `package-lock.json` — and the snapshot
+reports all three with no winner. Package manager is scoped per manifest, so a
+nested package naming a different manager is a second fact rather than a
+contradiction about the first.
+
+The `discover` output is a **projection** of the snapshot with nothing added,
+dropped, or re-derived, so the two renderings cannot disagree about what was
+discovered.
 
 ### Determinism
 
@@ -1010,9 +1235,21 @@ Two runs against an unchanged tree produce byte-identical output. There are no
 absolute paths, timestamps, durations, run identifiers, or process ids; every
 collection is sorted in code-unit order (never `localeCompare`, never
 filesystem iteration order); and no environment variable, network call, clock,
-or random source can influence a value. The probe set is a fixed, enumerable,
-versioned list of root-relative paths — discovery does not walk the tree and
-never reads `node_modules`.
+or random source can influence a value.
+
+Reads are bounded: a fixed set of root-level paths, plus a walk driven only by
+workspace patterns the repository itself declared. That walk is fenced to the
+repository root, depth- and entry-bounded, code-unit sorted, and never enters
+`node_modules` or `.git`. A manifest is parsed under a byte cap and a nesting
+depth guard, mirroring the YAML guards, so hostile repository content is a failed
+manifest rather than a crashed process. A path that cannot be inspected is
+reported as uninspectable, never as absent.
+
+Package and command scope is deliberately **closed-world**: packages are found by
+following declared workspace patterns plus the root manifest, and commands are
+discovered for exactly those packages. A `package.json` that no declaration
+reaches is not reported, which is documented behaviour rather than an oversight —
+see [ADR-0045](https://github.com/AdamEddahmouni/agent-ready/blob/main/docs/decisions/0045-package-and-workspace-discovery-semantics.md).
 
 ### Exit codes
 

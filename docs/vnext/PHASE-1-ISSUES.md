@@ -79,6 +79,9 @@ leaves the next one unblocked.
 
 ### Issue #1 — Repository discovery model
 
+**Status**: implemented. Recorded in
+[ADR-0044](../decisions/0044-repository-discovery-model.md).
+
 **Depends on:** nothing. **Blocks**: #2.
 
 The first wedge. It must produce value on an arbitrary repository before anyone is
@@ -118,6 +121,9 @@ or absence of a declaration surface. No guessing beyond what is directly readabl
 
 ### Issue #2 — Package and workspace discovery
 
+**Status**: implemented. Recorded in
+[ADR-0045](../decisions/0045-package-and-workspace-discovery-semantics.md).
+
 **Depends on:** #1. **Blocks**: #3, #4.
 
 **Deliverable.** Package boundaries, workspace roots, and the package manager,
@@ -136,6 +142,9 @@ derived from the workspace configuration and the manifests themselves.
 ---
 
 ### Issue #3 — Commands and verification discovery
+
+**Status**: implemented. Recorded in
+[ADR-0046](../decisions/0046-command-and-verification-discovery-semantics.md).
 
 **Depends on:** #2. **Blocks**: #4, #6.
 

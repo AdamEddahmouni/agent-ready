@@ -8,9 +8,9 @@ All notable changes to Agent-Ready are documented here. The project follows
 Adds `agent-ready discover` as the twelfth command, on the parallel vNext
 track. It ships the discovery _substrate_ — provenance, explicit uncertainty,
 the absence-versus-failure distinction, contradiction preservation, and a
-read-only capability boundary — and now the first real domain on top of it:
-deterministic package and workspace discovery. Command discovery is the next
-expansion and lands separately.
+read-only capability boundary — and now its first two domains on top: package
+and workspace discovery, and command and verification discovery. Module-graph
+discovery is the next expansion and lands separately.
 
 The v1 contract, the eleven v1 commands, the adapter-output corpus, and the
 public JSON Schema are unchanged. The shared `FileSystem` interface gained a
@@ -23,21 +23,24 @@ existing v1 behaviour is covered by the unchanged suites.
   evidence-bearing model of a repository, and works **with or without** an
   `agent-ready.yaml`: a missing contract is reported as a fact rather than as
   `CONTRACT_NOT_FOUND`. Strictly read-only — the only capability a probe
-  receives is repository-relative reading and stat-ing, so there is no
-  `--write`, no process execution, no Git, and no network path. See
-  [ADR-0044](docs/decisions/0044-repository-discovery-model.md).
+  receives is repository-relative reading, stat-ing, and directory listing, so
+  there is no `--write`, no process execution, no Git, and no network path. A
+  declared package script is a fact about a string and is never an instruction
+  to run it. See [ADR-0044](docs/decisions/0044-repository-discovery-model.md).
 - A discovery fact model with an explicit epistemic boundary: every fact is a
   record carrying `declared` / `derived` / `author-declared` / `unknown`, and
   every known fact cites the evidence behind it. `unknown` is a first-class
   value with a reason, so an honest gap stays distinguishable from an absent
   field. Contradictory sources produce a fact with no value and both claims
   retained, never a ranked winner.
-- A four-fact production vocabulary — repository root, contract presence,
-  contract validity, and declaration-surface presence. Contradiction
+- A four-fact substrate vocabulary — repository root, contract presence, contract
+  validity, and declaration-surface presence — later grown additively by
+  package/workspace discovery and by command/verification discovery. Every id is
+  a conceptual property a repository has, never a property of one entity inside
+  it, so `FACT_IDS` stays a list a contributor can read in full. Contradiction
   preservation, corroboration, and the `author-declared` channel are built and
   tested against injected probes, so the substrate is demonstrable without a
-  repository domain; the first real multi-source signals arrive with package
-  discovery.
+  repository domain.
 - Five `DISCOVERY_*` diagnostic codes in the shared registry
   (`DISCOVERY_ROOT_UNREADABLE`, `DISCOVERY_PARTIAL`, `DISCOVERY_FACT_CONFLICT`,
   `DISCOVERY_NO_SIGNALS`, and `DISCOVERY_FACT_UNSUPPORTED`), reusing the
@@ -70,6 +73,38 @@ existing v1 behaviour is covered by the unchanged suites.
 - ADR-0045 (package and workspace discovery semantics), which amends ADR-0044's
   corroboration rule, splits contradiction into conflict-versus-incomplete, and
   makes `DISCOVERY_FACT_UNSUPPORTED` reachable.
+- Command and verification discovery, so `discover` answers **"how do I verify
+  this package?"** from repository-declared interfaces. `repository.commands`
+  reports every declared package script, scoped to the package that declares it,
+  with its exact body and a `source`/`pointer` citation;
+  `repository.verificationEntrypoints` reports the subset whose **name** matches
+  a narrow role grammar, with a structured `cwd`/`executable`/`args` invocation
+  wherever the package-manager evidence is strong enough; and
+  `repository.contract.verification` publishes the contract's
+  `verification.required` as `author-declared`, in declared order, and never
+  lets it overwrite or become a repository finding. See
+  [ADR-0046](docs/decisions/0046-command-and-verification-discovery-semantics.md).
+- Semantic roles come from script **names** only — an anchored
+  `ROOT` or `ROOT:SUFFIX` grammar over `test`, `build`, `lint`, and `typecheck` —
+  and script bodies are stored verbatim and never parsed. A script named `deploy`
+  whose body is `vitest run` is a command with no role, not a test entrypoint:
+  classifying from a body cannot be made trustworthy, since commands wrap other
+  scripts, tools span several roles, and `"npm test && ship"` contains the token
+  `npm test` while being nothing of the kind.
+- Four honest invocation outcomes instead of one guessed one. A structured
+  invocation requires an **agreed** package manager; unknown, conflicted, and
+  contested each resolve to an invocation that is absent with a named reason,
+  while the script, its role, and its body stay known. There is no `npm`
+  default, a package-local manager always wins over the root's, a contested
+  declaration is never promoted to a canonical executable, and a package
+  manager named only in `agent-ready.yaml` never selects one.
+- A `scriptsStatus` of `declared`, `absent`, `unsupported`, or `unobservable`, so
+  "this package declares no scripts" stays distinguishable from "this manifest
+  could not be read". An unknown semantic role is not an unknown command: a
+  script named `abc` is still reported, in full, with its exact body.
+- ADR-0046 (command and verification discovery semantics), which defines the
+  role grammar, the body-opacity rule, the invocation derivation rule, and the
+  meaning of a verification surface.
 - `WARNING_DIAGNOSTIC_CODES` as the single source of truth for which codes are
   emitted as `severity: "warning"`. `agent-ready explain` now derives the
   severity it reports from it instead of restating a hardcoded list.
