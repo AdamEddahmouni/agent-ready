@@ -12,14 +12,14 @@ govern packages, workspaces, commands, and the fact vocabulary.
 
 ## Context
 
-ADR-0044 answered "what does this repository *state*", and answered it well. ADR-0045
+ADR-0044 answered "what does this repository _state_", and answered it well. ADR-0045
 gave it packages and workspaces. ADR-0046 gave it commands and verification
 entrypoints. What none of them can answer is the question a person actually has
 about a codebase they did not write:
 
 > **How is this repository put together?**
 
-Every existing fact is a statement about a *declaration*: a manifest names a
+Every existing fact is a statement about a _declaration_: a manifest names a
 script, a lockfile names a manager, a pattern names a candidate directory. None of
 them says which module imports which, which package depends on which, or who is
 declared responsible for a file. Those are the questions that make a repository
@@ -55,7 +55,7 @@ So this record's constraint is not "build a graph". It is:
 > graph.**
 
 That is a stronger requirement than anything ADR-0044 imposed. Existing `Evidence`
-is a `source` plus an optional `pointer`; a file with no line does not say *where*.
+is a `source` plus an optional `pointer`; a file with no line does not say _where_.
 The graph requires a line, and a line has to be the line that made the fact true —
 not `line: 1` sprayed across every entry to satisfy a type.
 
@@ -68,7 +68,7 @@ The constraint and one of the issue's requirements are in genuine tension:
 > Missing ownership must be explicit and must never be a guess.
 
 "No supported CODEOWNERS rule applies to `src/foo.ts`" is a fact. Which line of
-which file supports it? None — the claim is about an *absence* across a whole
+which file supports it? None — the claim is about an _absence_ across a whole
 policy file. Fabricating `.github/CODEOWNERS:1` would be exactly the decorative
 provenance the constraint exists to forbid, and it is worse than no line, because
 it looks precise.
@@ -94,14 +94,14 @@ The graph could be `repository.graph`, a fact like any other. Rejected, and the
 reason is structural rather than aesthetic. ADR-0045 put a **budget** on how many
 paths one claim may cite — two for `derived`, one otherwise — and a rule that one
 document may not be split into several claims. Both exist to stop a probe
-manufacturing corroboration. A graph is a projection over *every file in the
-repository*: its honest evidence set is one entry per node and one per edge, which
+manufacturing corroboration. A graph is a projection over _every file in the
+repository_: its honest evidence set is one entry per node and one per edge, which
 is thousands of paths. Putting it in the fact model would require either
 exempting it from the budget, which weakens a guard for every future probe, or
 compressing its provenance into an opaque blob, which makes per-item provenance
 unenforceable — the precise thing ADR-0045 rejected for `repository.packages`.
 
-A graph is not a claim about one conceptual property. It is a projection *of* the
+A graph is not a claim about one conceptual property. It is a projection _of_ the
 claims already in the snapshot. So the graph is a **top-level snapshot field**,
 sibling to `facts`, and the fact vocabulary is untouched.
 
@@ -132,18 +132,18 @@ exact source positions as a by-product rather than as a thing to reconstruct.
 
 ### One node per file plus one per package, with ownership as edges to owner nodes
 
-Ownership as an edge to an `owner:@org/team` node is right when there *is* an
+Ownership as an edge to an `owner:@org/team` node is right when there _is_ an
 owner. It has nothing to say when there is not, and the obvious repair — an
 `owner:UNOWNED` sentinel node — fabricates a person or team that does not exist.
-The model below therefore keeps the owner *edge* for the owned case and makes
+The model below therefore keeps the owner _edge_ for the owned case and makes
 ownership a **discriminated state on the subject node** for the unowned case, with
 the winning rule's provenance on the edge. The validator pins the two against each
 other so they cannot disagree.
 
 ### Aggregating duplicate import declarations into one edge with several provenances
 
-`import { a } from "./x.js"` and `import { b } from "./x.js"` are one *relationship*
-and two *declarations*. Aggregating them is defensible and produces a smaller
+`import { a } from "./x.js"` and `import { b } from "./x.js"` are one _relationship_
+and two _declarations_. Aggregating them is defensible and produces a smaller
 graph. Rejected, for one concrete reason: the two sites can differ in ways the
 graph is required to preserve — one may be `import type`, one a re-export, one a
 dynamic literal import. A single edge would then need a set-valued `typeOnly` and
@@ -156,8 +156,8 @@ more information, and the graph is a fact model, not a storage format.
 Rejected. The same rule as the import regex, one layer down: a version string
 appears in a manifest, in a lockfile, in a transitive entry, and in a peer-suffixed
 key like `1.0.0(eslint@10.7.0)`. A text search cannot tell which occurrence belongs
-to which declaration, and the issue's central question is precisely *"why do you
-believe this dependency resolved to 8.17.1?"*. `yaml`'s `LineCounter` and
+to which declaration, and the issue's central question is precisely _"why do you
+believe this dependency resolved to 8.17.1?"_. `yaml`'s `LineCounter` and
 TypeScript's JSON AST both answer it exactly.
 
 ### Inferring ownership from Git history
@@ -184,18 +184,18 @@ evidence, and a node with no evidence has no identity.
 
 Four node kinds exist, and no others are introduced in this issue:
 
-| Kind                  | What it is                                                                 |
-| --------------------- | -------------------------------------------------------------------------- |
-| `package`             | one discovered package, identified by ADR-0045's canonical package path    |
-| `module`              | one supported source file inside the repository                             |
-| `external-dependency` | one package name declared by, or imported into, this repository             |
-| `owner`               | one owner token written in a `CODEOWNERS` rule                             |
+| Kind                  | What it is                                                              |
+| --------------------- | ----------------------------------------------------------------------- |
+| `package`             | one discovered package, identified by ADR-0045's canonical package path |
+| `module`              | one supported source file inside the repository                         |
+| `external-dependency` | one package name declared by, or imported into, this repository         |
+| `owner`               | one owner token written in a `CODEOWNERS` rule                          |
 
 There is deliberately **no `unresolved-target` node kind**. §9 explains why, and
 the short version is that a node has to be justified by a declaration, and
 "several different imports could not be resolved" is not a declaration.
 
-`external-dependency` nodes are *not* the npm universe. Only a name this
+`external-dependency` nodes are _not_ the npm universe. Only a name this
 repository itself mentions — by declaring it, or by importing it — becomes a node.
 The transitive closure of a lockfile is explicitly out of scope (§14).
 
@@ -208,21 +208,21 @@ exist.
 
 Three edge kinds exist:
 
-| Kind                 | Source              | Target                                                    |
-| -------------------- | ------------------- | --------------------------------------------------------- |
-| `imports`            | `module`            | `module` \| `package` \| `external-dependency` \| *none*  |
-| `package-depends-on` | `package`           | `external-dependency` \| `package`                        |
-| `owned-by`           | `module` \| `package` | `owner`                                                |
+| Kind                 | Source                | Target                                                   |
+| -------------------- | --------------------- | -------------------------------------------------------- |
+| `imports`            | `module`              | `module` \| `package` \| `external-dependency` \| _none_ |
+| `package-depends-on` | `package`             | `external-dependency` \| `package`                       |
+| `owned-by`           | `module` \| `package` | `owner`                                                  |
 
 Edge kind proliferation was considered and refused. `module-imports-module`,
 `module-imports-package`, `module-imports-external`, and `package-depends-on-workspace`
-would each be a *target-kind* distinction, and all four are already carried by the
+would each be a _target-kind_ distinction, and all four are already carried by the
 target node's `kind` plus a `resolution` field on the edge. A second vocabulary
 that says the same thing in a different place is a place the two will disagree.
 
 `imports` and `package-depends-on` are **never merged**. "Module A imports
 package B" and "package A declares a dependency on B" are different claims with
-different evidence, and the *difference* between them — a module importing a
+different evidence, and the _difference_ between them — a module importing a
 package the manifest never declared — is one of the most useful things this graph
 can surface. Collapsing them would erase it.
 
@@ -232,30 +232,34 @@ can surface. Collapsing them would erase it.
 type GraphNode = PackageNode | ModuleNode | ExternalDependencyNode | OwnerNode;
 
 type PackageNode = {
-  id: string; kind: "package";
-  path: string;        // canonical repository-relative package directory
+  id: string;
+  kind: "package";
+  path: string; // canonical repository-relative package directory
   name: string | null; // the declared package name, or null
   provenance: SourceLocation;
   ownership: OwnershipState;
 };
 
 type ModuleNode = {
-  id: string; kind: "module";
-  path: string;        // canonical repository-relative file path
+  id: string;
+  kind: "module";
+  path: string; // canonical repository-relative file path
   packagePath: string; // the deepest package root containing it
   provenance: SourceLocation;
   ownership: OwnershipState;
 };
 
 type ExternalDependencyNode = {
-  id: string; kind: "external-dependency";
-  name: string;        // the package name exactly as written
+  id: string;
+  kind: "external-dependency";
+  name: string; // the package name exactly as written
   provenance: SourceLocation;
 };
 
 type OwnerNode = {
-  id: string; kind: "owner";
-  identity: string;    // the owner token exactly as written, e.g. "@org/payments"
+  id: string;
+  kind: "owner";
+  identity: string; // the owner token exactly as written, e.g. "@org/payments"
   provenance: SourceLocation;
 };
 ```
@@ -270,29 +274,32 @@ stays in the facts and is not copied.
 
 ```ts
 type ImportEdge = {
-  id: string; kind: "imports";
-  source: string;              // module node id
-  specifier: string;           // the module specifier, verbatim
-  syntax: ImportSyntax;        // how it was written
-  typeOnly: boolean;           // written with `import type`
+  id: string;
+  kind: "imports";
+  source: string; // module node id
+  specifier: string; // the module specifier, verbatim
+  syntax: ImportSyntax; // how it was written
+  typeOnly: boolean; // written with `import type`
   resolution: ImportResolution;
-  provenance: SourceLocation;  // the specifier's line
+  provenance: SourceLocation; // the specifier's line
 };
 
 type DependencyEdge = {
-  id: string; kind: "package-depends-on";
-  source: string;              // package node id
-  declarations: readonly DependencyDeclaration[];  // one or more, never zero
+  id: string;
+  kind: "package-depends-on";
+  source: string; // package node id
+  declarations: readonly DependencyDeclaration[]; // one or more, never zero
   resolution: DependencyResolution;
-  provenance: SourceLocation;  // the first declaration's line
+  provenance: SourceLocation; // the first declaration's line
 };
 
 type OwnershipEdge = {
-  id: string; kind: "owned-by";
-  source: string;              // module or package node id
-  target: string;              // owner node id
-  provenance: SourceLocation;  // the CODEOWNERS rule line
-  rule: string;                // the pattern, verbatim
+  id: string;
+  kind: "owned-by";
+  source: string; // module or package node id
+  target: string; // owner node id
+  provenance: SourceLocation; // the CODEOWNERS rule line
+  rule: string; // the pattern, verbatim
 };
 ```
 
@@ -337,9 +344,9 @@ Rules, each with a test:
 
 They are different things and are kept apart.
 
-- **Entity identity** answers *"what is this thing?"* — `package:packages/api`,
+- **Entity identity** answers _"what is this thing?"_ — `package:packages/api`,
   `module:src/index.ts`, `owner:@org/platform`. It is a node id.
-- **Fact identity** answers *"which repository claim is this?"* — ADR-0044's
+- **Fact identity** answers _"which repository claim is this?"_ — ADR-0044's
   `FactId` union. It names a conceptual property, is a fixed reviewable list, and
   is never generated from repository content (ADR-0045 §1).
 
@@ -360,12 +367,12 @@ Consequences, and they are the reason the two are separated rather than merged:
 
 ```ts
 type SourceLocation = {
-  source: string;       // REQUIRED — repository-relative, '/'-separated
-  line: number;         // REQUIRED — 1-based
-  column?: number;      // 1-based
-  endLine?: number;     // 1-based
-  endColumn?: number;   // 1-based
-  pointer?: string;     // JSON Pointer, when the fact came from a JSON document
+  source: string; // REQUIRED — repository-relative, '/'-separated
+  line: number; // REQUIRED — 1-based
+  column?: number; // 1-based
+  endLine?: number; // 1-based
+  endColumn?: number; // 1-based
+  pointer?: string; // JSON Pointer, when the fact came from a JSON document
 };
 ```
 
@@ -383,13 +390,13 @@ exactly the way ADR-0044 forbids.
 
 `column` and `endLine`/`endColumn` are **included whenever the parser produced
 them**, and omitted otherwise. They are not a nice-to-have: the issue's
-acceptance criterion is that the cited line is *inspectable*, and a column range
+acceptance criterion is that the cited line is _inspectable_, and a column range
 is what makes `"./x.js"` distinguishable from the `import` keyword three hundred
 characters to its left. Omitting a column the parser already gave us would be
 discarding evidence we had in hand.
 
 `pointer` is **additive and coexisting** with the line, never a replacement. ADR-0044's
-evidence addressed *what field*; the graph addresses *where*. A dependency
+evidence addressed _what field_; the graph addresses _where_. A dependency
 declaration carries both `/dependencies/ajv` and the line it is on, so a consumer
 can answer "which field?" and "where?" and a tool can check one against the other.
 
@@ -415,32 +422,32 @@ verbatim `specifier`, the declaration's `SourceLocation`, and a `reason`.
 
 ```ts
 type ImportResolution =
-  | { status: "module";       target: string; targetPath: string }
-  | { status: "package";      target: string; subpath: string | null }
-  | { status: "dependency";   target: string }
-  | { status: "platform";     target?: never }   // a Node built-in
-  | { status: "unresolved";   target?: never; reason: UnresolvedReason };
+  | { status: "module"; target: string; targetPath: string }
+  | { status: "package"; target: string; subpath: string | null }
+  | { status: "dependency"; target: string }
+  | { status: "platform"; target?: never } // a Node built-in
+  | { status: "unresolved"; target?: never; reason: UnresolvedReason };
 ```
 
 `target?: never` is the type-level guarantee the issue asks for: a
-`status: "resolved"` edge *cannot* omit its target, and an `unresolved` edge
-*cannot* carry one. `status: "platform"` has no target by design — `node:path` is
+`status: "resolved"` edge _cannot_ omit its target, and an `unresolved` edge
+_cannot_ carry one. `status: "platform"` has no target by design — `node:path` is
 provided by the runtime, not by any node in this repository, so minting a node for
 it would put a thing in the graph that no repository file declares.
 
 The reason vocabulary is small and structural, and a **diagnostic code is not
 minted per reason**:
 
-| Reason                       | Meaning                                                                 |
-| ---------------------------- | ----------------------------------------------------------------------- |
-| `target-not-found`           | the resolver ran and no in-repository file matched                      |
-| `unsupported-specifier`      | absolute path, URL, or another form this version does not model          |
-| `unsupported-syntax`         | `require` / `import = require` / computed `import()`                     |
-| `outside-repository`         | the only candidate resolved outside the repository root, and was refused  |
-| `unsupported-package-subpath`| a workspace package matched, but the subpath's module was not provable   |
+| Reason                        | Meaning                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------ |
+| `target-not-found`            | the resolver ran and no in-repository file matched                       |
+| `unsupported-specifier`       | absolute path, URL, or another form this version does not model          |
+| `unsupported-syntax`          | `require` / `import = require` / computed `import()`                     |
+| `outside-repository`          | the only candidate resolved outside the repository root, and was refused |
+| `unsupported-package-subpath` | a workspace package matched, but the subpath's module was not provable   |
 
 A `module:UNKNOWN` sentinel is refused for a specific reason beyond taste: it
-would make a graph with 4 failed imports *look connected*, and a consumer
+would make a graph with 4 failed imports _look connected_, and a consumer
 traversing it would report four resolved edges. `resolution: "unresolved"` with a
 `null` target cannot be misread, because the type does not permit a target.
 
@@ -454,25 +461,25 @@ whose remediation is identical belongs in that code's `metadata`.
 
 Supported per construct, and each has a test:
 
-| Construct                    | Behaviour                                                                    |
-| ---------------------------- | ---------------------------------------------------------------------------- |
-| static `import`              | resolved                                                                    |
-| `import type`                | resolved, `typeOnly: true`                                                   |
-| named / default / namespace  | resolved                                                                    |
-| `export … from`              | resolved, `syntax: "re-export"`                                              |
-| `export * from`              | resolved, `syntax: "re-export"`                                              |
-| `import "…"` (side effect)   | resolved                                                                     |
-| `import("literal")`          | resolved, `syntax: "dynamic-import"`                                         |
-| `import(\`./${x}\`)`         | **unresolved**, `reason: "unsupported-syntax"` — never guessed              |
-| `require("literal")`         | **unresolved**, `reason: "unsupported-syntax"` — see §4                       |
-| `require(expr)`              | **unresolved**, `reason: "unsupported-syntax"`                               |
-| `import x = require("…")`    | **unresolved**, `reason: "unsupported-syntax"`                               |
-| `https://…`, `data:…`        | **unresolved**, `reason: "unsupported-specifier"`                            |
-| `/abs`, `C:\abs`             | **unresolved**, `reason: "unsupported-specifier"`                            |
+| Construct                   | Behaviour                                                      |
+| --------------------------- | -------------------------------------------------------------- |
+| static `import`             | resolved                                                       |
+| `import type`               | resolved, `typeOnly: true`                                     |
+| named / default / namespace | resolved                                                       |
+| `export … from`             | resolved, `syntax: "re-export"`                                |
+| `export * from`             | resolved, `syntax: "re-export"`                                |
+| `import "…"` (side effect)  | resolved                                                       |
+| `import("literal")`         | resolved, `syntax: "dynamic-import"`                           |
+| `import(\`./${x}\`)`        | **unresolved**, `reason: "unsupported-syntax"` — never guessed |
+| `require("literal")`        | **unresolved**, `reason: "unsupported-syntax"` — see §4        |
+| `require(expr)`             | **unresolved**, `reason: "unsupported-syntax"`                 |
+| `import x = require("…")`   | **unresolved**, `reason: "unsupported-syntax"`                 |
+| `https://…`, `data:…`       | **unresolved**, `reason: "unsupported-specifier"`              |
+| `/abs`, `C:\abs`            | **unresolved**, `reason: "unsupported-specifier"`              |
 
 CommonJS `require` is **outside initial scope** rather than half-supported, and
 the choice is deliberate. A `require` in a TypeScript file is rare enough that
-supporting it buys little, and supporting it *wrongly* — treating a `require` as an
+supporting it buys little, and supporting it _wrongly_ — treating a `require` as an
 ESM import, or reading the wrong argument — is the exact class of confident error
 this project refuses. Surfacing it as unresolved keeps the declaration visible
 (a reader can see there is a `require` here) without asserting a relationship
@@ -491,7 +498,7 @@ a deliberate choice, so:
 package directory, if `<packageDir>/tsconfig.json` exists, it is parsed with
 `ts.parseJsonConfigFileContent` over a repository-fenced `ts.ParseConfigHost`, and
 its `fileNames` are the package's source universe. `include`, `exclude`, `files`,
-and `extends` are TypeScript's semantics because they *are* TypeScript's — this
+and `extends` are TypeScript's semantics because they _are_ TypeScript's — this
 project does not re-implement them and does not approximate them.
 
 **Option B — a bounded, precisely specified fallback**, used only for a package
@@ -502,7 +509,7 @@ and **exactly two** excluded directory names: `node_modules` and `.git`. Those t
 are inherited from ADR-0045 rather than invented here.
 
 The fallback excludes **nothing else**. `dist`, `build`, `out`, and `coverage` are
-*not* silently skipped: a build output directory is genuinely ambiguous, and
+_not_ silently skipped: a build output directory is genuinely ambiguous, and
 guessing that a directory named `dist` is generated output is a guess. The
 alternative — using a `tsconfig.json` — is the precise answer, and a repository
 that wants a precise universe can have one by writing four lines. When the
@@ -516,17 +523,17 @@ automatically, and a module is assigned to a package by containment (§7 below).
 Supported extensions, and the file-system **existence probe never
 auto-includes `.d.ts`**:
 
-| Extension | In the universe | Rationale                                                        |
-| --------- | ---------------- | ---------------------------------------------------------------- |
-| `.ts`     | yes              | the project's own language                                         |
-| `.mts`    | yes              | ESM TypeScript, same import semantics                              |
-| `.cts`    | yes              | CJS TypeScript, same import semantics                              |
-| `.tsx`    | yes              | same parser, same semantics                                        |
-| `.js`     | yes              | ESM JavaScript                                                    |
-| `.mjs`    | yes              | ESM JavaScript                                                    |
-| `.cjs`    | yes              | CJS JavaScript                                                    |
-| `.jsx`    | yes              | same parser                                                       |
-| `.d.ts`   | **no**           | a declaration file describes another file; a graph edge to it would be an edge to a type, not to code |
+| Extension | In the universe | Rationale                                                                                             |
+| --------- | --------------- | ----------------------------------------------------------------------------------------------------- |
+| `.ts`     | yes             | the project's own language                                                                            |
+| `.mts`    | yes             | ESM TypeScript, same import semantics                                                                 |
+| `.cts`    | yes             | CJS TypeScript, same import semantics                                                                 |
+| `.tsx`    | yes             | same parser, same semantics                                                                           |
+| `.js`     | yes             | ESM JavaScript                                                                                        |
+| `.mjs`    | yes             | ESM JavaScript                                                                                        |
+| `.cjs`    | yes             | CJS JavaScript                                                                                        |
+| `.jsx`    | yes             | same parser                                                                                           |
+| `.d.ts`   | **no**          | a declaration file describes another file; a graph edge to it would be an edge to a type, not to code |
 
 `.d.ts` exclusion is a real narrowing and is recorded here rather than discovered
 later: a repository that ships hand-written declarations loses those edges. The
@@ -566,15 +573,15 @@ Then, in order:
 
 - **Relative specifiers** (`./`, `../`) are handed to the resolver. A resolved
   path inside the repository **and inside the module universe** becomes a `module`
-  target. A resolved path inside the repository but *outside* the universe is
+  target. A resolved path inside the repository but _outside_ the universe is
   still a `module` target — a real in-repository file is a real target whether or
   not the universe chose to list it, and demoting it would be inventing a problem.
   No target, or a target outside the root, is `unresolved`.
 - **Non-relative specifiers** are first tested against the **discovered workspace
   package names** from ADR-0045. A match gives a `package` target, with the
   subpath preserved. This works with `node_modules` entirely absent, which is the
-  point — §11's fence means a workspace import is resolved from *repository
-  declarations*, never from an installed symlink.
+  point — §11's fence means a workspace import is resolved from _repository
+  declarations_, never from an installed symlink.
 - **Package subpaths** (`@scope/pkg/subpath`) are matched on the **package name
   boundary**: `@scope/pkg` and `@scope/pkg/sub` are different packages, and
   `lodash/fp` is `lodash` with the subpath `/fp`. No subpath is ever mapped to a
@@ -609,7 +616,7 @@ pin the consequence:
 - The same repository **with a `node_modules` tree present** produces
   byte-identical JSON to the same repository without one.
 - The same content with directory entries registered in **reverse order** produces
-  byte-identical JSON, because every collection is sorted by code-unit *before* any
+  byte-identical JSON, because every collection is sorted by code-unit _before_ any
   budget is spent, so which files survive a bound cannot depend on enumeration
   order.
 
@@ -643,9 +650,9 @@ non-empty by type, so "a dependency edge with no declaration" is inexpressible.
 ```ts
 type DependencyDeclaration = {
   dependencyClass: "runtime" | "dev" | "peer" | "optional";
-  declaredSpecifier: string;   // verbatim: "^8.17.1", "workspace:*", "file:../x"
-  provenance: SourceLocation;  // the manifest line this declaration is on
-  pointer: string;             // "/dependencies/ajv"
+  declaredSpecifier: string; // verbatim: "^8.17.1", "workspace:*", "file:../x"
+  provenance: SourceLocation; // the manifest line this declaration is on
+  pointer: string; // "/dependencies/ajv"
 };
 ```
 
@@ -666,10 +673,7 @@ interface:
 interface LockfileAdapter {
   readonly manager: string;
   supports(repositoryRelativePath: string): boolean;
-  resolve(
-    context: DiscoveryProbeContext,
-    importer: string,
-  ): Promise<LockfileResolution>;
+  resolve(context: DiscoveryProbeContext, importer: string): Promise<LockfileResolution>;
 }
 ```
 
@@ -679,10 +683,10 @@ no entry for this dependency" are four different states and not one nullable fie
 
 ```ts
 type DependencyResolution =
-  | { status: "resolved";   version: string; provenance: SourceLocation }
-  | { status: "no-evidence" }                                   // no supported lockfile
-  | { status: "unsupported";  source: string; detail: string }  // format not modelled / unparseable
-  | { status: "unresolved" };                                   // lockfile read, no entry
+  | { status: "resolved"; version: string; provenance: SourceLocation }
+  | { status: "no-evidence" } // no supported lockfile
+  | { status: "unsupported"; source: string; detail: string } // format not modelled / unparseable
+  | { status: "unresolved" }; // lockfile read, no entry
 ```
 
 Two properties that follow, and both are required:
@@ -706,10 +710,10 @@ both fields, which this graph publishes verbatim.
 
 Two formats are modelled, because two are modelable correctly today:
 
-| Lockfile           | Manager | What is read                                                          |
-| ------------------ | ------- | --------------------------------------------------------------------- |
-| `pnpm-lock.yaml`   | pnpm    | `importers.<importer>.<class>.<name>.version`                          |
-| `package-lock.json`| npm     | `packages["node_modules/<name>"].version`, for `lockfileVersion` 2 and 3 |
+| Lockfile            | Manager | What is read                                                             |
+| ------------------- | ------- | ------------------------------------------------------------------------ |
+| `pnpm-lock.yaml`    | pnpm    | `importers.<importer>.<class>.<name>.version`                            |
+| `package-lock.json` | npm     | `packages["node_modules/<name>"].version`, for `lockfileVersion` 2 and 3 |
 
 Everything else — `yarn.lock`, `bun.lockb`, `npm-shrinkwrap.json` — is
 **`status: "unsupported"` with a named reason and a `DISCOVERY_FACT_UNSUPPORTED`
@@ -727,7 +731,7 @@ pre-`packages` layout) are explicitly `unsupported` rather than half-read.
 The **transitive registry graph is not built**. A `pnpm-lock.yaml` with 1,400
 packages would produce 1,400 nodes and tens of thousands of edges describing a
 dependency graph Agent-Ready did not choose and cannot vouch for. This issue asks
-for *direct declarations and their resolved versions*, and that is what is
+for _direct declarations and their resolved versions_, and that is what is
 produced.
 
 Lockfile positions come from the `yaml` package's `LineCounter` and from the same
@@ -745,7 +749,7 @@ target that is an `external-dependency` node named `@repo/api` and a
 invented: the declaration was observed, the target was not found, and both are
 true.
 
-### 16. Import-to-dependency consistency is *structure*, not judgement
+### 16. Import-to-dependency consistency is _structure_, not judgement
 
 Once both edge families exist, the snapshot can show that `src/x.ts` imports
 `ajv` and `package.json` declares it, or that `src/x.ts` imports `left-pad` and
@@ -790,7 +794,7 @@ repository with both `.github/CODEOWNERS` and `docs/CODEOWNERS` is reported as
 having one ownership surface (the winning file) rather than a synthetic union
 nobody wrote.
 
-Ownership is evaluated for **module** and **package** nodes. It is *not*
+Ownership is evaluated for **module** and **package** nodes. It is _not_
 evaluated for `external-dependency` nodes, because "who owns `ajv`" has no
 repository answer — its declaration is in this repository's manifest, not in a
 code path anyone owns.
@@ -803,20 +807,20 @@ are then evaluated against a real path with real semantics.
 **The supported pattern subset** is deliberately small, and anything outside it is
 surfaced rather than approximated:
 
-| Pattern feature                                              | Supported | Notes                                                       |
-| ------------------------------------------------------------ | --------- | ----------------------------------------------------------- |
-| literal path, no wildcard                                    | yes       | matches that file, or that directory and everything in it  |
-| trailing `/` (directory-only)                                | yes       |                                                              |
-| leading `/` (anchored to the repository root)                 | yes       |                                                              |
-| `*` — any run of characters except `/`                        | yes       |                                                              |
-| `**` — any run of characters including `/`                    | yes       |                                                              |
-| `?` — exactly one character except `/`                        | yes       |                                                              |
-| pattern with no `/` — matches at any depth                   | yes       | as upstream gitignore-derived semantics describe             |
-| `[abc]`, `[a-z]` character classes                           | **no**    | `DISCOVERY_FACT_UNSUPPORTED` with the pattern and line        |
-| leading `!` negation                                         | **no**    | a CODEOWNERS file is not a `.gitignore`                       |
-| extglobs `+(…)`, `?(…)`, `*(…)`, `@(…)`                       | **no**    |                                                                |
-| backslash escaping                                           | **no**    |                                                                |
-| `**` as a whole path segment (`a/**/b`)                      | yes       | matches zero or more intermediate segments                    |
+| Pattern feature                               | Supported | Notes                                                     |
+| --------------------------------------------- | --------- | --------------------------------------------------------- |
+| literal path, no wildcard                     | yes       | matches that file, or that directory and everything in it |
+| trailing `/` (directory-only)                 | yes       |                                                           |
+| leading `/` (anchored to the repository root) | yes       |                                                           |
+| `*` — any run of characters except `/`        | yes       |                                                           |
+| `**` — any run of characters including `/`    | yes       |                                                           |
+| `?` — exactly one character except `/`        | yes       |                                                           |
+| pattern with no `/` — matches at any depth    | yes       | as upstream gitignore-derived semantics describe          |
+| `[abc]`, `[a-z]` character classes            | **no**    | `DISCOVERY_FACT_UNSUPPORTED` with the pattern and line    |
+| leading `!` negation                          | **no**    | a CODEOWNERS file is not a `.gitignore`                   |
+| extglobs `+(…)`, `?(…)`, `*(…)`, `@(…)`       | **no**    |                                                           |
+| backslash escaping                            | **no**    |                                                           |
+| `**` as a whole path segment (`a/**/b`)       | yes       | matches zero or more intermediate segments                |
 
 A pattern matching a **directory** applies to everything inside it, which is what
 upstream semantics say and what makes `/src/payments/` work.
@@ -847,7 +851,7 @@ the owner set — the upstream rule, implemented exactly:
 `src/payments/service.ts` is owned by `@org/payments`, because both rules match
 (both by the directory-prefix rule and by direct match) and the later one wins.
 `src/api/service.ts` is owned by `@org/default`. Neither result is a merge and
-neither is a union of matching lines; a consumer that wants to know that *two*
+neither is a union of matching lines; a consumer that wants to know that _two_
 rules matched reads the file.
 
 Every owner token on the winning rule produces its **own `owned-by` edge** with
@@ -866,12 +870,11 @@ This is the design tension named in the Context, resolved.
 
 ```ts
 type OwnershipState =
-  | { status: "owned";   ownerIds: readonly string[] }
-  | { status: "unowned"; policy: OwnershipPolicy };
+  { status: "owned"; ownerIds: readonly string[] } | { status: "unowned"; policy: OwnershipPolicy };
 
 type OwnershipPolicy =
-  | { status: "evaluated"; source: string }   // a CODEOWNERS file was searched; no rule matched
-  | { status: "absent";   source: null };     // no supported CODEOWNERS file exists
+  | { status: "evaluated"; source: string } // a CODEOWNERS file was searched; no rule matched
+  | { status: "absent"; source: null }; // no supported CODEOWNERS file exists
 ```
 
 There is **no `owner:UNOWNED` node and no sentinel owner**. `unowned` is a state,
@@ -900,22 +903,22 @@ Module graph construction introduces traversal and parsing, so it is bounded by
 **code constants** — not configuration, not per-repository tuning, and not
 quality knobs. A repository cannot make discovery expensive by being large.
 
-| Constant                         | Value     | Protects                                              |
-| -------------------------------- | --------- | ----------------------------------------------------- |
-| `MAX_SOURCE_DEPTH`               | 12        | fallback directory walk depth                         |
-| `MAX_SOURCE_ENTRIES`             | 2000      | fallback entries enumerated                           |
-| `MAX_SOURCE_FILES`               | 2000      | files admitted to the module universe                  |
-| `MAX_SOURCE_FILE_BYTES`          | 1,000,000 | one source file, mirroring ADR-0045's manifest cap     |
-| `MAX_TOTAL_SOURCE_BYTES`         | 32,000,000| total parsed source, so many large files cannot win   |
-| `MAX_IMPORTS_PER_FILE`           | 500       | one file's import declarations                        |
-| `MAX_GRAPH_NODES`                | 5000      | graph size                                            |
-| `MAX_GRAPH_EDGES`                | 20000     | graph size                                            |
-| `MAX_UNRESOLVED_IMPORT_DETAILS`  | 20        | examples in the *human* rendering only                 |
+| Constant                        | Value      | Protects                                            |
+| ------------------------------- | ---------- | --------------------------------------------------- |
+| `MAX_SOURCE_DEPTH`              | 12         | fallback directory walk depth                       |
+| `MAX_SOURCE_ENTRIES`            | 2000       | fallback entries enumerated                         |
+| `MAX_SOURCE_FILES`              | 2000       | files admitted to the module universe               |
+| `MAX_SOURCE_FILE_BYTES`         | 1,000,000  | one source file, mirroring ADR-0045's manifest cap  |
+| `MAX_TOTAL_SOURCE_BYTES`        | 32,000,000 | total parsed source, so many large files cannot win |
+| `MAX_IMPORTS_PER_FILE`          | 500        | one file's import declarations                      |
+| `MAX_GRAPH_NODES`               | 5000       | graph size                                          |
+| `MAX_GRAPH_EDGES`               | 20000      | graph size                                          |
+| `MAX_UNRESOLVED_IMPORT_DETAILS` | 20         | examples in the _human_ rendering only              |
 
 When a bound is reached:
 
 - collection stops **deterministically**, having already sorted the inputs by
-  code-unit, so *which* files survive never depends on directory enumeration order;
+  code-unit, so _which_ files survive never depends on directory enumeration order;
 - `graph.complete` becomes `false` and `graph.truncated` names the bound;
 - a `DISCOVERY_PARTIAL` warning names the bound, its value, and what was lost;
 - the graph is still emitted. A truncated graph that says it is truncated is more
@@ -982,8 +985,8 @@ consumer two interfaces to reconcile.
 2. **A new provenance type, scoped to the graph.** `SourceLocation` is additive and
    is used by graph nodes and edges. `Evidence` keeps its ADR-0044 shape, so no
    ADR-0044/45/46 fact is retrofitted with a line it never claimed to have. The
-   invariant is scoped exactly as Issue #39 requires: *every graph node and every
-   graph edge* has a repository file and a line.
+   invariant is scoped exactly as Issue #39 requires: _every graph node and every
+   graph edge_ has a repository file and a line.
 
 3. **Two diagnostic codes are added, both `DISCOVERY_`-namespaced.**
    `DISCOVERY_IMPORT_UNRESOLVED` (warning) names an import declaration that
@@ -991,7 +994,7 @@ consumer two interfaces to reconcile.
    "surfaced rather than swallowed" requirement made visible. And
    `DISCOVERY_GRAPH_PROVENANCE_INVALID` (error) reports a graph that violates its
    own invariants, which is an Agent-Ready defect and the only non-warning this
-   issue adds. Resolver *reasons* are structured data on the edge, not codes: a
+   issue adds. Resolver _reasons_ are structured data on the edge, not codes: a
    code per reason would be a code per vocabulary synonym.
 
 ## Consequences
@@ -1024,6 +1027,124 @@ consumer two interfaces to reconcile.
   were already runtime-relevant (`yaml`) or already a dependency (`typescript`); no
   new dependency is added, and no new capability reaches a probe — the graph runs
   through the same read-only `DiscoveryProbeContext` as every other probe.
+
+## Dogfooding on Agent-Ready
+
+The graph was built against this repository, which is the acceptance criterion
+Issue #39 states directly: _a graph built from this repository demonstrably has a
+defect, and the defect is either fixed or documented as a known limitation._
+
+At the shipped commit the graph is 163 nodes and 977 edges — 815 import, 16
+dependency, 146 ownership — over 145 source files selected by `tsconfig.json`
+under `moduleResolution: NodeNext`, with 16 of 16 dependencies resolved from
+`pnpm-lock.yaml`, 0 unresolved imports, and the ownership surface resolved to
+`.github/CODEOWNERS` with 10 rules. No diagnostic is emitted. Two samples of real
+provenance, both checkable by opening the file:
+
+| Claim                                                                 | Citation                                    | What is on that line                                             |
+| --------------------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------- |
+| `dependency:@eslint/js` was declared                                  | `package.json:76`                           | `"@eslint/js": "^10.0.1",`                                       |
+| …and resolved to                                                      | `pnpm-lock.yaml:26`                         | `version: 10.0.1(eslint@10.7.0)`                                 |
+| `scripts/regenerate-discover-fixture.ts` imports the discover command | `scripts/regenerate-discover-fixture.ts:15` | `import { runDiscover } from "../src/cli/commands/discover.js";` |
+| …and that module is owned by                                          | `.github/CODEOWNERS:1`                      | `*  @AdamEddahmouni`                                             |
+
+Four defects were found this way. Three were in the implementation and are fixed;
+one is a property of the repository and is published rather than repaired.
+
+### Defect 1 — the repository root was never listed (fixed)
+
+`createProbeContext` built every absolute path as `joinPath(repoRoot, relative)`.
+The repository root's own repository-relative path is `"."`, so listing the root
+asked for `/repo/.`. A real `readdir` tolerates the trailing `/.`; a strict
+boundary does not, and `safeList` cannot distinguish "threw" from "absent" without
+a `stat` that also fails. The result was that the source walk returned **nothing**
+for any repository with no usable `tsconfig.json` and no workspaces — silently,
+producing a complete, empty, `complete: true` graph.
+
+This is the same class as the relative-`startDir` defect this issue already fixed
+in `resolveRepositoryRoot`: a root that is nominally correct and operationally
+wrong. The fix routes every relative path through one `absoluteFor` helper, so
+the special case exists in exactly one place.
+
+### Defect 2 — a three-character declaration extension was sliced wrong (fixed)
+
+`sourceExtensionOf` recognised `.d.ts`, `.d.mts` and `.d.cts` and then returned
+`name.slice(name.length - 5)`. A fixed offset is only correct for a
+two-character extension, so `.d.mts` reported `d.mts` and `.d.cts` reported
+`d.cts` — extensions no exclusion list matches. The effect would have been to
+put declaration files into the module universe as though they were code, which
+is precisely what §11 of this record forbids. The compound extension is now
+sliced by its own length from an explicit list.
+
+### Defect 3 — a trailing newline counted as an extra line (fixed)
+
+`LineIndex.lineCount` returned one more than a person would count for a file
+ending in `\n`, contradicting its own documentation. The count is the validator's
+**upper bound** for a citation, so the phantom line let a citation onto a line
+that exists in the arithmetic and not on disk. `jsonSource` and
+`packages/manifest` each had their own copy of the same rule; all three now
+delegate to one `countLines`, because a per-caller count that disagreed by one
+would be invisible.
+
+### Defect 4 — ten declared devDependencies are imported by nothing (published)
+
+`@eslint/js`, `@types/node`, `@types/semver`, `eslint`,
+`eslint-config-prettier`, `globals`, `prettier`, `tsx`, `typescript-eslint` and
+`vite` are declared in `devDependencies` and appear in no `import` declaration
+anywhere in `src/` or `scripts/`. They are invoked through `pnpm` scripts and
+through tooling configuration rather than through module imports.
+
+This is a **true statement about the repository, not a defect in it**, and it is
+the clearest demonstration of why the declared/resolved split matters: the graph
+can now be asked "what does this repository say it depends on?" and "what does
+it actually import?", and the two answers differ. No diagnostic is emitted,
+because nothing here is wrong — a tool's devDependencies legitimately have no
+imports. It is a visible, located, checkable difference, which is the outcome
+this record exists to enable.
+
+There are no undeclared external imports, and no import in the repository fails
+to resolve.
+
+## Amendments discovered while implementing
+
+Four refinements to the decisions above, all forced by an implementation detail
+that the decision did not anticipate. Each is narrower than the rule it
+refines.
+
+5. **A root lockfile is read, within a byte cap.** §14 requires a resolved
+   version to cite a line, and a line requires contents — but ADR-0045
+   deliberately _stat-ed_ lockfiles precisely so discovery's cost would not scale
+   with install state, and a lockfile is the largest document discovery has
+   agreed to read. The change is accepted because it is bounded three ways and
+   published in each: only the repository root's own lockfiles (a member's is
+   still only stat-ed, because it is evidence about that member), only the two
+   filenames this version models, and only under `MAX_LOCKFILE_BYTES` (8 MB),
+   checked before parsing. Declared dependencies are unaffected by a refusal, so
+   a lost lockfile costs resolved versions and nothing else.
+
+6. **The repository root's own relative path is `""`-free.** `REPOSITORY_ROOT`
+   is `"."` throughout, and `"."` must resolve to the root itself rather than to
+   a `.` appended to it. See Defect 1. This is a property of the path boundary
+   rather than of the graph, but the graph is what made it visible.
+
+7. **The built-in module list is supplemented.** §12 classifies a Node built-in
+   as a `platform` resolution with no target node, because the runtime provides
+   it and no repository file declares it. Sourcing the names from
+   `module.builtinModules` alone is not sufficient: that list omits documented
+   and available modules, `node:test` most importantly, and the consequence
+   would be an `external-dependency` node for something no manifest declares. A
+   short explicit supplement is used rather than a rule, because "anything
+   unresolvable is a built-in" is a guess dressed as a classification.
+
+8. **One unresolved-import warning per run.** §21 makes an unresolved import a
+   warning. Emitting one per occurrence is right for a condition that names a
+   specific path and line, and wrong for one that is a property of the whole
+   repository: a monorepo whose dependencies are simply not installed would
+   produce thousands of warnings and train every consumer to ignore the code. The
+   warning is therefore aggregated — the total in `metadata.unresolved`, a
+   bounded sample in `detail` with the sample stated as a sample, and the edges
+   themselves remaining the complete per-item record. A truncated list is never
+   presented as a complete one.
 
 ## Reconsideration trigger
 

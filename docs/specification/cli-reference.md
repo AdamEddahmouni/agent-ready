@@ -845,9 +845,12 @@ packages has one `repository.packages` fact holding forty entries, not forty
 facts, and a repository with three hundred scripts has one `repository.commands`
 fact holding three hundred of them. That is what keeps `FACT_IDS` a list a
 contributor can read in full and check against the specification, rather than a
-key space generated from repository content. Module-graph facts are
-[#39](https://github.com/AdamEddahmouni/agent-ready/issues/39) onward, and they
-will arrive as declared ids rather than appearing unannounced.
+key space generated from repository content. The repository graph is
+[#39](https://github.com/AdamEddahmouni/agent-ready/issues/39) and it deliberately
+does **not** follow that rule: it is a top-level `graph` field rather than a
+fact, because its evidence is one entry per node and per edge — thousands of
+paths from one inspection — which is exactly what the evidence budget above
+exists to prevent. See [The repository graph](#the-repository-graph).
 
 | Fact id                                 | Kind              | Meaning                                                                                                                                                                                                                                                                                                                                                           |
 | --------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1120,6 +1123,148 @@ single most misleading thing this command could do. The wording is
 `declared`, `available`, `entrypoint`, and `invocation`; never `passed`,
 `verified`, or `working`, because nothing was executed.
 
+### The repository graph
+
+Alongside `facts`, the snapshot carries a **`graph`**: a module and dependency
+graph in which **every node and every edge cites a repository-relative file and
+a 1-based line**. A fact that cannot be traced to a file and a line does not
+enter the graph at all. See
+[ADR-0047](https://github.com/AdamEddahmouni/agent-ready/blob/main/docs/decisions/0047-provenance-carrying-repository-graph.md).
+
+It is a top-level snapshot field rather than a fact. A fact's evidence is a
+bounded, corroboratable set of claims per conceptual property; a graph's
+evidence is one entry per node and per edge — thousands of paths from one
+inspection. Putting it in `facts` would have to either compress per-item
+provenance away or break the evidence budget that keeps corroboration
+meaningful, so `FACT_IDS` is unchanged and the graph is a sibling of `facts`.
+
+There are four node kinds and three edge kinds:
+
+| Node                  | Id                         | Provenance is the…                          |
+| --------------------- | -------------------------- | ------------------------------------------- |
+| `package`             | `package:.`, `package:p/a` | line of that manifest's own declaration     |
+| `module`              | `module:src/x.ts`          | first line of that source file              |
+| `external-dependency` | `dependency:ajv`           | line of the manifest field that declared it |
+| `owner`               | `owner:@org/team`          | line of the CODEOWNERS rule that wrote it   |
+
+| Edge                 | Id shape                           | Means                                       |
+| -------------------- | ---------------------------------- | ------------------------------------------- |
+| `imports`            | `import:<from>-><to>@<line>:<col>` | one **declaration site** imported something |
+| `package-depends-on` | `dependency:<pkg>-><dep>`          | a manifest declared this dependency         |
+| `owned-by`           | `ownership:<subject>-><owner>`     | a CODEOWNERS rule made this assignment      |
+
+One edge per _declaration site_, not one per relationship: two imports of the
+same module can differ in `typeOnly` and in `syntax`, and collapsing them would
+make "is this type-only coupling?" unanswerable from the edge.
+
+#### What resolution means here
+
+`imports` edges resolve in four ways, and the difference is the point:
+
+| `resolution.status` | Target                        | When                                                                     |
+| ------------------- | ----------------------------- | ------------------------------------------------------------------------ |
+| `module`            | another `module` node         | a relative specifier that resolves in-repository                         |
+| `package`           | a workspace `package` node    | a bare specifier naming a discovered workspace package                   |
+| `dependency`        | an `external-dependency` node | a bare specifier naming something external                               |
+| `platform`          | none                          | a Node built-in — the runtime provides it, so no node is invented for it |
+| `unresolved`        | none, plus a `reason`         | nothing the graph could name, **and says why**                           |
+
+An unresolved import is **surfaced, not swallowed**. The edge stays in the graph
+with its specifier, a structured reason (`target-not-found`,
+`unsupported-specifier`, `unsupported-syntax`, `outside-repository`,
+`unsupported-package-subpath`), and the file and line of the declaration. One
+`DISCOVERY_IMPORT_UNRESOLVED` warning is emitted per run carrying the total;
+the edges are the complete per-item record. Dropping the edge instead would make
+the graph look complete, and the whole claim is that its edges can be audited.
+
+Resolution runs through TypeScript's own resolver against a host that is fenced
+four ways: nothing outside the repository root is readable, `node_modules` is
+invisible, `directoryExists` is confined to the repository, and the resolved
+path is re-checked for containment. A workspace package is identified from the
+**discovered manifests** rather than from an installed symlink, so two checkouts
+of one commit — one with `node_modules` present, one without — produce identical
+bytes. `node_modules` is never entered, so discovery cost does not scale with
+install state.
+
+#### Declared versus resolved
+
+A `package-depends-on` edge keeps the two apart because they are two different
+questions and they diverge constantly:
+
+- `declarations[]` — what a manifest wrote, verbatim (`^8.17.1`,
+  `workspace:*`, `file:../x`), cited to **the manifest** by JSON Pointer.
+  A name appearing in two dependency fields produces two declarations, never
+  one chosen by object order.
+- `resolution` — what a lockfile established, cited to **the lockfile** line.
+  Four distinct states, never collapsed: `resolved` (with the version and its
+  line), `no-evidence` (no lockfile), `unsupported` (a format this version does
+  not model), `unresolved` (a lockfile with no entry for this name).
+
+Supported lockfiles are the repository root's `pnpm-lock.yaml` (the v9+
+`importers` layout) and `package-lock.json`. A member's lockfile is only
+stat-ed, because it is evidence about that member; only these two filenames are
+read, and only under a fixed byte cap checked **before** parsing, so declining a
+lockfile costs resolved versions and nothing else.
+
+The most direct answer to "what does this repository depend on?" versus "what
+does it actually import?" is the difference between the two sets — a real,
+visible, checkable property, and not a diagnostic. This repository declares ten
+`devDependencies` that no module imports, because they are invoked through
+`pnpm` scripts and tooling configuration instead.
+
+#### Ownership, and `unowned` as a state
+
+`owned-by` edges come from a CODEOWNERS file, searched at `.github/CODEOWNERS`,
+then `docs/CODEOWNERS`, then `CODEOWNERS`. First match wins; files are never
+merged, because a union would publish a policy nobody wrote. The **last**
+matching rule wins, upstream's exact rule, and every owner on it is kept — a
+rule naming two owners produces two edges and never a "primary" owner.
+
+The supported pattern subset is `*`, `**`, `?`, literal paths, a leading `/`, and
+a trailing `/`, with gitignore-shaped anchoring. A leading `!`, a character
+class, an extglob, a backslash escape, or a root escape is **skipped and
+reported with its file, line, and reason**, while every supported rule beside it
+keeps applying. One exotic line never deletes the twenty ordinary ones.
+
+`unowned` is a **state**, not an absence and not a guess. There is no sentinel
+owner node, no default team, no Git history, and no last-committer inference: any
+of those would put a person or a group in the graph that no repository file
+declares. A subject is `owned` with an owner list, or `unowned` with the policy
+that decided it — including the case where no CODEOWNERS file exists at all,
+which is a complete and successful answer rather than a failure. The subject's
+own provenance stays on its node; the winning rule's line goes on the edge, so
+"who owns this" and "what made me say so" are separately answerable.
+
+#### The supported module universe, and its bounds
+
+Source files are selected by the package's own `tsconfig.json` when it has a
+usable one — `include` and `exclude` applied, `extends` followed to a fixed
+depth, `outDir` excluded — and otherwise by a bounded traversal. Extensions are
+`.ts`, `.mts`, `.cts`, `.tsx`, `.js`, `.mjs`, `.cjs`, `.jsx`; declaration files
+are excluded, because a graph edge to a `.d.ts` would assert a runtime
+relationship that does not exist.
+
+The fallback traversal is blind on purpose: only `node_modules` and `.git` are
+refused. `dist` is genuinely ambiguous — sometimes a committed artifact,
+sometimes compiler output — so it is **not** silently skipped, and a repository
+that wants a precise universe writes the four lines of `tsconfig.json` to get
+one.
+
+Everything is bounded, and **every bound that fires is published** rather than
+applied silently: source depth `12`, directory entries `2000`, source files
+`2000`, bytes per source file `1 MB`, total source bytes `32 MB`, imports per
+file `500`, graph nodes `5000`, graph edges `20000`, lockfile bytes `8 MB`. When
+one fires, `graph.truncatedBy` names it and `graph.complete` is `false`.
+
+#### Nothing is persisted
+
+The graph exists in memory for one run and is serialised into the snapshot. No
+graph database, no `.agent-ready/` directory, no `graph.json`, no cache file, no
+MCP resource, no HTTP endpoint, and no query language. A user who wants a file
+writes the JSON themselves. There is no `agent-ready graph` command either:
+Phase 1 is one repository-discovery surface, and a second command returning a
+subset of the first would give a consumer two interfaces to reconcile.
+
 ### JSON output
 
 `--json` is a projection of the same snapshot with nothing added, dropped, or
@@ -1238,11 +1383,14 @@ filesystem iteration order); and no environment variable, network call, clock,
 or random source can influence a value.
 
 Reads are bounded: a fixed set of root-level paths, plus a walk driven only by
-workspace patterns the repository itself declared. That walk is fenced to the
-repository root, depth- and entry-bounded, code-unit sorted, and never enters
-`node_modules` or `.git`. A manifest is parsed under a byte cap and a nesting
-depth guard, mirroring the YAML guards, so hostile repository content is a failed
-manifest rather than a crashed process. A path that cannot be inspected is
+workspace patterns the repository itself declared, plus — for the graph — a
+source walk driven by each package's own `tsconfig.json` or a bounded traversal.
+That walk is fenced to the repository root, depth- and entry-bounded, code-unit
+sorted, and never enters `node_modules` or `.git`. A manifest is parsed under a
+byte cap and a nesting depth guard, mirroring the YAML guards, so hostile
+repository content is a failed manifest rather than a crashed process. A
+lockfile is read only when it is a root lockfile in a format this version
+models, and only under its own byte cap. A path that cannot be inspected is
 reported as uninspectable, never as absent.
 
 Package and command scope is deliberately **closed-world**: packages are found by
@@ -1254,9 +1402,13 @@ see [ADR-0045](https://github.com/AdamEddahmouni/agent-ready/blob/main/docs/deci
 ### Exit codes
 
 `0` for a snapshot with no diagnostics or warnings only — including a
-repository with no contract, no signals, a failed probe, or contradictory
-sources. `2` for `DISCOVERY_ROOT_UNREADABLE`, the only fatal condition. A
-missing `agent-ready.yaml` is never `CONTRACT_NOT_FOUND` for this command. See
+repository with no contract, no signals, a failed probe, contradictory sources,
+or unresolved imports. `2` for `DISCOVERY_ROOT_UNREADABLE`, the only fatal
+condition. `1` for `DISCOVERY_GRAPH_PROVENANCE_INVALID`, which is an
+Agent-Ready defect rather than an unreadable input: a graph whose citations do
+not check out is never published, and the snapshot carries `graph: null` so no
+consumer can mistake a withheld graph for an empty one. A missing
+`agent-ready.yaml` is never `CONTRACT_NOT_FOUND` for this command. See
 [Exit codes](#exit-codes) and
 [diagnostics.md](diagnostics.md#exit-code-mapping).
 

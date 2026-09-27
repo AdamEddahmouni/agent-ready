@@ -183,6 +183,18 @@ graph. Missing ownership must be representable and reported as missing.
   either fixed or documented as a known limitation.
 - Import resolution failures are surfaced, not swallowed.
 
+**Status.** Shipped as GitHub
+[#39](https://github.com/AdamEddahmouni/agent-ready/issues/39), decided in
+[ADR-0047](../decisions/0047-provenance-carrying-repository-graph.md). The graph
+is a top-level `graph` field on the `discover` snapshot rather than a fact, so
+`FACT_IDS` is unchanged. Dogfooding on this repository found three implementation
+defects (the root path `"."` never resolving to the root, a three-character
+declaration extension being sliced wrong, and a trailing newline counting as an
+extra line against the validator's range check), all fixed, plus one repository
+condition published rather than repaired: ten declared `devDependencies` that no
+module imports. Unresolved imports and unowned subjects are each represented
+explicitly, and the graph is not persisted and has no command of its own.
+
 ---
 
 ### Issue #5 — Stable JSON snapshot and schema

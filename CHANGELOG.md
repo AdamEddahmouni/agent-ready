@@ -8,17 +8,61 @@ All notable changes to Agent-Ready are documented here. The project follows
 Adds `agent-ready discover` as the twelfth command, on the parallel vNext
 track. It ships the discovery _substrate_ — provenance, explicit uncertainty,
 the absence-versus-failure distinction, contradiction preservation, and a
-read-only capability boundary — and now its first two domains on top: package
-and workspace discovery, and command and verification discovery. Module-graph
-discovery is the next expansion and lands separately.
+read-only capability boundary — and now its third domain on top: a
+provenance-carrying **module and dependency graph**.
 
 The v1 contract, the eleven v1 commands, the adapter-output corpus, and the
 public JSON Schema are unchanged. The shared `FileSystem` interface gained a
 read-only `listDirectory`; it is additive, no v1 command calls it, and the
-existing v1 behaviour is covered by the unchanged suites.
+existing v1 behaviour is covered by the unchanged suites. `createProbeContext`,
+the JSON position index, and the manifest parser gained purely additive
+internals: a `"."` relative path now resolves to the repository root rather than
+to a `.` appended to it, one line-count helper is now shared by the three call
+sites that previously each had their own copy, and manifests additionally carry
+dependency declarations with pointer-anchored positions. No v1 command reaches
+any of them.
 
 ### Added
 
+- A **`graph` field on the discovery snapshot** in which every node and every
+  edge cites a repository-relative file and a 1-based line. Four node kinds
+  (`package`, `module`, `external-dependency`, `owner`) and three edge kinds
+  (`imports`, `package-depends-on`, `owned-by`) with readable, deterministic ids.
+  A fact that cannot be traced to a file and a line does not enter the graph. The
+  graph is a top-level snapshot field rather than a fact, so `FACT_IDS` is
+  unchanged — a graph's evidence is one entry per node and per edge, which is
+  what the fact evidence budget exists to prevent. See
+  [ADR-0047](docs/decisions/0047-provenance-carrying-repository-graph.md).
+- **Import resolution that is fenced and honest.** Relative specifiers resolve
+  through TypeScript's own resolver against a host that cannot see outside the
+  repository root and cannot see `node_modules`; workspace packages are
+  identified from the discovered manifests, not from installed symlinks; Node
+  built-ins are a `platform` answer with no node. Two checkouts of one commit —
+  one with dependencies installed, one without — produce identical bytes.
+  **Unresolved imports are surfaced, not swallowed**: the edge stays, carrying
+  its specifier, a structured reason, and the file and line of the declaration,
+  and one `DISCOVERY_IMPORT_UNRESOLVED` warning reports the run's total.
+- **Dependency edges that keep declared and resolved apart.** `declarations[]`
+  is what a manifest wrote, verbatim and cited by JSON Pointer; `resolution` is
+  what a lockfile established, cited to the lockfile line, in one of four
+  distinct states (`resolved` / `no-evidence` / `unsupported` / `unresolved`)
+  that are never collapsed into "unknown". A name in two dependency fields
+  produces two declarations rather than one picked by object order.
+- **Ownership from `CODEOWNERS`, with an explicit `unowned` state.** First
+  location wins and files are never merged; the last matching rule wins and every
+  owner on it is kept; an unsupported pattern is skipped and reported with its
+  file, line, and reason while the rules beside it keep applying. A subject is
+  `owned` with owners or `unowned` with the policy that decided it — there is no
+  sentinel owner node, no default team, and no Git-history inference, because any
+  of those would put a person or a group in the graph that no repository file
+  declares.
+- **Every bound declared and every truncation published**: source depth `12`,
+  directory entries `2000`, source files `2000`, `1 MB` per source file, `32 MB`
+  of source in total, `500` imports per file, `5000` graph nodes, `20000` graph
+  edges, `8 MB` per lockfile. When one fires, `graph.truncatedBy` names it and
+  `graph.complete` is `false`.
+- A `Graph` section in the human rendering, carrying counts the JSON already
+  reports and nothing it does not.
 - `agent-ready discover [--root <path>] [--json]` builds a deterministic,
   evidence-bearing model of a repository, and works **with or without** an
   `agent-ready.yaml`: a missing contract is reported as a fact rather than as
@@ -143,6 +187,39 @@ existing v1 behaviour is covered by the unchanged suites.
 
 ### Fixed
 
+- **The discovery probe context could not list the repository root.** Every
+  repository-relative path was joined onto the root, and the root's own relative
+  path is `"."` — so listing it asked for `/repo/.`. A real `readdir` tolerates
+  the trailing `/.` and a strict boundary does not, and the two cases are
+  indistinguishable through a thrown error alone. The consequence was that the
+  graph's source walk returned **nothing** for any repository without a usable
+  `tsconfig.json` and without workspaces, silently, producing a complete and
+  empty graph. All relative paths now go through one `absoluteFor` helper. The
+  same class of defect as the relative-`--root` handling fixed earlier in this
+  release: a root that is nominally correct and operationally wrong.
+- **`.d.mts` and `.d.cts` were not recognised as declaration extensions.** The
+  compound extension was sliced with a fixed five-character offset, which is only
+  correct for a two-character extension, so a three-character one lost its
+  leading dot and matched no exclusion list. The effect would have been to put
+  declaration files into the module universe as though they were code.
+- **A file ending in a newline was counted as having one more line than it
+  does**, contradicting its own documentation. That count is the upper bound the
+  graph's validator range-checks every citation against, so the phantom line
+  admitted a citation onto a line that exists in the arithmetic and not on disk.
+  Three call sites had three copies of the rule; they now share one.
+- `module.builtinModules` omits documented, available modules — `node:test` most
+  importantly — so `import … from "node:test/reporters"` was classified as an
+  external dependency and would have minted a graph node for something no
+  manifest declares. The built-in list is now supplemented explicitly rather
+  than sourced from the runtime alone.
+- An unresolved import produced one warning per import. A repository whose
+  dependencies are simply not installed would emit thousands of warnings and
+  train every consumer to ignore the code, so the warning is now one per run
+  carrying the total, with a bounded sample that says it is a sample. The edges
+  remain the complete per-item record.
+- The human `Graph` rendering printed `moduleResolution` with nothing after it
+  for a repository with no declared resolution mode, which read as a value that
+  failed to render. The clause is now omitted.
 - `agent-ready explain --code <CODE> --json` reported `severity: "error"` for
   every code outside a hardcoded list of three, so a newly registered
   informational code was described as an error. It now derives the severity
