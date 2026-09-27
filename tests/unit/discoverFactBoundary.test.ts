@@ -27,7 +27,7 @@ import type { Contribution, KnownContribution } from "../../src/discover/fact.js
 import { discoverRepository } from "../../src/discover/discover.js";
 import type { DiscoveryProbe } from "../../src/discover/probe.js";
 import type { DiscoverySnapshot, Fact, FactId, JsonValue } from "../../src/discover/types.js";
-import { FACT_IDS } from "../../src/discover/types.js";
+import { FACT_IDS, isFactId } from "../../src/discover/types.js";
 import { claimingValue, probeReporting, repoWith, VALID_CONTRACT } from "./discoverTestDoubles.js";
 
 /**
@@ -204,13 +204,46 @@ describe("corroboration means independence, not repetition", () => {
     expect(corroborationOf(fact).corroborated).toBe(false);
   });
 
-  it("is not corroborated by two claims that cite the same evidence", () => {
-    // One file inspected twice is one source. Reporting this as independent
-    // verification is the specific overclaim the boundary exists to prevent.
+  it("is corroborated by two claims, and independence is enforced at the probe instead", () => {
+    // **Amended by ADR-0045.** This used to assert that two claims citing the
+    // same file are not independent. That rule is right for the single-file
+    // facts #36 shipped and wrong for a fact whose evidence is naturally spread
+    // over several files: a package manager evidenced by three lockfiles would
+    // report `corroborated: false` for every claim, so the field would carry no
+    // information at all in the one domain that needed it.
+    //
+    // The property being protected — one source must never be presented as
+    // though the repository confirmed itself — is now enforced where the risk
+    // actually lives, in the probe protocol: one claim is one source, and no
+    // probe may split one document into more than one claim. See
+    // `evidenceBudgetFor` and the probe-budget tests in `discoverProbes.test.ts`.
     const fact = only(
       mergeContributions([known("derived", "x", "same.json"), known("declared", "x", "same.json")]),
     );
-    expect(corroborationOf(fact).corroborated).toBe(false);
+    expect(corroborationOf(fact).corroborated).toBe(true);
+    // What survives unchanged is the distinction the field exists to draw: a
+    // lone claim never corroborates itself, however direct it is.
+    expect(
+      corroborationOf(only(mergeContributions([known("derived", "x", "a.json")]))).corroborated,
+    ).toBe(false);
+  });
+
+  it("does not count an author-declared claim as independent support", () => {
+    // The contract is a claim *about* the repository, so it can never be the
+    // second source that confirms a repository-derived value. This is
+    // unchanged from ADR-0044.
+    const fact = only(
+      mergeContributions([
+        known("derived", "x", "a.json"),
+        {
+          id: SURFACE,
+          kind: "author-declared",
+          value: "x",
+          evidence: [{ source: "agent-ready.yaml" }],
+        },
+      ]),
+    );
+    expect(corroborationOf(fact)).toMatchObject({ authorDeclared: true, corroborated: false });
   });
 
   it("is corroborated by two claims citing different evidence", () => {
@@ -302,17 +335,27 @@ describe("the published fact vocabulary is what the implementation emits", () =>
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     for (const id of Object.keys(result.snapshot.facts)) {
-      expect(FACT_IDS as readonly string[]).toContain(id);
+      // `isFactId` accepts the fixed vocabulary and the package-manager
+      // template, and nothing else. A probe that invented an id would fail
+      // here even though it type-checked, which is the point of checking the
+      // emitted strings rather than only the types.
+      expect(isFactId(id)).toBe(true);
     }
   });
 
-  it("emits exactly the ids the vocabulary declares, with no gaps", async () => {
+  it("emits every conceptual id the vocabulary declares, with no gaps", async () => {
+    // Scoped package-manager identities are excluded here: they are derived
+    // from repository content, so how many exist depends on the repository.
+    // The fixed vocabulary is what must be gap-free.
     const result = await discoverRepository(repoWith({ "AGENTS.md": "# agents\n" }), {
       startDir: "/repo",
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(Object.keys(result.snapshot.facts).sort()).toEqual([...FACT_IDS].sort());
+    const emitted = Object.keys(result.snapshot.facts).filter((id) =>
+      (FACT_IDS as readonly string[]).includes(id),
+    );
+    expect(emitted.sort()).toEqual([...FACT_IDS].sort());
   });
 
   it("satisfies the evidence invariant for every fact in every reachable outcome", async () => {
@@ -399,9 +442,15 @@ describe("a diagnostic is a statement about the operation, never a fact", () => 
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const emitted = Object.keys(result.snapshot.facts);
-    expect(emitted).toHaveLength(FACT_IDS.length);
-    expect(result.snapshot.summary.facts).toBe(FACT_IDS.length);
+    const conceptual = Object.keys(result.snapshot.facts).filter((id) =>
+      (FACT_IDS as readonly string[]).includes(id),
+    );
+    expect(conceptual).toHaveLength(FACT_IDS.length);
+    // Scoped package-manager ids are one fact per discovered manifest, so the
+    // total is the fixed vocabulary plus however many manifests exist.
+    const scoped = Object.keys(result.snapshot.facts).filter((id) => !conceptual.includes(id));
+    expect(scoped.length).toBeGreaterThanOrEqual(0);
+    expect(result.snapshot.summary.facts).toBe(conceptual.length + scoped.length);
   });
 });
 

@@ -1,6 +1,11 @@
 import { InMemoryFileSystem } from "../../src/filesystem/inMemoryFileSystem.js";
 import { FileSystemError } from "../../src/filesystem/types.js";
-import type { FileStat, FileSystem, WriteTextFileOptions } from "../../src/filesystem/types.js";
+import type {
+  FileStat,
+  FileSystem,
+  FileSystemEntry,
+  WriteTextFileOptions,
+} from "../../src/filesystem/types.js";
 import type { DiscoveryProbe, ProbeResult } from "../../src/discover/probe.js";
 import type { FactId, JsonValue, KnownFactKind } from "../../src/discover/types.js";
 
@@ -30,6 +35,10 @@ export class RecordingFileSystem implements FileSystem {
     this.inner.addDirectory(absolutePath);
   }
 
+  addSymbolicLink(linkPath: string, targetPath: string): void {
+    this.inner.addSymbolicLink(linkPath, targetPath);
+  }
+
   async readTextFile(absolutePath: string): Promise<string> {
     this.calls.push(`read:${absolutePath}`);
     return this.inner.readTextFile(absolutePath);
@@ -43,6 +52,11 @@ export class RecordingFileSystem implements FileSystem {
   async realPath(absolutePath: string): Promise<string> {
     this.calls.push(`realpath:${absolutePath}`);
     return this.inner.realPath(absolutePath);
+  }
+
+  async listDirectory(absolutePath: string): Promise<readonly FileSystemEntry[]> {
+    this.calls.push(`listdir:${absolutePath}`);
+    return this.inner.listDirectory(absolutePath);
   }
 
   async writeTextFile(
@@ -113,6 +127,11 @@ export class FaultyFileSystem implements FileSystem {
     return this.inner.realPath(absolutePath);
   }
 
+  async listDirectory(absolutePath: string): Promise<readonly FileSystemEntry[]> {
+    this.guard(absolutePath);
+    return this.inner.listDirectory(absolutePath);
+  }
+
   async writeTextFile(
     absolutePath: string,
     content: string,
@@ -129,6 +148,66 @@ export function repoWith(files: Readonly<Record<string, string>>): InMemoryFileS
   }
   fs.addDirectory("/repo/.git");
   return fs;
+}
+
+/**
+ * A repository built at an arbitrary absolute root, for the checkout-location
+ * independence fixture. The root is a parameter rather than a constant so a test
+ * can prove that identical content yields identical bytes wherever it lives.
+ */
+export function repoAt(root: string, files: Readonly<Record<string, string>>): InMemoryFileSystem {
+  const fs = new InMemoryFileSystem(root);
+  for (const [path, content] of Object.entries(files)) {
+    fs.addFile(`${root}/${path}`, content);
+  }
+  fs.addDirectory(`${root}/.git`);
+  return fs;
+}
+
+/**
+ * A repository whose files are registered in a caller-chosen order, for the
+ * path-order determinism fixture.
+ *
+ * `InMemoryFileSystem` already sorts every directory listing, so this exists to
+ * prove that sorting is what makes the output stable rather than the insertion
+ * order happening to cooperate. A caller that reverses the keys is the strongest
+ * available adversarial input without reaching into the file system itself.
+ */
+export function repoWithReversedInsertion(
+  files: Readonly<Record<string, string>>,
+): InMemoryFileSystem {
+  const fs = new InMemoryFileSystem("/repo");
+  for (const path of Object.keys(files).reverse()) {
+    const content = files[path];
+    if (content === undefined) {
+      throw new Error(`no content supplied for ${path}`);
+    }
+    fs.addFile(`/repo/${path}`, content);
+  }
+  fs.addDirectory("/repo/.git");
+  return fs;
+}
+
+/** Shorthand for a `package.json` body. */
+export function manifest(fields: Record<string, unknown>): string {
+  return JSON.stringify(fields, null, 2) + "\n";
+}
+
+/** A contract declaring a different package manager than the repository shows. */
+export function contractClaiming(name: string, version: string): string {
+  return [
+    "version: 1",
+    "project:",
+    "  name: fixture",
+    "environment:",
+    "  packageManager:",
+    `    name: ${name}`,
+    `    version: ${version}`,
+    "commands: {}",
+    "paths: {}",
+    "adapters: {}",
+    "",
+  ].join("\n");
 }
 
 /** A minimal contract that passes the shipped schema and semantic validation. */

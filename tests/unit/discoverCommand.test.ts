@@ -90,6 +90,45 @@ const EXPECTED_SNAPSHOT = `{
         "corroborated": false
       }
     },
+    "repository.packageManager.root": {
+      "id": "repository.packageManager.root",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "agent-ready.yaml",
+          "pointer": "/environment/packageManager",
+          "detail": "not declared"
+        },
+        {
+          "source": "npm-shrinkwrap.json",
+          "detail": "not present"
+        },
+        {
+          "source": "package-lock.json",
+          "detail": "not present"
+        },
+        {
+          "source": "pnpm-lock.yaml",
+          "detail": "not present"
+        },
+        {
+          "source": "yarn.lock",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.packages": {
+      "id": "repository.packages",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": ".",
+          "detail": "no package manifest was found"
+        }
+      ]
+    },
     "repository.root": {
       "id": "repository.root",
       "kind": "derived",
@@ -113,12 +152,72 @@ const EXPECTED_SNAPSHOT = `{
         "authorDeclared": false,
         "corroborated": false
       }
+    },
+    "repository.workspace.candidates": {
+      "id": "repository.workspace.candidates",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "not present"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.declarations": {
+      "id": "repository.workspace.declarations",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "not present"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.members": {
+      "id": "repository.workspace.members",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "not present"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.root": {
+      "id": "repository.workspace.root",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "not present"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
     }
   },
   "summary": {
-    "facts": 4,
+    "facts": 10,
     "known": 3,
-    "unknown": 1,
+    "unknown": 7,
     "conflicts": 0,
     "complete": true
   },
@@ -198,14 +297,26 @@ describe("discover human output", () => {
         "Repository signals",
         "  Surfaces   yes",
         "",
+        "Packages",
+        "  Count      unknown (no-evidence)",
+        "  Manifests  unknown (no-evidence)",
+        "",
+        "Workspace",
+        "  Manifest   unknown (no-evidence)",
+        "  Declared   unknown (no-evidence)",
+        "  Matched    unknown (no-evidence)",
+        "  Members    unknown (no-evidence)",
+        "",
+        "Package manager",
+        "  Manager (root)  unknown (no-evidence)",
+        "",
         "Discovery",
-        "  Facts      4",
+        "  Facts      10",
         "  Known      3",
-        "  Unknown    1",
+        "  Unknown    7",
         "  Conflicts  0",
         "  Complete   yes",
-        "",
-      ].join("\n"),
+      ].join("\n") + "\n",
     );
     // No readiness score, maturity ranking, or recommendation.
     expect(outcome.stdout).not.toMatch(/score|rating|maturity|recommend|should/i);

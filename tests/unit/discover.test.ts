@@ -35,29 +35,49 @@ const CODES = (snapshot: DiscoverySnapshot): string[] =>
   snapshot.diagnostics.map((diagnostic) => diagnostic.code);
 
 /**
- * The production probe set is deliberately tiny, so the substrate is proved two
- * ways: against the real probes where they apply, and against injected probes
- * where the scenario needs a signal discovery does not yet read. Package
- * discovery is Issue #37.
+ * The substrate is proved two ways: against the real probes where they apply,
+ * and against injected probes where the scenario needs a signal discovery does
+ * not read. Issue #37 added the first real domain, so the layering assertion
+ * below moved: the substrate-only guarantee is now about *commands and graphs*,
+ * which are the next issues, rather than about packages.
  */
 const SURFACE = "repository.declarationSurface.present";
 const PRESENCE = "repository.contract.present";
 
-describe("the production probe set is the substrate, not a domain", () => {
-  it("probes contract presence, contract validity, and declaration surface only", () => {
+describe("the production probe set is the substrate plus the package domain", () => {
+  it("probes exactly the fixed, versioned set of probe ids", () => {
+    // A fixed list, not a computed one: the probe set is part of what makes a
+    // snapshot reproducible, so a probe appearing or vanishing silently would
+    // change every snapshot without changing a fact id.
     expect(DEFAULT_PROBES.map((probe) => probe.id)).toEqual([
       "contract.presence",
       "contract.validity",
       "declaration-surface.presence",
+      "packages.inventory",
+      "workspace.declarations",
+      "workspace.candidates",
+      "workspace.members",
+      "workspace.root",
+      "package-manager.declaration",
+      "package-manager.lockfiles",
+      "contract.package-manager-claim",
     ]);
   });
 
-  it("reads no package, workspace, or module signal", () => {
-    // If a probe for one of these ever appears here, the layering has been
-    // lost: those signals are Issue #37's first expansion of the vocabulary.
-    const sources = ["package.json", "pnpm-lock.yaml", "package-lock.json", "yarn.lock"];
+  it("reads no command, verification, or module-graph signal", () => {
+    // Those are Issues #38 and #39. If a probe for one of them appears here,
+    // the layering has been lost: a domain arriving early would put the next
+    // issue's architecture decisions in this review.
+    const laterIssues = [
+      "commands.discovery",
+      "verification.discovery",
+      "module-graph",
+      "imports",
+      "dependency-graph",
+      "ownership",
+    ];
     for (const probe of DEFAULT_PROBES) {
-      expect(sources).not.toContain(probe.id);
+      expect(laterIssues).not.toContain(probe.id);
     }
   });
 });
@@ -100,16 +120,97 @@ describe("repository with a valid contract", () => {
     expect(fact(snapshot, "repository.contract.valid")).toMatchObject({ value: true });
   });
 
-  it("extracts no claim from the contract, so a description cannot become a fact", async () => {
-    // VALID_CONTRACT declares `packageManager: pnpm`. Nothing in this issue
-    // reads that, and no fact anywhere in the snapshot may carry it.
+  it("records the contract's claim as author-declared, never as a repository fact", async () => {
+    // VALID_CONTRACT declares `packageManager: pnpm`. Issue #37 added the
+    // author-declared channel, so the claim is now read — but the kind is the
+    // whole point of reading it. A claim that appeared as `declared` or
+    // `derived` would make a hand-written description indistinguishable from
+    // something discovered, which is exactly what would invalidate the Phase 1
+    // benchmark.
     const snapshot = await discover(repoWith({ "agent-ready.yaml": VALID_CONTRACT }));
-    const serialized = JSON.stringify(snapshot);
-    expect(serialized).not.toContain("pnpm");
-    for (const entry of Object.values(snapshot.facts)) {
-      if (!("claims" in entry)) continue;
-      expect(entry.claims.every((claim) => claim.kind !== "author-declared")).toBe(true);
+    const managerFact = fact(snapshot, "repository.packageManager.root");
+    if (managerFact.kind === "unknown") {
+      throw new Error("expected the contract's claim to produce a known fact");
     }
+    expect(managerFact.corroboration).toMatchObject({
+      authorDeclared: true,
+      // Only the contract asserts anything, so nothing corroborates it. An
+      // uncorroborated author claim is precisely the state ADR-0044 requires to
+      // stay visible rather than be quietly accepted.
+      corroborated: false,
+    });
+    if (!("claims" in managerFact)) throw new Error("expected a known fact");
+    const authorClaims = managerFact.claims.filter((claim) => claim.kind === "author-declared");
+    expect(authorClaims).toHaveLength(1);
+    expect(authorClaims[0]?.evidence[0]?.source).toBe("agent-ready.yaml");
+
+    // No *repository-derived* fact may cite the contract as its evidence. The
+    // contract's own presence and validity facts do cite it, which is correct
+    // and different in kind: those facts are about whether the file exists, not
+    // about anything it says.
+    for (const [id, entry] of Object.entries(snapshot.facts)) {
+      if (id.startsWith("repository.contract.")) continue;
+      if (id.startsWith("repository.packageManager.")) continue;
+      if (!("claims" in entry)) continue;
+      for (const claim of entry.claims) {
+        expect(
+          claim.evidence.some((item) => item.source === "agent-ready.yaml"),
+          `${id} cited the contract as evidence for a ${claim.kind} claim`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  it("reports identical repository-derived facts with and without a contract", async () => {
+    // ADR-0044's third rule: the contract changes which facts become
+    // *available*, never which become *true*. Every fact the contract does not
+    // contribute to must be byte-identical either way, which is the comparison
+    // that keeps the Phase 1 benchmark honest.
+    const manifest = JSON.stringify({ name: "fixture" });
+    const withoutContract = await discover(repoWith({ "package.json": manifest }));
+    const withContract = await discover(
+      repoWith({ "package.json": manifest, "agent-ready.yaml": VALID_CONTRACT }),
+    );
+
+    for (const id of [
+      "repository.packages",
+      "repository.workspace.declarations",
+      "repository.workspace.candidates",
+      "repository.workspace.members",
+      "repository.workspace.root",
+      "repository.root",
+    ] as const) {
+      expect(
+        JSON.stringify(withoutContract.facts[id]),
+        `${id} changed when a contract was added`,
+      ).toBe(JSON.stringify(withContract.facts[id]));
+    }
+
+    // The package manager is the one fact the contract contributes to, and it
+    // contributes a *claim* rather than replacing a value. With no repository
+    // evidence either way, the fact is carried entirely by the author's word,
+    // and the snapshot says so through both fields rather than presenting a
+    // claim as something discovered: the kind is `author-declared` because
+    // nothing else supports it, and it is not corroborated.
+    //
+    // Reporting it as `unknown` instead was considered and rejected. ADR-0044
+    // keeps an uncorroborated author claim *visible* — discarding it would
+    // make `discover` artificially weak on exactly the repositories that have
+    // already described themselves, and rule 3 says the contract changes which
+    // facts become available, never which become true.
+    const managers = Object.entries(withContract.facts).filter(([id]) =>
+      id.startsWith("repository.packageManager."),
+    );
+    expect(managers).toHaveLength(1);
+    const manager = managers[0]?.[1];
+    if (manager === undefined || manager.kind === "unknown") {
+      throw new Error("expected the contract's claim to produce a known fact");
+    }
+    expect(manager.corroboration).toMatchObject({
+      authorDeclared: true,
+      corroborated: false,
+    });
+    expect(manager.kind).toBe("author-declared");
   });
 });
 
@@ -465,22 +566,36 @@ describe("strict read-only behaviour", () => {
 });
 
 describe("diagnostic registry", () => {
-  it("reserves the DISCOVERY_ namespace exactly as ADR-0044 defines it", () => {
+  it("reserves the DISCOVERY_ namespace exactly as ADR-0044 and ADR-0045 define it", () => {
     const reserved = DIAGNOSTIC_CODES.filter((code) => code.startsWith("DISCOVERY_"));
     expect(reserved).toEqual([
       "DISCOVERY_ROOT_UNREADABLE",
       "DISCOVERY_PARTIAL",
       "DISCOVERY_FACT_CONFLICT",
+      "DISCOVERY_FACT_INCOMPLETE",
+      "DISCOVERY_WORKSPACE_UNSUPPORTED",
+      "DISCOVERY_LOCKFILE_UNREADABLE",
       "DISCOVERY_NO_SIGNALS",
       "DISCOVERY_FACT_UNSUPPORTED",
     ]);
   });
 
-  it("never emits the deliberately unreachable reservation", async () => {
-    const snapshot = await discover(
-      repoWith({ "agent-ready.yaml": VALID_CONTRACT, "AGENTS.md": "# agents\n" }),
-    );
-    expect(CODES(snapshot)).not.toContain("DISCOVERY_FACT_UNSUPPORTED");
+  it("does not claim unsupported coverage for a repository that merely has none", async () => {
+    // The most important negative test for the coverage diagnostic. An empty
+    // repository, and a repository with no contract, both make probes return
+    // `unsupported` — but for an *absent subject*, which the fact's `not-probed`
+    // reason already records. Raising a coverage warning there would put
+    // DISCOVERY_FACT_UNSUPPORTED on nearly every repository in existence and
+    // train every reader to ignore it.
+    const empty = await discover(repoWith({}));
+    expect(CODES(empty)).not.toContain("DISCOVERY_FACT_UNSUPPORTED");
+    expect(fact(empty, "repository.contract.valid")).toMatchObject({
+      kind: "unknown",
+      reason: "not-probed",
+    });
+
+    const noContract = await discover(repoWith({ "AGENTS.md": "# agents\n" }));
+    expect(CODES(noContract)).not.toContain("DISCOVERY_FACT_UNSUPPORTED");
   });
 
   it("reports a root that cannot be read as the only fatal condition", async () => {

@@ -28,11 +28,22 @@ import { claimingValue, FaultyFileSystem, repoWith } from "./discoverTestDoubles
 const DISCOVERY_CODES = DIAGNOSTIC_CODES.filter((code) => code.startsWith("DISCOVERY_"));
 
 describe("the DISCOVERY_ namespace is registered in the shared registry", () => {
-  it("adds only the five codes ADR-0044 defines", () => {
+  it("adds exactly the codes ADR-0044 and ADR-0045 define, and no others", () => {
+    // The namespace is reserved, so the set of codes is a published surface: a
+    // code added here without a decision record behind it would be inventing
+    // public vocabulary.
     expect(DISCOVERY_CODES).toEqual([
       "DISCOVERY_ROOT_UNREADABLE",
       "DISCOVERY_PARTIAL",
       "DISCOVERY_FACT_CONFLICT",
+      // Added by ADR-0045 §2 for the declared-versus-derived disagreement that
+      // ADR-0044's single conflict shape could not express.
+      "DISCOVERY_FACT_INCOMPLETE",
+      // Added by ADR-0045 §6 for a workspace declaration in an unmodelled form
+      // or a pattern refused as unsafe.
+      "DISCOVERY_WORKSPACE_UNSUPPORTED",
+      // Added by ADR-0045 §2 for a lockfile that exists but cannot be read.
+      "DISCOVERY_LOCKFILE_UNREADABLE",
       "DISCOVERY_NO_SIGNALS",
       "DISCOVERY_FACT_UNSUPPORTED",
     ]);
@@ -357,7 +368,23 @@ describe("the human rendering adds no claim the JSON snapshot does not contain",
     "repository.contract.present": "Present",
     "repository.contract.valid": "Valid",
     "repository.declarationSurface.present": "Surfaces",
+    "repository.packages": "Count",
+    "repository.workspace.root": "Manifest",
+    "repository.workspace.declarations": "Declared",
+    "repository.workspace.candidates": "Matched",
+    "repository.workspace.members": "Members",
   };
+
+  /**
+   * Package-manager facts are scoped identities, rendered as their own rows
+   * rather than merged. The check is the shape of the output rather than a fixed
+   * label, because the label is the scope: `Root` for the repository root and
+   * the member's own path for a nested package.
+   */
+  function managerRowLabel(factId: string): string {
+    const scope = factId.slice("repository.packageManager.".length);
+    return `Manager (${scope})`;
+  }
 
   const fixtures: Record<
     string,
@@ -374,7 +401,15 @@ describe("the human rendering adds no claim the JSON snapshot does not contain",
       const args = { json: true, root: "/repo", ...(fixture.probes && { probes: fixture.probes }) };
       const json = await runDiscover(fixture.fs(), args);
       const body = JSON.parse(json.stdout) as {
-        facts: Record<string, { kind: string; value?: unknown; reason?: string }>;
+        facts: Record<
+          string,
+          {
+            kind: string;
+            value?: unknown;
+            reason?: string;
+            contradictedBy?: unknown[];
+          }
+        >;
         summary: { facts: number };
         diagnostics: { code: string }[];
       };
@@ -387,7 +422,7 @@ describe("the human rendering adds no claim the JSON snapshot does not contain",
           expect(human.stdout, name).toContain("Root");
           continue;
         }
-        const label = rows[id];
+        const label = id.startsWith("repository.packageManager.") ? managerRowLabel(id) : rows[id];
         expect(label, `${name}: no human row declared for ${id}`).toBeDefined();
         if (label === undefined) continue;
         const row = lines.find((line) => line.startsWith(`  ${label}`));
@@ -396,6 +431,9 @@ describe("the human rendering adds no claim the JSON snapshot does not contain",
           // An unknown fact must never be rendered as a value. The reason is
           // carried through verbatim, so ignorance stays explainable.
           expect(row, `${name}: ${id}`).toContain(`unknown (${fact.reason ?? ""})`);
+        } else if (fact.contradictedBy !== undefined) {
+          // A contested fact must never render as a settled value.
+          expect(row, `${name}: ${id}`).toContain("incomplete");
         } else if (!("value" in fact)) {
           expect(row, `${name}: ${id}`).toContain("conflicting");
         } else {
