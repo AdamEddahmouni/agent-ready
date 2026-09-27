@@ -50,21 +50,20 @@ export interface DiscoveryProbe {
  * the read-only guarantee from ADR-0044, enforced by construction.
  */
 /**
- * The slice of a loaded contract that discovery is allowed to see. Discovery
- * treats a contract as a source of *claims*, not as repository truth, so it
- * receives the minimum it needs to report an author-declared fact and nothing
- * that would let it reimplement contract validation.
+ * Whether a contract could be loaded, and if not, why.
+ *
+ * This is deliberately a status and not a summary of the contract's contents.
+ * Issue #36 needs to know only whether a contract exists and whether it is
+ * valid; a contract that carries facts of its own is Issue #37's business, and
+ * widening this type is what would let a maintainer's description leak into the
+ * discovered model unlabelled. Keeping the slice this narrow means the
+ * `author-declared` channel cannot be used by accident.
  */
-export interface ContractSummary {
-  /** `environment.packageManager.name`, when the contract declares one. */
-  readonly packageManagerName?: string;
-}
-
 export type ContractStatus =
   | { readonly status: "absent" }
   | { readonly status: "invalid"; readonly reason: string }
   | { readonly status: "failed"; readonly detail: string }
-  | { readonly status: "valid"; readonly summary: ContractSummary };
+  | { readonly status: "valid" };
 
 export interface DiscoveryProbeContext {
   /** Absolute path of the repository root, already resolved. */

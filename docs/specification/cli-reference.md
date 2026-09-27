@@ -838,18 +838,35 @@ evidence contract.** Concretely, `discover` will not
 
 ### Facts reported today
 
-| Fact id                                 | Kind      | Meaning                                                                                                                 |
-| --------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `repository.root`                       | `derived` | The repository root, always the relative anchor `"."`.                                                                  |
-| `repository.contract.present`           | `derived` | Whether an `agent-ready.yaml` exists at the root.                                                                       |
-| `repository.contract.valid`             | `derived` | Whether that contract validates. `not-probed` when there is no contract.                                                |
-| `repository.declarationSurface.present` | `derived` | Whether any of a fixed, versioned set of agent-instruction or CI paths exists.                                          |
-| `repository.packageManager`             | varies    | The package manager, from `package.json` (`declared`), a lockfile (`derived`), and/or the contract (`author-declared`). |
+The vocabulary is deliberately **four facts wide**. This command's deliverable
+is the discovery substrate — provenance, explicit uncertainty, the
+absence-versus-failure distinction, contradiction preservation, and the
+read-only capability boundary — and all of that is provable without a
+substantive repository domain. Package, workspace, command, and module-graph
+facts are [#37](https://github.com/AdamEddahmouni/agent-ready/issues/37) onward,
+and they arrive as declared `FACT_IDS` rather than appearing unannounced.
+
+| Fact id                                 | Kind      | Meaning                                                                        |
+| --------------------------------------- | --------- | ------------------------------------------------------------------------------ |
+| `repository.root`                       | `derived` | The repository root, always the relative anchor `"."`.                         |
+| `repository.contract.present`           | `derived` | Whether an `agent-ready.yaml` exists at the root as a regular file.            |
+| `repository.contract.valid`             | `derived` | Whether that contract validates. `not-probed` when there is no contract.       |
+| `repository.declarationSurface.present` | `derived` | Whether any of a fixed, versioned set of agent-instruction or CI paths exists. |
+
+`declarationSurface` is present as a deliberately minimal heterogeneous
+existence probe: it shows the substrate working against something other than the
+Agent-Ready contract, and it reads presence only — never what any of those files
+say. Which paths count is code, not configuration, so the derivation of a
+`derived` fact cannot be tuned per repository.
 
 `corroboration` records how much independent support a fact has. `corroborated`
 is true only when at least two claims support the value from _different_
 evidence; a single source does not confirm itself, and the weaker question — is
-this more than the author's word? — is answered by `corroboration.kinds`.
+this more than the author's word? — is answered by `corroboration.kinds`. Every
+fact the production probe set produces today has exactly one source, so
+`corroborated` is `false` throughout; corroboration, contradiction, and the
+`author-declared` channel are built and tested here using injected probes, and
+get real multi-source signals in #37.
 
 ### Human output
 
@@ -865,15 +882,10 @@ Agent-Ready contract
 
 Repository signals
   Surfaces   yes
-  Packages   pnpm
-    Evidence
-      author-declared "pnpm"  agent-ready.yaml/environment/packageManager/name
-      declared        "pnpm"  package.json/packageManager
-      derived         "pnpm"  pnpm-lock.yaml
 
 Discovery
-  Facts      5
-  Known      5
+  Facts      4
+  Known      4
   Unknown    0
   Conflicts  0
   Complete   yes
@@ -882,8 +894,11 @@ Discovery
 The evidence block is indented under the fact row it supports, so a citation can
 never be read as corroborating a different fact. A value that is `unknown` is
 printed as `unknown (<reason>)`, never as a value; a contradicted fact is
-printed as `conflicting` with every retained claim listed. There is
-deliberately no score, rating, ranking, or recommendation.
+printed as `conflicting` with every retained claim listed. Every fact the
+production probe set produces today has a single source, so the block appears
+only once a fact has more than one — see
+[Corroboration and contradiction](#facts-reported-today). There is deliberately
+no score, rating, ranking, or recommendation.
 
 ### JSON output
 
@@ -900,54 +915,81 @@ output does not depend on where the repository is checked out.
   "snapshotVersion": 0,
   "root": ".",
   "facts": {
-    "repository.packageManager": {
-      "id": "repository.packageManager",
-      "kind": "declared",
-      "value": "pnpm",
+    "repository.contract.present": {
+      "id": "repository.contract.present",
+      "kind": "derived",
+      "value": true,
       "claims": [
         {
-          "kind": "declared",
-          "value": "pnpm",
-          "evidence": [
-            {
-              "source": "package.json",
-              "pointer": "/packageManager",
-              "detail": "declared as \"pnpm@10.0.0\""
-            }
-          ]
-        },
-        {
           "kind": "derived",
-          "value": "pnpm",
-          "evidence": [{ "source": "pnpm-lock.yaml", "detail": "a pnpm lockfile is present" }]
+          "value": true,
+          "evidence": [{ "source": "agent-ready.yaml", "detail": "a regular file" }]
         }
       ],
       "corroboration": {
-        "kinds": ["declared", "derived"],
+        "kinds": ["derived"],
         "authorDeclared": false,
-        "corroborated": true
+        "corroborated": false
+      }
+    },
+    "repository.contract.valid": {
+      "id": "repository.contract.valid",
+      "kind": "derived",
+      "value": true,
+      "claims": [
+        {
+          "kind": "derived",
+          "value": true,
+          "evidence": [
+            {
+              "source": "agent-ready.yaml",
+              "detail": "parsed and validated against the contract schema"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": ["derived"],
+        "authorDeclared": false,
+        "corroborated": false
       }
     }
   },
-  "summary": { "facts": 5, "known": 5, "unknown": 0, "conflicts": 0, "complete": true },
+  "summary": { "facts": 4, "known": 4, "unknown": 0, "conflicts": 0, "complete": true },
   "diagnostics": []
 }
 ```
 
-An `unknown` fact has no `value` property at all, and a contradicted fact has
-no `value` either — it keeps every claim with its evidence instead:
+An `unknown` fact has no `value` property at all, and carries the reason and the
+paths that were inspected:
 
 ```json
 {
-  "id": "repository.packageManager",
+  "id": "repository.contract.valid",
+  "kind": "unknown",
+  "reason": "no-evidence",
+  "evidence": [{ "source": "agent-ready.yaml", "detail": "not present" }]
+}
+```
+
+A contradicted fact has no `value` either — it keeps every claim with its own
+evidence instead, and names no winner:
+
+```json
+{
+  "id": "repository.declarationSurface.present",
   "kind": "declared",
   "claims": [
     {
       "kind": "declared",
-      "value": "pnpm",
-      "evidence": [{ "source": "package.json", "pointer": "/packageManager" }]
+      "value": true,
+      "evidence": [{ "source": "signals-a.json", "pointer": "/present" }]
     },
-    { "kind": "derived", "value": "npm", "evidence": [{ "source": "package-lock.json" }] }
+    {
+      "kind": "derived",
+      "value": false,
+      "evidence": [{ "source": "signals-b.json", "detail": "not declared" }]
+    }
   ],
   "corroboration": {
     "kinds": ["declared", "derived"],
@@ -956,6 +998,11 @@ no `value` either — it keeps every claim with its evidence instead:
   }
 }
 ```
+
+The last two shapes are not reachable from the production probe set, which
+produces one source per fact. They are specified here because they are part of the
+contract #37's probes will produce, and a consumer implementing against #36
+should not have to wait for #37 to learn them.
 
 ### Determinism
 

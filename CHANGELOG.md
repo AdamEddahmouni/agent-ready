@@ -6,8 +6,14 @@ All notable changes to Agent-Ready are documented here. The project follows
 ## Unreleased
 
 Adds `agent-ready discover` as the twelfth command, on the parallel vNext
-track. The v1 contract, the eleven v1 commands, the adapter-output corpus, and
-the public JSON Schema are unchanged.
+track. It ships the discovery _substrate_ — provenance, explicit uncertainty,
+the absence-versus-failure distinction, contradiction preservation, and a
+read-only capability boundary — over a deliberately small production fact
+vocabulary. Package, workspace, and command discovery are the first expansion of
+that vocabulary and land separately.
+
+The v1 contract, the eleven v1 commands, the adapter-output corpus, and the
+public JSON Schema are unchanged.
 
 ### Added
 
@@ -24,6 +30,12 @@ the public JSON Schema are unchanged.
   value with a reason, so an honest gap stays distinguishable from an absent
   field. Contradictory sources produce a fact with no value and both claims
   retained, never a ranked winner.
+- A four-fact production vocabulary — repository root, contract presence,
+  contract validity, and declaration-surface presence. Contradiction
+  preservation, corroboration, and the `author-declared` channel are built and
+  tested against injected probes, so the substrate is demonstrable without a
+  repository domain; the first real multi-source signals arrive with package
+  discovery.
 - Five `DISCOVERY_*` diagnostic codes in the shared registry
   (`DISCOVERY_ROOT_UNREADABLE`, `DISCOVERY_PARTIAL`, `DISCOVERY_FACT_CONFLICT`,
   `DISCOVERY_NO_SIGNALS`, and the deliberately unreachable
@@ -83,6 +95,13 @@ the public JSON Schema are unchanged.
   state, since a failed probe is precisely how nothing gets cited. The
   predicate now matches its documented contract, and a separate
   `isSelfDescribing` expresses the observability question.
+- A value-shaped probe reporting `found` with no value was recorded as `true`,
+  fabricating a value the probe never observed. It is downgraded to a failed
+  probe, for the same reason a thrown probe is.
+- A value the probe _did_ report could be rewritten on its way into the
+  snapshot: the orchestrator defaulted on nullishness, so an observed `null`
+  became `true`. The default now applies only when a probe reported no value at
+  all, leaving an observed `false` or `null` exactly as reported.
 - `DISCOVERY_PARTIAL` did not set `sourcePath`, so its own remediation text
   pointed at a field that was never populated.
 - `DISCOVERY_ROOT_UNREADABLE` resolved to the generic validation-failure exit

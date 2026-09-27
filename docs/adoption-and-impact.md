@@ -156,7 +156,7 @@ Adam Eddahmouni is currently the sole maintainer and is responsible for:
 - **CLI development** — all twelve commands and the public API.
 - **Adapter development** — the five agent-instruction renderers.
 - **Documentation** — specification docs, ADRs, roadmap, threat model.
-- **Testing** — 659 passing unit/integration tests across 45 files (plus 2 skipped).
+- **Testing** — 668 passing unit/integration tests across 45 files (plus 2 skipped).
 - **Release management** — npm publication, GitHub Releases, changelog.
 - **Issue triage** — currently minimal by volume; no external issue
   traffic yet.

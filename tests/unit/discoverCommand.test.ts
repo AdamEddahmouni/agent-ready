@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { runDiscover } from "../../src/cli/commands/discover.js";
 import { runValidate } from "../../src/cli/commands/validate.js";
+import type { DiscoveryProbe } from "../../src/discover/probe.js";
 import {
+  claimingValue,
   FaultyFileSystem,
+  probeReporting,
   RecordingFileSystem,
   repoWith,
-  VALID_CONTRACT,
 } from "./discoverTestDoubles.js";
 
 /**
@@ -16,11 +18,14 @@ import {
  * here rather than surprising a consumer later. Issue #40 will formalize this
  * into a conformance corpus once the format stabilizes.
  *
- * Note `corroborated: false` on the three facts below that have exactly one
- * claim, while `repository.packageManager` — supported by two different files
- * — is `true`. `corroborated` means independent corroboration, not "something
- * other than the author's word appeared": a single source, however direct,
- * does not confirm itself.
+ * The vocabulary is deliberately four facts wide: root, contract presence,
+ * contract validity, and declaration surface. Package-manager and workspace
+ * facts are Issue #37's first expansion, and they are added to `FACT_IDS` as
+ * declared ids rather than appearing here unannounced.
+ *
+ * Note `corroborated: false` on every fact below. Each is supported by exactly
+ * one source, and `corroborated` means independent corroboration — a single
+ * source, however direct, does not confirm itself.
  */
 const EXPECTED_SNAPSHOT = `{
   "ok": true,
@@ -60,31 +65,19 @@ const EXPECTED_SNAPSHOT = `{
     "repository.declarationSurface.present": {
       "id": "repository.declarationSurface.present",
       "kind": "derived",
-      "value": false,
+      "value": true,
       "claims": [
         {
           "kind": "derived",
-          "value": false,
+          "value": true,
           "evidence": [
             {
               "source": "AGENTS.md",
-              "detail": "not present"
-            },
-            {
-              "source": "CLAUDE.md",
-              "detail": "not present"
-            },
-            {
-              "source": ".cursorrules",
-              "detail": "not present"
+              "detail": "present"
             },
             {
               "source": ".github/copilot-instructions.md",
-              "detail": "not present"
-            },
-            {
-              "source": ".github/workflows",
-              "detail": "not present"
+              "detail": "present"
             }
           ]
         }
@@ -95,42 +88,6 @@ const EXPECTED_SNAPSHOT = `{
         ],
         "authorDeclared": false,
         "corroborated": false
-      }
-    },
-    "repository.packageManager": {
-      "id": "repository.packageManager",
-      "kind": "declared",
-      "value": "pnpm",
-      "claims": [
-        {
-          "kind": "declared",
-          "value": "pnpm",
-          "evidence": [
-            {
-              "source": "package.json",
-              "pointer": "/packageManager",
-              "detail": "declared as \\"pnpm@10.0.0\\""
-            }
-          ]
-        },
-        {
-          "kind": "derived",
-          "value": "pnpm",
-          "evidence": [
-            {
-              "source": "pnpm-lock.yaml",
-              "detail": "a pnpm lockfile is present"
-            }
-          ]
-        }
-      ],
-      "corroboration": {
-        "kinds": [
-          "declared",
-          "derived"
-        ],
-        "authorDeclared": false,
-        "corroborated": true
       }
     },
     "repository.root": {
@@ -159,8 +116,8 @@ const EXPECTED_SNAPSHOT = `{
     }
   },
   "summary": {
-    "facts": 5,
-    "known": 4,
+    "facts": 4,
+    "known": 3,
     "unknown": 1,
     "conflicts": 0,
     "complete": true
@@ -169,11 +126,22 @@ const EXPECTED_SNAPSHOT = `{
 }
 `;
 
+const SURFACE = "repository.declarationSurface.present";
+
 function fixtureRepo() {
-  return repoWith({
-    "package.json": '{"name":"fixture","packageManager":"pnpm@10.0.0"}',
-    "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
-  });
+  return repoWith({ "AGENTS.md": "# agents\n", ".github/copilot-instructions.md": "# ci\n" });
+}
+
+/**
+ * Two probes disagreeing about one fact. Contradiction preservation has to be
+ * demonstrable without a repository domain, so it is driven by injected probes
+ * here; Issue #37 supplies the real conflicting-signal case.
+ */
+function conflictingProbes(): readonly DiscoveryProbe[] {
+  return [
+    claimingValue("signals-a", SURFACE, "declared", "one", "signals-a.json"),
+    claimingValue("signals-b", SURFACE, "derived", "two", "signals-b.json"),
+  ];
 }
 
 describe("discover --json", () => {
@@ -197,19 +165,18 @@ describe("discover --json", () => {
   });
 
   it("reports a conflict in the snapshot without choosing a value", async () => {
-    const conflicting = repoWith({
-      "package.json": '{"packageManager":"pnpm@10.0.0"}',
-      "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
-      "package-lock.json": '{"lockfileVersion":3}\n',
+    const outcome = await runDiscover(fixtureRepo(), {
+      json: true,
+      root: "/repo",
+      probes: conflictingProbes(),
     });
-    const outcome = await runDiscover(conflicting, { json: true, root: "/repo" });
     const parsed = JSON.parse(outcome.stdout) as {
       facts: Record<string, Record<string, unknown>>;
       summary: { conflicts: number };
     };
-    const packageManager = parsed.facts["repository.packageManager"] ?? {};
-    expect(packageManager).not.toHaveProperty("value");
-    expect(packageManager["claims"]).toHaveLength(3);
+    const fact = parsed.facts[SURFACE] ?? {};
+    expect(fact).not.toHaveProperty("value");
+    expect(fact["claims"]).toHaveLength(2);
     expect(parsed.summary.conflicts).toBe(1);
   });
 });
@@ -229,17 +196,11 @@ describe("discover human output", () => {
         "  Valid      unknown (not-probed)",
         "",
         "Repository signals",
-        "  Surfaces   no",
-        "  Packages   pnpm",
-        // Corroborating claims are indented under the fact they support, so
-        // the citation can never be read as belonging to the row above.
-        "    Evidence",
-        '      declared        "pnpm"  package.json/packageManager',
-        '      derived         "pnpm"  pnpm-lock.yaml',
+        "  Surfaces   yes",
         "",
         "Discovery",
-        "  Facts      5",
-        "  Known      4",
+        "  Facts      4",
+        "  Known      3",
         "  Unknown    1",
         "  Conflicts  0",
         "  Complete   yes",
@@ -251,13 +212,12 @@ describe("discover human output", () => {
   });
 
   it("shows the retained claims when sources disagree", async () => {
-    const conflicting = repoWith({
-      "package.json": '{"packageManager":"pnpm@10.0.0"}',
-      "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
-      "package-lock.json": '{"lockfileVersion":3}\n',
+    const outcome = await runDiscover(fixtureRepo(), {
+      json: false,
+      root: "/repo",
+      probes: conflictingProbes(),
     });
-    const outcome = await runDiscover(conflicting, { json: false, root: "/repo" });
-    expect(outcome.stdout).toContain("Packages   conflicting");
+    expect(outcome.stdout).toContain("Surfaces   conflicting");
     expect(outcome.stdout).toContain("Evidence");
     expect(outcome.stdout).toContain("declared");
     expect(outcome.stdout).toContain("derived");
@@ -267,16 +227,21 @@ describe("discover human output", () => {
 
 describe("discover error semantics", () => {
   it("succeeds in a repository with no contract, unlike the shipped commands", async () => {
-    const fs = repoWith({ "package.json": "{}" });
-    const outcome = await runDiscover(fs, { json: false, root: "/repo" });
+    const outcome = await runDiscover(repoWith({ "AGENTS.md": "# agents\n" }), {
+      json: false,
+      root: "/repo",
+    });
     expect(outcome.exitCode).toBe(0);
     expect(outcome.stdout).toContain("Present    no");
     expect(outcome.stdout).not.toContain("CONTRACT_NOT_FOUND");
   });
 
   it("leaves the v1 contract-not-found behaviour intact for validate", async () => {
-    const fs = repoWith({ "package.json": "{}" });
-    const outcome = await runValidate(fs, { json: false }, "/repo");
+    const outcome = await runValidate(
+      repoWith({ "AGENTS.md": "# agents\n" }),
+      { json: false },
+      "/repo",
+    );
     expect(outcome.exitCode).not.toBe(0);
     expect(outcome.stderr).toContain("CONTRACT_NOT_FOUND");
   });
@@ -284,8 +249,8 @@ describe("discover error semantics", () => {
   it("keeps a usable partial snapshot successful when a probe fails", async () => {
     const fs = new FaultyFileSystem("/repo");
     fs.addDirectory("/repo/.git");
-    fs.addFile("/repo/package.json", '{"packageManager":"pnpm@10.0.0"}');
-    fs.failOn("/repo/package.json");
+    fs.addFile("/repo/AGENTS.md", "# agents\n");
+    fs.failOn("/repo/AGENTS.md");
     const outcome = await runDiscover(fs, { json: false, root: "/repo" });
     expect(outcome.exitCode).toBe(0);
     expect(outcome.stdout).toContain("Complete   no");
@@ -307,14 +272,30 @@ describe("discover error semantics", () => {
     expect(parsed.ok).toBe(false);
     expect(parsed.diagnostics[0]?.code).toBe("DISCOVERY_ROOT_UNREADABLE");
   });
+
+  it("reports a value-shaped probe that found no value as incomplete, not as a value", async () => {
+    const outcome = await runDiscover(repoWith({}), {
+      json: false,
+      root: "/repo",
+      probes: [
+        probeReporting("valueless", SURFACE, "value", "declared", {
+          status: "found",
+          evidence: [{ source: "signals.json" }],
+        }),
+      ],
+    });
+    expect(outcome.exitCode).toBe(0);
+    expect(outcome.stdout).toContain("unknown (probe-failed)");
+    expect(outcome.stdout).toContain("DISCOVERY_PARTIAL");
+  });
 });
 
 describe("discover read-only surface", () => {
   it("never writes, with or without a contract present", async () => {
     const fs = new RecordingFileSystem("/repo");
     fs.addDirectory("/repo/.git");
-    fs.addFile("/repo/agent-ready.yaml", VALID_CONTRACT);
-    fs.addFile("/repo/package.json", '{"packageManager":"pnpm@10.0.0"}');
+    fs.addFile("/repo/agent-ready.yaml", "version: 1\nproject:\n  name: x\n");
+    fs.addFile("/repo/AGENTS.md", "# agents\n");
     await runDiscover(fs, { json: true, root: "/repo" });
     expect(fs.mutatingCalls()).toEqual([]);
   });
@@ -322,7 +303,7 @@ describe("discover read-only surface", () => {
   it("reads only through the file-system boundary", async () => {
     const fs = new RecordingFileSystem("/repo");
     fs.addDirectory("/repo/.git");
-    fs.addFile("/repo/package.json", "{}");
+    fs.addFile("/repo/AGENTS.md", "# agents\n");
     await runDiscover(fs, { json: true, root: "/repo" });
     expect(fs.calls.every((call) => call.startsWith("stat:") || call.startsWith("read:"))).toBe(
       true,

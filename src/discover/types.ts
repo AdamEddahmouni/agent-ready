@@ -30,13 +30,19 @@ export type JsonValue = JsonPrimitive | readonly JsonValue[] | { readonly [k: st
  * detection groups claims by this id, so two probes reporting different
  * values for the same id are combined into one conflicted fact rather than
  * two facts that appear to agree.
+ *
+ * This vocabulary is intentionally small. Issue #36 ships the substrate, not a
+ * repository domain, so what it can say about a repository is: where the root
+ * is, whether a contract exists and is valid, and whether a declaration
+ * surface is present. Package, workspace, command, and graph facts are Issue
+ * #37 onward, and they are added here as first-class ids rather than smuggled
+ * in through a probe that was never declared as one.
  */
 export const FACT_IDS = [
   "repository.root",
   "repository.contract.present",
   "repository.contract.valid",
   "repository.declarationSurface.present",
-  "repository.packageManager",
 ] as const;
 
 export type FactId = (typeof FACT_IDS)[number];
@@ -46,6 +52,12 @@ export type FactId = (typeof FACT_IDS)[number];
  * `derived` is computed by a fixed rule from repository content,
  * `author-declared` is a human claim in `agent-ready.yaml`, and `unknown`
  * means discovery ran and could not determine the fact.
+ *
+ * `author-declared` is part of the vocabulary but has no production source in
+ * this issue: nothing here extracts claims from a contract, and the fact ids
+ * that would carry them are Issue #37's. The channel exists, is typed, and is
+ * tested, so that a maintainer's description can be labelled when it arrives
+ * rather than being introduced as a special case alongside real evidence.
  */
 export type KnownFactKind = "declared" | "derived" | "author-declared";
 export type FactKind = KnownFactKind | "unknown";

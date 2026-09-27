@@ -7,7 +7,9 @@ import type { DiscoverySnapshot, Fact } from "../../src/discover/types.js";
 import { DIAGNOSTIC_CODES } from "../../src/diagnostics/codes.js";
 import { runDiscover } from "../../src/cli/commands/discover.js";
 import {
+  claimingValue,
   FaultyFileSystem,
+  probeReporting,
   RecordingFileSystem,
   repoWith,
   VALID_CONTRACT,
@@ -32,12 +34,40 @@ function fact(snapshot: DiscoverySnapshot, id: string): Fact {
 const CODES = (snapshot: DiscoverySnapshot): string[] =>
   snapshot.diagnostics.map((diagnostic) => diagnostic.code);
 
+/**
+ * The production probe set is deliberately tiny, so the substrate is proved two
+ * ways: against the real probes where they apply, and against injected probes
+ * where the scenario needs a signal discovery does not yet read. Package
+ * discovery is Issue #37.
+ */
+const SURFACE = "repository.declarationSurface.present";
+const PRESENCE = "repository.contract.present";
+
+describe("the production probe set is the substrate, not a domain", () => {
+  it("probes contract presence, contract validity, and declaration surface only", () => {
+    expect(DEFAULT_PROBES.map((probe) => probe.id)).toEqual([
+      "contract.presence",
+      "contract.validity",
+      "declaration-surface.presence",
+    ]);
+  });
+
+  it("reads no package, workspace, or module signal", () => {
+    // If a probe for one of these ever appears here, the layering has been
+    // lost: those signals are Issue #37's first expansion of the vocabulary.
+    const sources = ["package.json", "pnpm-lock.yaml", "package-lock.json", "yarn.lock"];
+    for (const probe of DEFAULT_PROBES) {
+      expect(sources).not.toContain(probe.id);
+    }
+  });
+});
+
 describe("repository without an Agent-Ready contract", () => {
   it("succeeds, reports contract absence as a fact, and never fails with CONTRACT_NOT_FOUND", async () => {
-    const snapshot = await discover(repoWith({ "package.json": '{"name":"fixture"}' }));
+    const snapshot = await discover(repoWith({ "AGENTS.md": "# agents\n" }));
 
     expect(snapshot.ok).toBe(true);
-    expect(fact(snapshot, "repository.contract.present")).toMatchObject({
+    expect(fact(snapshot, PRESENCE)).toMatchObject({
       kind: "derived",
       value: false,
     });
@@ -46,7 +76,7 @@ describe("repository without an Agent-Ready contract", () => {
   });
 
   it("reports validity as not probed rather than invalid, because there is nothing to validate", async () => {
-    const snapshot = await discover(repoWith({ "package.json": '{"name":"fixture"}' }));
+    const snapshot = await discover(repoWith({ "AGENTS.md": "# agents\n" }));
     expect(fact(snapshot, "repository.contract.valid")).toMatchObject({
       kind: "unknown",
       reason: "not-probed",
@@ -59,54 +89,68 @@ describe("repository without an Agent-Ready contract", () => {
     expect(snapshot.summary.complete).toBe(true);
     expect(CODES(snapshot)).toContain("DISCOVERY_NO_SIGNALS");
   });
-
-  it("does not claim every probe completed when one of them could not", async () => {
-    // DISCOVERY_NO_SIGNALS asserts completeness. Emitting it alongside
-    // DISCOVERY_PARTIAL would put a claim in the snapshot that the same
-    // snapshot's `complete: false` refutes.
-    const fs = new FaultyFileSystem("/repo");
-    fs.addDirectory("/repo/.git");
-    fs.addFile("/repo/package.json", "{}");
-    fs.failOn("/repo/package.json");
-
-    const snapshot = await discover(fs);
-    expect(snapshot.summary.complete).toBe(false);
-    expect(CODES(snapshot)).toContain("DISCOVERY_PARTIAL");
-    expect(CODES(snapshot)).not.toContain("DISCOVERY_NO_SIGNALS");
-  });
 });
 
 describe("repository with a valid contract", () => {
   it("reports contract presence and validity as known true", async () => {
     const snapshot = await discover(
-      repoWith({ "agent-ready.yaml": VALID_CONTRACT, "package.json": "{}" }),
+      repoWith({ "agent-ready.yaml": VALID_CONTRACT, "AGENTS.md": "# agents\n" }),
     );
-    expect(fact(snapshot, "repository.contract.present")).toMatchObject({ value: true });
+    expect(fact(snapshot, PRESENCE)).toMatchObject({ value: true });
     expect(fact(snapshot, "repository.contract.valid")).toMatchObject({ value: true });
   });
 
-  it("keeps author claims marked author-declared and never promotes them to repository evidence", async () => {
-    const snapshot = await discover(
-      repoWith({ "agent-ready.yaml": VALID_CONTRACT, "package.json": "{}" }),
+  it("extracts no claim from the contract, so a description cannot become a fact", async () => {
+    // VALID_CONTRACT declares `packageManager: pnpm`. Nothing in this issue
+    // reads that, and no fact anywhere in the snapshot may carry it.
+    const snapshot = await discover(repoWith({ "agent-ready.yaml": VALID_CONTRACT }));
+    const serialized = JSON.stringify(snapshot);
+    expect(serialized).not.toContain("pnpm");
+    for (const entry of Object.values(snapshot.facts)) {
+      if (!("claims" in entry)) continue;
+      expect(entry.claims.every((claim) => claim.kind !== "author-declared")).toBe(true);
+    }
+  });
+});
+
+describe("a value the probe reported is never rewritten", () => {
+  it("records an observed null as the fact's value, never as true", async () => {
+    // `JsonValue` includes `null`, so a value-shaped probe can legitimately
+    // report it. Defaulting on nullishness would turn "the value is null" into
+    // "the value is true" — a fabricated claim, invented by the orchestrator
+    // rather than observed by the probe.
+    const result = await discoverRepository(repoWith({}), {
+      startDir: "/repo",
+      probes: [claimingValue("reports-null", SURFACE, "declared", null, "signals.json")],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const fact = result.snapshot.facts[SURFACE];
+    if (fact === undefined) throw new Error("expected a fact");
+    expect("value" in fact).toBe(true);
+    expect("value" in fact ? fact.value : "absent").toBeNull();
+    // And specifically not the existence default.
+    expect("value" in fact ? fact.value : true).not.toBe(true);
+  });
+
+  it("keeps an existence probe's explicit false rather than defaulting it to true", async () => {
+    // A repository whose `agent-ready.yaml` is a directory. The probe observed
+    // something — a path named agent-ready.yaml that is not a regular file —
+    // and reported that observation as `false`. A shape-based default would
+    // have reported the contract as present.
+    const fs = repoWith({});
+    fs.addDirectory("/repo/agent-ready.yaml");
+    const snapshot = await discover(fs);
+    const present = fact(snapshot, PRESENCE);
+    expect(present).toMatchObject({ value: false, kind: "derived" });
+    expect("claims" in present && present.claims[0]?.evidence[0]?.detail).toContain(
+      "not a regular file",
     );
-    const packageManager = fact(snapshot, "repository.packageManager");
-    expect(packageManager.kind).toBe("author-declared");
-    expect("value" in packageManager && packageManager.value).toBe("pnpm");
-    expect("corroboration" in packageManager && packageManager.corroboration.authorDeclared).toBe(
-      true,
-    );
-    // Nothing in the repository corroborated it, and that is visible rather
-    // than silently presented as a discovered fact.
-    expect("corroboration" in packageManager && packageManager.corroboration.corroborated).toBe(
-      false,
-    );
-    expect(
-      "claims" in packageManager &&
-        packageManager.claims.every(
-          (claim) =>
-            claim.kind === "author-declared" && claim.evidence[0]?.source === "agent-ready.yaml",
-        ),
-    ).toBe(true);
+  });
+
+  it("still records an existence probe that reported no value as true", async () => {
+    const snapshot = await discover(repoWith({ "AGENTS.md": "# agents\n" }));
+    expect(fact(snapshot, SURFACE)).toMatchObject({ value: true });
   });
 });
 
@@ -115,30 +159,24 @@ describe("repository with a malformed contract", () => {
     const snapshot = await discover(
       repoWith({
         "agent-ready.yaml": "version: 1\nproject: [this is not a mapping\n",
-        "package.json": '{"packageManager":"pnpm@10.0.0"}',
-        "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
+        "AGENTS.md": "# agents\n",
       }),
     );
 
     expect(snapshot.ok).toBe(true);
-    expect(fact(snapshot, "repository.contract.present")).toMatchObject({ value: true });
+    expect(fact(snapshot, PRESENCE)).toMatchObject({ value: true });
+    // The repository is still discoverable; only the contract is not valid.
     expect(fact(snapshot, "repository.contract.valid")).toMatchObject({ value: false });
-    // The broken contract contributes no claim, but repository evidence stands.
-    expect(fact(snapshot, "repository.packageManager")).toMatchObject({
-      value: "pnpm",
-      kind: "declared",
-    });
+    expect(fact(snapshot, SURFACE)).toMatchObject({ value: true });
   });
 
-  it("does not let an unparseable contract supply an author claim", async () => {
+  it("reports the contract as invalid rather than as a failed discovery", async () => {
     const snapshot = await discover(
-      repoWith({ "agent-ready.yaml": "version: [broken\n", "package.json": "{}" }),
+      repoWith({ "agent-ready.yaml": "version: [broken\n", "AGENTS.md": "# agents\n" }),
     );
-    const packageManager = fact(snapshot, "repository.packageManager");
-    expect(packageManager.kind).toBe("unknown");
-    // The claim channel contributed nothing, and the most informative reason
-    // across every probe is that no evidence was found.
-    expect(packageManager.kind === "unknown" && packageManager.reason).toBe("no-evidence");
+    expect(snapshot.summary.complete).toBe(true);
+    expect(CODES(snapshot)).not.toContain("DISCOVERY_PARTIAL");
+    expect(CODES(snapshot)).not.toContain("CONTRACT_NOT_FOUND");
   });
 });
 
@@ -146,12 +184,12 @@ describe("probe failure", () => {
   it("reports a failed probe as unknown with reason probe-failed and a matching diagnostic", async () => {
     const fs = new FaultyFileSystem("/repo");
     fs.addDirectory("/repo/.git");
-    fs.addFile("/repo/package.json", '{"packageManager":"pnpm@10.0.0"}');
-    fs.failOn("/repo/package.json");
+    fs.addFile("/repo/AGENTS.md", "# agents\n");
+    fs.failOn("/repo/AGENTS.md");
 
     const snapshot = await discover(fs);
 
-    expect(fact(snapshot, "repository.packageManager")).toMatchObject({
+    expect(fact(snapshot, SURFACE)).toMatchObject({
       kind: "unknown",
       reason: "probe-failed",
     });
@@ -160,12 +198,32 @@ describe("probe failure", () => {
   });
 
   it("does not treat a probe that throws as a repository fact", async () => {
-    const result = await discoverRepository(repoWith({ "package.json": "{}" }), {
+    const result = await discoverRepository(repoWith({}), {
+      startDir: "/repo",
+      probes: [
+        probeReporting("explodes", SURFACE, "existence", "derived", {
+          status: "failed",
+          detail: "probe blew up",
+          evidence: [],
+        }),
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(fact(result.snapshot, SURFACE)).toMatchObject({
+      kind: "unknown",
+      reason: "probe-failed",
+    });
+    expect(CODES(result.snapshot)).toContain("DISCOVERY_PARTIAL");
+  });
+
+  it("downgrades a thrown probe to a failed probe", async () => {
+    const result = await discoverRepository(repoWith({}), {
       startDir: "/repo",
       probes: [
         {
           id: "explodes",
-          factId: "repository.declarationSurface.present",
+          factId: SURFACE,
           kind: "derived",
           shape: "existence",
           run: () => Promise.reject(new Error("probe blew up")),
@@ -174,18 +232,16 @@ describe("probe failure", () => {
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(fact(result.snapshot, "repository.declarationSurface.present")).toMatchObject({
-      kind: "unknown",
-      reason: "probe-failed",
-    });
-    expect(CODES(result.snapshot)).toContain("DISCOVERY_PARTIAL");
+    const partial = result.snapshot.diagnostics.find((d) => d.code === "DISCOVERY_PARTIAL");
+    expect(partial?.detail).toContain("probe blew up");
+    expect(result.snapshot.summary.complete).toBe(false);
   });
 });
 
 describe("absence is not inaccessibility", () => {
   it("produces different facts for a missing file and a file that could not be inspected", async () => {
-    const absent = await discover(repoWith({ "package.json": "{}" }));
-    expect(fact(absent, "repository.declarationSurface.present")).toMatchObject({ value: false });
+    const absent = await discover(repoWith({ "agent-ready.yaml": VALID_CONTRACT }));
+    expect(fact(absent, SURFACE)).toMatchObject({ value: false });
     expect(CODES(absent)).not.toContain("DISCOVERY_PARTIAL");
 
     const fs = new FaultyFileSystem("/repo");
@@ -194,7 +250,7 @@ describe("absence is not inaccessibility", () => {
     fs.failOn("/repo/AGENTS.md");
 
     const inaccessible = await discover(fs);
-    expect(fact(inaccessible, "repository.declarationSurface.present")).toMatchObject({
+    expect(fact(inaccessible, SURFACE)).toMatchObject({
       kind: "unknown",
       reason: "probe-failed",
     });
@@ -209,7 +265,7 @@ describe("absence is not inaccessibility", () => {
     const snapshot = await discover(fs);
     // Presence is genuinely unknown, because one path was unreadable, even
     // though AGENTS.md was found. Guessing "yes" here would be fabrication.
-    expect(fact(snapshot, "repository.declarationSurface.present").kind).toBe("unknown");
+    expect(fact(snapshot, SURFACE).kind).toBe("unknown");
   });
 });
 
@@ -218,9 +274,8 @@ describe("the evidence invariant", () => {
     const snapshot = await discover(
       repoWith({
         "agent-ready.yaml": VALID_CONTRACT,
-        "package.json": '{"packageManager":"pnpm@10.0.0"}',
-        "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
         "AGENTS.md": "# agents\n",
+        ".github/workflows": "on: push\n",
       }),
     );
     for (const entry of Object.values(snapshot.facts)) {
@@ -230,103 +285,101 @@ describe("the evidence invariant", () => {
 
   it("refuses to build a known fact whose claim cites nothing", () => {
     expect(() =>
-      buildAgreedFact("repository.packageManager", [
-        { kind: "derived", value: "pnpm", evidence: [] },
+      buildAgreedFact("repository.contract.present", [
+        { kind: "derived", value: true, evidence: [] },
       ]),
     ).toThrow(/no evidence/);
   });
 
   it("refuses to build a known fact from no claims at all", () => {
-    expect(() => buildAgreedFact("repository.packageManager", [])).toThrow(/without any claim/);
+    expect(() => buildAgreedFact("repository.contract.present", [])).toThrow(/without any claim/);
   });
 
   it("lets an unknown fact with no evidence exist only when it was not probed", async () => {
-    const snapshot = await discover(repoWith({ "package.json": "{}" }));
+    const snapshot = await discover(repoWith({ "AGENTS.md": "# agents\n" }));
     const validity = fact(snapshot, "repository.contract.valid");
     expect(validity.kind === "unknown" && validity.reason).toBe("not-probed");
     expect(validity.kind === "unknown" && validity.evidence).toEqual([]);
   });
 });
 
-describe("author claims do not overwrite repository evidence", () => {
-  it("keeps both claims when a contract contradicts what the repository shows", async () => {
-    const contractDeclaringYarn = VALID_CONTRACT.replace("name: pnpm", "name: yarn");
-    const snapshot = await discover(
-      repoWith({
-        "agent-ready.yaml": contractDeclaringYarn,
-        "package.json": '{"packageManager":"pnpm@10.0.0"}',
-        "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
-      }),
-    );
+describe("contradiction preservation, with injected probes", () => {
+  it("retains both claims and names no winner", async () => {
+    const result = await discoverRepository(repoWith({}), {
+      startDir: "/repo",
+      probes: [
+        claimingValue("signals-a", SURFACE, "declared", "one", "signals-a.json"),
+        claimingValue("signals-b", SURFACE, "derived", "two", "signals-b.json"),
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
 
-    const packageManager = fact(snapshot, "repository.packageManager");
-    expect(packageManager.kind).not.toBe("unknown");
-    expect("value" in packageManager).toBe(false);
-    expect("claims" in packageManager && packageManager.claims).toHaveLength(3);
-    expect(
-      "claims" in packageManager && packageManager.claims.map((claim) => [claim.kind, claim.value]),
-    ).toEqual([
-      ["author-declared", "yarn"],
-      ["declared", "pnpm"],
-      ["derived", "pnpm"],
+    const conflicted = result.snapshot.facts[SURFACE];
+    if (conflicted === undefined) throw new Error("expected a fact");
+    expect("value" in conflicted).toBe(false);
+    if (!("claims" in conflicted)) throw new Error("expected claims");
+    expect(conflicted.claims.map((claim) => [claim.kind, claim.value])).toEqual([
+      ["declared", "one"],
+      ["derived", "two"],
     ]);
-    expect(CODES(snapshot)).toContain("DISCOVERY_FACT_CONFLICT");
-  });
-});
-
-describe("contradiction preservation", () => {
-  it("retains both lockfile claims and names no winner", async () => {
-    const snapshot = await discover(
-      repoWith({
-        "package.json": '{"packageManager":"pnpm@10.0.0"}',
-        "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
-        "package-lock.json": '{"lockfileVersion":3}\n',
-      }),
-    );
-
-    const packageManager = fact(snapshot, "repository.packageManager");
-    expect("value" in packageManager).toBe(false);
-    expect(CODES(snapshot)).toContain("DISCOVERY_FACT_CONFLICT");
-    const conflict = snapshot.diagnostics.find(
-      (diagnostic) => diagnostic.code === "DISCOVERY_FACT_CONFLICT",
-    );
-    expect(conflict?.metadata?.["claimedValues"]).toEqual(expect.arrayContaining(["pnpm", "npm"]));
     // Every claim still cites the file it came from.
-    expect(
-      "claims" in packageManager &&
-        packageManager.claims.every((claim) => claim.evidence.length > 0),
-    ).toBe(true);
+    expect(conflicted.claims.every((claim) => claim.evidence.length > 0)).toBe(true);
+    expect(CODES(result.snapshot)).toContain("DISCOVERY_FACT_CONFLICT");
   });
 
-  it("agrees without conflicting when every source names the same manager", async () => {
-    const snapshot = await discover(
-      repoWith({
-        "package.json": '{"packageManager":"pnpm@10.0.0"}',
-        "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
-      }),
-    );
-    const packageManager = fact(snapshot, "repository.packageManager");
-    expect(packageManager).toMatchObject({ value: "pnpm" });
-    expect("corroboration" in packageManager && packageManager.corroboration.kinds).toEqual([
+  it("agrees without conflicting when every source says the same thing", async () => {
+    const result = await discoverRepository(repoWith({}), {
+      startDir: "/repo",
+      probes: [
+        claimingValue("signals-a", SURFACE, "declared", "same", "signals-a.json"),
+        claimingValue("signals-b", SURFACE, "derived", "same", "signals-b.json"),
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const agreed = result.snapshot.facts[SURFACE];
+    if (agreed === undefined) throw new Error("expected a fact");
+    expect(agreed).toMatchObject({ value: "same" });
+    expect("corroboration" in agreed && agreed.corroboration.kinds).toEqual([
       "declared",
       "derived",
     ]);
-    expect(CODES(snapshot)).not.toContain("DISCOVERY_FACT_CONFLICT");
+    expect(CODES(result.snapshot)).not.toContain("DISCOVERY_FACT_CONFLICT");
+  });
+
+  it("treats an author's claim as a claim, never as an overwrite", async () => {
+    const result = await discoverRepository(repoWith({}), {
+      startDir: "/repo",
+      probes: [
+        claimingValue("repository-says", SURFACE, "derived", "observed", "observed.json"),
+        claimingValue("author-says", SURFACE, "author-declared", "claimed", "contract.yaml"),
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const conflicted = result.snapshot.facts[SURFACE];
+    if (conflicted === undefined) throw new Error("expected a fact");
+    // The claim is retained and labelled; nothing is preferred.
+    expect("value" in conflicted).toBe(false);
+    if (!("corroboration" in conflicted)) throw new Error("expected corroboration");
+    expect(conflicted.corroboration.authorDeclared).toBe(true);
+    expect(conflicted.corroboration.corroborated).toBe(false);
   });
 
   it("combines contributions that share a fact id rather than emitting two facts", () => {
     const merged = mergeContributions([
       {
-        id: "repository.packageManager",
+        id: SURFACE,
         kind: "declared",
-        value: "pnpm",
-        evidence: [{ source: "package.json" }],
+        value: "one",
+        evidence: [{ source: "a.json" }],
       },
       {
-        id: "repository.packageManager",
+        id: SURFACE,
         kind: "derived",
-        value: "npm",
-        evidence: [{ source: "package-lock.json" }],
+        value: "two",
+        evidence: [{ source: "b.json" }],
       },
     ]);
     expect(merged).toHaveLength(1);
@@ -339,8 +392,6 @@ describe("determinism", () => {
   it("produces deeply equal snapshots for identical inputs", async () => {
     const files = {
       "agent-ready.yaml": VALID_CONTRACT,
-      "package.json": '{"packageManager":"pnpm@10.0.0"}',
-      "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
       "AGENTS.md": "# agents\n",
       ".github/workflows/ci.yml": "on: push\n",
     };
@@ -350,16 +401,14 @@ describe("determinism", () => {
   });
 
   it("excludes absolute paths so output does not depend on the checkout location", async () => {
-    const snapshot = await discover(
-      repoWith({ "package.json": '{"packageManager":"pnpm@10.0.0"}', "AGENTS.md": "# a\n" }),
-    );
+    const snapshot = await discover(repoWith({ "AGENTS.md": "# a\n" }));
     expect(snapshot.root).toBe(".");
     expect(JSON.stringify(snapshot)).not.toContain("/repo");
     expect(snapshot.facts["repository.root"]).toMatchObject({ value: "." });
   });
 
   it("orders facts and diagnostics identically across runs regardless of probe order", async () => {
-    const files = { "package.json": '{"packageManager":"pnpm@10.0.0"}' };
+    const files = { "AGENTS.md": "# agents\n" };
     const forward = await discoverRepository(repoWith(files), {
       startDir: "/repo",
       probes: DEFAULT_PROBES,
@@ -379,7 +428,6 @@ describe("strict read-only behaviour", () => {
     const fs = new RecordingFileSystem("/repo");
     fs.addDirectory("/repo/.git");
     fs.addFile("/repo/agent-ready.yaml", VALID_CONTRACT);
-    fs.addFile("/repo/package.json", '{"packageManager":"pnpm@10.0.0"}');
     fs.addFile("/repo/AGENTS.md", "# agents\n");
 
     await discoverRepository(fs, { startDir: "/repo" });
@@ -391,7 +439,7 @@ describe("strict read-only behaviour", () => {
   it("performs zero writes through the command surface too", async () => {
     const fs = new RecordingFileSystem("/repo");
     fs.addDirectory("/repo/.git");
-    fs.addFile("/repo/package.json", "{}");
+    fs.addFile("/repo/AGENTS.md", "# agents\n");
 
     const outcome = await runDiscover(fs, { json: false });
 
@@ -430,7 +478,7 @@ describe("diagnostic registry", () => {
 
   it("never emits the deliberately unreachable reservation", async () => {
     const snapshot = await discover(
-      repoWith({ "agent-ready.yaml": VALID_CONTRACT, "package.json": "{}" }),
+      repoWith({ "agent-ready.yaml": VALID_CONTRACT, "AGENTS.md": "# agents\n" }),
     );
     expect(CODES(snapshot)).not.toContain("DISCOVERY_FACT_UNSUPPORTED");
   });

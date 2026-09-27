@@ -127,16 +127,18 @@ does not exist or is not a directory.`, followed by a `detail` naming the
 
 ### `DISCOVERY_PARTIAL`
 
-- **Trigger** — a probe returned `failed` (an unreadable path, an I/O error, an
-  unparseable file) or threw. A thrown probe is downgraded to a failed probe
-  rather than being allowed to masquerade as a repository fact.
+- **Trigger** — a probe returned `failed` (an unreadable path or an I/O error),
+  threw, or reported a result inconsistent with the shape it declared. A thrown
+  probe is downgraded to a failed probe rather than being allowed to masquerade
+  as a repository fact, and so is a value-shaped probe that claimed to have
+  found something without saying what.
 - **Severity / category** — `warning`. Stage: probe execution.
 - **Human rendering** — the repository-relative path is used as
   `sourcePath`, so it prefixes the line:
 
   ```text
-  package.json - warning[DISCOVERY_PARTIAL]: Probe package-manager.package-json could not complete, so repository.packageManager is reported as unknown.
-    package.json could not be parsed: JSON: Unexpected end of JSON input
+  AGENTS.md - warning[DISCOVERY_PARTIAL]: Probe declaration-surface.presence could not complete, so repository.declarationSurface.present is reported as unknown.
+    AGENTS.md: EACCES: permission denied
     suggestion: Check file permissions and readability. The path was not inspected; it is not known to be absent.
   ```
 
@@ -153,8 +155,8 @@ does not exist or is not a directory.`, followed by a `detail` naming the
 - **Explain** — `agent-ready explain --code DISCOVERY_PARTIAL`; related codes:
   `DISCOVERY_NO_SIGNALS`.
 - **Pinned by** — `tests/unit/discover.test.ts` ("reports a failed probe as
-  unknown with reason probe-failed and a matching diagnostic", "does not treat
-  a probe that throws as a repository fact", "produces different facts for a
+  unknown with reason probe-failed and a matching diagnostic", "downgrades a
+  thrown probe to a failed probe", "produces different facts for a
   missing file and a file that could not be inspected"),
   `tests/unit/discoverCommand.test.ts` ("keeps a usable partial snapshot
   successful when a probe fails"),
@@ -165,18 +167,18 @@ does not exist or is not a directory.`, followed by a `detail` naming the
 ### `DISCOVERY_FACT_CONFLICT`
 
 - **Trigger** — two or more claims for the same fact id assert different
-  values. The three realistic sources are a `declared` `package.json` field, a
-  `derived` lockfile, and an `author-declared` contract claim.
+  values. The production probe set produces one source per fact, so today this
+  is reachable only through injected probes; Issue #37 supplies the first real
+  multi-source case, where a declaration and a derived signal can disagree.
 - **Severity / category** — `warning`. Stage: fact merge.
 - **Human rendering** — the fact's row reads `conflicting` rather than any
   value, and every retained claim is listed beneath it:
 
   ```text
-    Packages   conflicting
+    Surfaces   conflicting
       Evidence
-        declared        "pnpm"  package.json/packageManager
-        derived         "npm"  package-lock.json
-        derived         "pnpm"  pnpm-lock.yaml
+        declared        "one"  signals-a.json/present
+        derived         "two"  signals-b.json
   ```
 
 - **Structured representation** — `metadata.claimedValues` lists each asserted
@@ -190,13 +192,12 @@ does not exist or is not a directory.`, followed by a `detail` naming the
 - **Informational only** — yes.
 - **Explain** — `agent-ready explain --code DISCOVERY_FACT_CONFLICT`; related
   codes: `DISCOVERY_PARTIAL`.
-- **Pinned by** — `tests/unit/discover.test.ts` ("keeps both claims when a
-  contract contradicts what the repository shows", "retains both lockfile claims
-  and names no winner"),
-  `tests/unit/discoverCommand.test.ts` ("reports a conflict in the snapshot
-  without choosing a value", "shows the retained claims when sources disagree"),
-  `tests/unit/discoverFactBoundary.test.ts` ("reports a conflicting fact with no
-  value rather than a ranked winner").
+- **Pinned by** — `tests/unit/discover.test.ts` ("retains both claims and names
+  no winner"), `tests/unit/discoverCommand.test.ts` ("reports a conflict in the
+  snapshot without choosing a value", "shows the retained claims when sources
+  disagree"), `tests/unit/discoverFactBoundary.test.ts` ("reports a conflicting
+  fact with no value rather than a ranked winner", "does not let an author claim
+  overwrite what the repository shows").
 
 ### `DISCOVERY_NO_SIGNALS`
 

@@ -5,17 +5,9 @@ import { joinPath } from "../filesystem/pathJoin.js";
 import { createProbeContext, resolveRepositoryRoot } from "./context.js";
 import { isContradictory, mergeContributions } from "./fact.js";
 import type { Contribution } from "./fact.js";
-import type { ContractStatus, ContractSummary, DiscoveryProbe, ProbeResult } from "./probe.js";
-import {
-  contractPackageManagerClaimProbe,
-  contractPresenceProbe,
-  contractValidityProbe,
-} from "./probes/contract.js";
+import type { ContractStatus, DiscoveryProbe, ProbeResult } from "./probe.js";
+import { contractPresenceProbe, contractValidityProbe } from "./probes/contract.js";
 import { declarationSurfaceProbe } from "./probes/declarationSurface.js";
-import {
-  lockfilePackageManagerProbes,
-  packageJsonPackageManagerProbe,
-} from "./probes/packageManager.js";
 import type {
   DiscoveryDiagnostic,
   DiscoverySnapshot,
@@ -27,18 +19,29 @@ import type {
 import { DISCOVERY_SNAPSHOT_VERSION } from "./types.js";
 
 /**
- * The Issue #36 probe set. Small on purpose: it establishes the substrate —
- * provenance, explicit uncertainty, the absence/failure distinction, and
- * contradiction preservation — without straying into package, workspace,
- * command, or graph discovery, which belong to later issues.
+ * The Issue #36 probe set.
+ *
+ * Deliberately tiny. This issue's deliverable is the discovery *substrate* —
+ * provenance, explicit uncertainty, the absence-versus-failure distinction,
+ * contradiction preservation, and the read-only capability boundary — and every
+ * one of those is provable without a substantive repository domain.
+ *
+ * `declarationSurfaceProbe` is here as a deliberately minimal heterogeneous
+ * existence probe: it demonstrates the substrate against something other than
+ * the Agent-Ready contract itself, and it reads presence only, never
+ * interpreting what any of those files say.
+ *
+ * Package, workspace, command, and module-graph discovery are Issue #37 and
+ * later. Shipping a real domain here would make #36 look like a partial #37 and
+ * would put the architecture decisions and the first domain expansion in the
+ * same review, which is how the layering gets lost. The contradiction and
+ * corroboration machinery that package-manager discovery needs is built and
+ * tested here; the probes that exercise it arrive in #37.
  */
 export const DEFAULT_PROBES: readonly DiscoveryProbe[] = [
   contractPresenceProbe,
   contractValidityProbe,
   declarationSurfaceProbe,
-  packageJsonPackageManagerProbe,
-  ...lockfilePackageManagerProbes,
-  contractPackageManagerClaimProbe,
 ];
 
 export interface DiscoverOptions {
@@ -147,7 +150,15 @@ function toContribution(probe: DiscoveryProbe, result: ProbeResult): Contributio
       return {
         id: probe.factId,
         kind: probe.kind,
-        value: result.value ?? true,
+        // `found` means the probe observed something. Only a probe that
+        // observed *no value at all* takes the existence default of `true`
+        // ("it is there"). An observed `false` — an `agent-ready.yaml` that
+        // is a directory, an invalid contract — and an observed `null` are
+        // real observations and must survive verbatim. Defaulting on
+        // nullishness would silently convert a value the probe did report
+        // into a different one, which is the exact fabrication this whole
+        // boundary exists to prevent.
+        value: result.value === undefined ? true : result.value,
         evidence: result.evidence,
       };
     case "not-found":
@@ -173,6 +184,11 @@ function toContribution(probe: DiscoveryProbe, result: ProbeResult): Contributio
  * to `true` would record a value the probe never observed. That is downgraded to
  * a failed probe here, for the same reason a thrown probe is: a probe that
  * established nothing must not become a repository fact.
+ *
+ * This is what makes the existence default in `toContribution` safe: by the
+ * time a result reaches the merge, a value-shaped probe can only arrive with a
+ * value actually present — including `null` and `false`, which are observations,
+ * not absences.
  */
 function normalizeProbeResult(probe: DiscoveryProbe, result: ProbeResult): ProbeResult {
   if (result.status === "found" && probe.shape === "value" && result.value === undefined) {
@@ -294,12 +310,18 @@ async function runProbeSafely(
 function createContractReader(fs: FileSystem, repoRoot: string): () => Promise<ContractStatus> {
   let pending: Promise<ContractStatus> | undefined;
   return () => {
-    pending ??= loadContractSummary(fs, repoRoot);
+    pending ??= loadContractStatus(fs, repoRoot);
     return pending;
   };
 }
 
-async function loadContractSummary(fs: FileSystem, repoRoot: string): Promise<ContractStatus> {
+/**
+ * Reports only whether a contract exists and whether it is valid. Nothing is
+ * extracted from it: a contract that is allowed to contribute facts of its own
+ * is Issue #37, and returning a content summary here is precisely how a
+ * maintainer's description would reach the snapshot unlabelled.
+ */
+async function loadContractStatus(fs: FileSystem, repoRoot: string): Promise<ContractStatus> {
   try {
     const stat = await fs.stat(joinPath(repoRoot, CANONICAL_CONTRACT_FILENAME));
     if (stat?.isFile !== true) {
@@ -320,8 +342,5 @@ async function loadContractSummary(fs: FileSystem, repoRoot: string): Promise<Co
       reason: first === undefined ? "the contract did not validate" : first.code,
     };
   }
-  const declared = loaded.value.contract.environment.packageManager;
-  const summary: ContractSummary =
-    declared === undefined ? {} : { packageManagerName: declared.name };
-  return { status: "valid", summary };
+  return { status: "valid" };
 }

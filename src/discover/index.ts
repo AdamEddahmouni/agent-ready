@@ -21,7 +21,6 @@ export {
 export type { Contribution, KnownContribution, UnknownContribution } from "./fact.js";
 export type {
   ContractStatus,
-  ContractSummary,
   DiscoveryProbe,
   DiscoveryProbeContext,
   ProbeResult,

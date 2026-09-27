@@ -22,7 +22,8 @@ import {
 } from "../../src/diagnostics/codes.js";
 import type { DiagnosticCode } from "../../src/diagnostics/codes.js";
 import { ExitCode, resolveExitCode } from "../../src/diagnostics/exitCodes.js";
-import { repoWith, FaultyFileSystem } from "./discoverTestDoubles.js";
+import type { DiscoveryProbe } from "../../src/discover/probe.js";
+import { claimingValue, FaultyFileSystem, repoWith } from "./discoverTestDoubles.js";
 
 const DISCOVERY_CODES = DIAGNOSTIC_CODES.filter((code) => code.startsWith("DISCOVERY_"));
 
@@ -94,14 +95,11 @@ describe("severity is declared once, in the shared registry", () => {
   it("agrees with the severity discovery actually emits", async () => {
     // A conflict and an empty repository are both warnings on the wire, so
     // explain must not contradict the diagnostics the command produced.
-    const conflicting = await runDiscover(
-      repoWith({
-        "package.json": '{"packageManager":"pnpm@10.0.0"}',
-        "pnpm-lock.yaml": "x",
-        "package-lock.json": "y",
-      }),
-      { json: true, root: "/repo" },
-    );
+    const conflicting = await runDiscover(repoWith({ "AGENTS.md": "# agents\n" }), {
+      json: true,
+      root: "/repo",
+      probes: conflictingProbes(),
+    });
     const emitted = JSON.parse(conflicting.stdout) as {
       diagnostics: { code: string; severity: string }[];
     };
@@ -295,8 +293,8 @@ describe("exit-code resolution for the one fatal discovery condition", () => {
   it("still succeeds for a failed probe, which is not a fatal condition", async () => {
     const fs = new FaultyFileSystem("/repo");
     fs.addDirectory("/repo/.git");
-    fs.addFile("/repo/package.json", "{}");
-    fs.failOn("/repo/package.json");
+    fs.addFile("/repo/AGENTS.md", "# agents\n");
+    fs.failOn("/repo/AGENTS.md");
     const outcome = await runDiscover(fs, { json: false, root: "/repo" });
     expect(outcome.exitCode).toBe(ExitCode.SUCCESS);
   });
@@ -306,8 +304,8 @@ describe("the DISCOVERY_PARTIAL diagnostic names the path it could not inspect",
   it("carries sourcePath so the remediation can point at a file", async () => {
     const fs = new FaultyFileSystem("/repo");
     fs.addDirectory("/repo/.git");
-    fs.addFile("/repo/package.json", '{"packageManager":"pnpm@10.0.0"}');
-    fs.failOn("/repo/package.json");
+    fs.addFile("/repo/AGENTS.md", "# agents\n");
+    fs.failOn("/repo/AGENTS.md");
 
     const outcome = await runDiscover(fs, { json: true, root: "/repo" });
     const body = JSON.parse(outcome.stdout) as {
@@ -317,52 +315,70 @@ describe("the DISCOVERY_PARTIAL diagnostic names the path it could not inspect",
     expect(partial).toBeDefined();
     // The explain entry tells the reader to check the path in `sourcePath`;
     // without the field, that instruction points at nothing.
-    expect(partial?.sourcePath).toBe("package.json");
-    expect(partial?.metadata).toMatchObject({ factId: "repository.packageManager" });
+    expect(partial?.sourcePath).toBe("AGENTS.md");
+    expect(partial?.metadata).toMatchObject({
+      factId: "repository.declarationSurface.present",
+    });
   });
 });
 
+const SURFACE = "repository.declarationSurface.present";
+
+/**
+ * The scenarios below need a fact with more than one claim, because corroboration
+ * and contradiction cannot be shown with the production probe set alone — this
+ * issue ships no repository domain. They are driven by injected probes, which is
+ * the point: the substrate is demonstrable without a domain, so "the substrate
+ * works" and "the first domain works" stay separately reviewable. Issue #37
+ * supplies the real multi-source signals.
+ */
+function agreeingProbes() {
+  return [
+    claimingValue("signals-a", SURFACE, "declared", "agreed", "signals-a.json"),
+    claimingValue("signals-b", SURFACE, "derived", "agreed", "signals-b.json"),
+  ] as const;
+}
+
+function conflictingProbes() {
+  return [
+    claimingValue("signals-a", SURFACE, "declared", "one", "signals-a.json"),
+    claimingValue("signals-b", SURFACE, "derived", "two", "signals-b.json"),
+  ] as const;
+}
+
+function surfaceRepo() {
+  return repoWith({ "AGENTS.md": "# agents\n" });
+}
+
 describe("the human rendering adds no claim the JSON snapshot does not contain", () => {
-  function corroboratedRepo() {
-    return repoWith({
-      "package.json": '{"packageManager":"pnpm@10.0.0"}',
-      "pnpm-lock.yaml": "x",
-      "AGENTS.md": "# a\n",
-    });
-  }
+  // Each fact id and the human row that stands for it. The human rendering is
+  // allowed to be terse; it is not allowed to be a different claim.
+  const rows: Record<string, string> = {
+    "repository.contract.present": "Present",
+    "repository.contract.valid": "Valid",
+    "repository.declarationSurface.present": "Surfaces",
+  };
 
-  function conflictingRepo() {
-    return repoWith({
-      "package.json": '{"packageManager":"pnpm@10.0.0"}',
-      "pnpm-lock.yaml": "x",
-      "package-lock.json": "y",
-    });
-  }
-
-  const fixtures: Record<string, () => ReturnType<typeof repoWith>> = {
-    "corroborated repository": corroboratedRepo,
-    "conflicting repository": conflictingRepo,
-    "empty repository": () => repoWith({}),
+  const fixtures: Record<
+    string,
+    { fs: () => ReturnType<typeof repoWith>; probes?: readonly DiscoveryProbe[] }
+  > = {
+    "single-source repository": { fs: surfaceRepo },
+    "corroborated repository": { fs: surfaceRepo, probes: agreeingProbes() },
+    "conflicting repository": { fs: surfaceRepo, probes: conflictingProbes() },
+    "empty repository": { fs: () => repoWith({}) },
   };
 
   it("shows every fact the snapshot reports, with its epistemic state", async () => {
-    // Each fact id and the human row that stands for it. The human rendering
-    // is allowed to be terse; it is not allowed to be a different claim.
-    const rows: Record<string, string> = {
-      "repository.contract.present": "Present",
-      "repository.contract.valid": "Valid",
-      "repository.declarationSurface.present": "Surfaces",
-      "repository.packageManager": "Packages",
-    };
-
-    for (const [name, makeFs] of Object.entries(fixtures)) {
-      const json = await runDiscover(makeFs(), { json: true, root: "/repo" });
+    for (const [name, fixture] of Object.entries(fixtures)) {
+      const args = { json: true, root: "/repo", ...(fixture.probes && { probes: fixture.probes }) };
+      const json = await runDiscover(fixture.fs(), args);
       const body = JSON.parse(json.stdout) as {
         facts: Record<string, { kind: string; value?: unknown; reason?: string }>;
         summary: { facts: number };
         diagnostics: { code: string }[];
       };
-      const human = await runDiscover(makeFs(), { json: false, root: "/repo" });
+      const human = await runDiscover(fixture.fs(), { ...args, json: false });
       const lines = human.stdout.split("\n");
 
       for (const [id, fact] of Object.entries(body.facts)) {
@@ -380,14 +396,15 @@ describe("the human rendering adds no claim the JSON snapshot does not contain",
           // An unknown fact must never be rendered as a value. The reason is
           // carried through verbatim, so ignorance stays explainable.
           expect(row, `${name}: ${id}`).toContain(`unknown (${fact.reason ?? ""})`);
+        } else if (!("value" in fact)) {
+          expect(row, `${name}: ${id}`).toContain("conflicting");
         } else {
           expect(row, `${name}: ${id}`).not.toContain("unknown");
         }
       }
 
       // The counts in the human summary are the snapshot's own counts.
-      const summary = body.summary;
-      expect(human.stdout, name).toContain(`Facts      ${String(summary.facts)}`);
+      expect(human.stdout, name).toContain(`Facts      ${String(body.summary.facts)}`);
       for (const diagnostic of body.diagnostics) {
         expect(human.stdout, `${name}: ${diagnostic.code}`).toContain(diagnostic.code);
       }
@@ -395,25 +412,33 @@ describe("the human rendering adds no claim the JSON snapshot does not contain",
   });
 
   it("prints an evidence block only for a fact that actually has several claims", async () => {
-    const corroborated = await runDiscover(corroboratedRepo(), { json: false, root: "/repo" });
-    const evidenceLines = corroborated.stdout
+    const single = await runDiscover(surfaceRepo(), { json: false, root: "/repo" });
+    expect(single.stdout).not.toContain("Evidence");
+
+    const corroborated = await runDiscover(surfaceRepo(), {
+      json: false,
+      root: "/repo",
+      probes: agreeingProbes(),
+    });
+    const evidenceBlocks = corroborated.stdout
       .split("\n")
       .filter((line) => line.trim() === "Evidence");
-    expect(evidenceLines).toHaveLength(1);
-
-    const empty = await runDiscover(repoWith({}), { json: false, root: "/repo" });
-    expect(empty.stdout).not.toContain("Evidence");
+    expect(evidenceBlocks).toHaveLength(1);
   });
 
   it("indents a fact's evidence under that fact's own row", async () => {
-    const outcome = await runDiscover(conflictingRepo(), { json: false, root: "/repo" });
+    const outcome = await runDiscover(surfaceRepo(), {
+      json: false,
+      root: "/repo",
+      probes: conflictingProbes(),
+    });
     const lines = outcome.stdout.split("\n");
-    const packagesIndex = lines.findIndex((line) => line.startsWith("  Packages"));
-    expect(packagesIndex).toBeGreaterThanOrEqual(0);
+    const rowIndex = lines.findIndex((line) => line.startsWith("  Surfaces"));
+    expect(rowIndex).toBeGreaterThanOrEqual(0);
     // The evidence block is the very next line, one level deeper, so it
     // cannot be read as corroborating the row above it.
-    expect(lines[packagesIndex + 1]).toBe("    Evidence");
-    const cited = lines.slice(packagesIndex + 2).filter((line) => line.startsWith("      "));
+    expect(lines[rowIndex + 1]).toBe("    Evidence");
+    const cited = lines.slice(rowIndex + 2).filter((line) => line.startsWith("      "));
     expect(cited.length).toBeGreaterThan(0);
     for (const line of cited) {
       expect(line).toMatch(/^ {6}(author-declared|declared|derived)\s/);
@@ -421,23 +446,24 @@ describe("the human rendering adds no claim the JSON snapshot does not contain",
   });
 
   it("keeps each claim's citation inside that claim in the JSON rendering", async () => {
-    const outcome = await runDiscover(conflictingRepo(), { json: true, root: "/repo" });
+    const outcome = await runDiscover(surfaceRepo(), {
+      json: true,
+      root: "/repo",
+      probes: conflictingProbes(),
+    });
     const body = JSON.parse(outcome.stdout) as {
       facts: Record<
         string,
         { claims?: { kind: string; value: unknown; evidence: { source: string }[] }[] }
       >;
     };
-    const packageManager = body.facts["repository.packageManager"];
-    expect(packageManager?.claims?.length).toBeGreaterThan(1);
+    const fact = body.facts[SURFACE];
+    expect(fact?.claims?.length).toBe(2);
     // A claim's evidence names the file that claim came from — the citation
     // cannot drift to a different claim's file.
-    const known = /^(package\.json|pnpm-lock\.yaml|package-lock\.json|agent-ready\.yaml)$/;
-    for (const claim of packageManager?.claims ?? []) {
-      expect(claim.evidence.length).toBeGreaterThan(0);
-      for (const entry of claim.evidence) {
-        expect(entry.source).toMatch(known);
-      }
-    }
+    expect(fact?.claims?.map((claim) => claim.evidence[0]?.source)).toEqual([
+      "signals-a.json",
+      "signals-b.json",
+    ]);
   });
 });

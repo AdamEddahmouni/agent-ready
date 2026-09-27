@@ -3,14 +3,15 @@
  *
  * ADR-0044's governing rule is "unknown beats wrong", which is only meaningful
  * if the ways a system can be confidently wrong are individually pinned. Every
- * test in this file corresponds to one specific way the snapshot could have
- * lied and did not, and the shared assertion is:
+ * test here corresponds to one specific way a snapshot could have lied and did
+ * not, and the shared assertion is:
  *
  *   OUTPUT CLAIM STRENGTH <= SUPPORT PROVIDED BY THE EVIDENCE CONTRACT.
  *
- * These are deliberately unit-level and use the fact algebra directly, so a
- * regression is attributed to the algebra rather than to whichever probe or
- * rendering happened to exercise it.
+ * These are deliberately unit-level and operate on the fact algebra directly,
+ * with neutral fixture values, so a regression is attributed to the algebra
+ * rather than to whichever probe or rendering happened to exercise it. This
+ * issue ships no repository domain, so nothing here depends on one.
  */
 
 import { describe, expect, it } from "vitest";
@@ -27,15 +28,28 @@ import { discoverRepository } from "../../src/discover/discover.js";
 import type { DiscoveryProbe } from "../../src/discover/probe.js";
 import type { DiscoverySnapshot, Fact, FactId, JsonValue } from "../../src/discover/types.js";
 import { FACT_IDS } from "../../src/discover/types.js";
-import { repoWith, VALID_CONTRACT } from "./discoverTestDoubles.js";
+import { claimingValue, probeReporting, repoWith, VALID_CONTRACT } from "./discoverTestDoubles.js";
+
+/**
+ * The fact id the algebra tests report against. Which id is used is
+ * irrelevant to the algebra; a real one is used so that the compiler enforces
+ * the published vocabulary rather than the tests inventing their own.
+ */
+const SURFACE: FactId = "repository.declarationSurface.present";
 
 function known(
-  id: FactId,
   kind: KnownContribution["kind"],
   value: JsonValue,
   source: string,
 ): KnownContribution {
-  return { id, kind, value, evidence: [{ source }] };
+  return { id: SURFACE, kind, value, evidence: [{ source }] };
+}
+
+function unknown(
+  reason: "no-evidence" | "probe-failed" | "not-probed",
+  sources: readonly string[],
+): Contribution {
+  return { id: SURFACE, reason, evidence: sources.map((source) => ({ source })) };
 }
 
 /** The single fact from a contribution list, asserting there is exactly one. */
@@ -55,6 +69,13 @@ function valueOf(fact: Fact): JsonValue {
   return fact.value;
 }
 
+function claimsOf(fact: Fact) {
+  if (!("claims" in fact)) {
+    throw new Error(`fact ${fact.id} carries no claims`);
+  }
+  return fact.claims;
+}
+
 function corroborationOf(fact: Fact) {
   if (!("corroboration" in fact)) {
     throw new Error(`fact ${fact.id} carries no corroboration`);
@@ -65,29 +86,25 @@ function corroborationOf(fact: Fact) {
 describe("a fact is never stronger than its evidence", () => {
   it("refuses to build a known fact whose claim cites nothing", () => {
     expect(() =>
-      buildAgreedFact("repository.packageManager", [
-        { kind: "derived", value: "pnpm", evidence: [] },
-      ]),
+      buildAgreedFact(SURFACE, [{ kind: "derived", value: true, evidence: [] }]),
     ).toThrow(/no evidence/);
   });
 
   it("refuses to build a known fact from no claims at all", () => {
-    expect(() => buildAgreedFact("repository.packageManager", [])).toThrow(/without any claim/);
+    expect(() => buildAgreedFact(SURFACE, [])).toThrow(/without any claim/);
   });
 
   it("refuses to build a known fact when only some claims cite something", () => {
     expect(() =>
-      buildAgreedFact("repository.packageManager", [
-        { kind: "derived", value: "pnpm", evidence: [{ source: "pnpm-lock.yaml" }] },
-        { kind: "declared", value: "pnpm", evidence: [] },
+      buildAgreedFact(SURFACE, [
+        { kind: "derived", value: true, evidence: [{ source: "a" }] },
+        { kind: "declared", value: true, evidence: [] },
       ]),
     ).toThrow(/no evidence/);
   });
 
   it("gives an unknown fact no value field at all, so absence cannot read as a default", () => {
-    const fact = buildUnknownFact("repository.packageManager", "no-evidence", [
-      { source: "package.json" },
-    ]);
+    const fact = buildUnknownFact(SURFACE, "no-evidence", [{ source: "a" }]);
     expect(fact.kind).toBe("unknown");
     expect("value" in fact).toBe(false);
     expect(JSON.parse(JSON.stringify(fact))).not.toHaveProperty("value");
@@ -95,64 +112,65 @@ describe("a fact is never stronger than its evidence", () => {
 
   it("reports a conflicting fact with no value rather than a ranked winner", () => {
     const fact = only(
-      mergeContributions([
-        known("repository.packageManager", "declared", "pnpm", "package.json"),
-        known("repository.packageManager", "derived", "npm", "package-lock.json"),
-      ]),
+      mergeContributions([known("declared", "one", "a.json"), known("derived", "two", "b.json")]),
     );
     expect(isContradictory(fact)).toBe(true);
     expect("value" in fact).toBe(false);
     // Both claims survive with their own evidence; neither is discarded.
-    if (!("claims" in fact)) throw new Error("expected claims");
-    expect(fact.claims.map((claim) => claim.value)).toEqual(["pnpm", "npm"]);
-    expect(fact.claims.map((claim) => claim.evidence[0]?.source)).toEqual([
-      "package.json",
-      "package-lock.json",
-    ]);
+    expect(claimsOf(fact).map((claim) => claim.value)).toEqual(["one", "two"]);
+    expect(claimsOf(fact).map((claim) => claim.evidence[0]?.source)).toEqual(["a.json", "b.json"]);
   });
 
-  it("treats a claim of a different value as a conflict even within one kind", () => {
+  it("treats claims of different values as a conflict even within one kind", () => {
     const fact = only(
-      mergeContributions([
-        known("repository.packageManager", "derived", "pnpm", "pnpm-lock.yaml"),
-        known("repository.packageManager", "derived", "npm", "package-lock.json"),
-      ]),
+      mergeContributions([known("derived", "one", "a.json"), known("derived", "two", "b.json")]),
     );
     expect(isContradictory(fact)).toBe(true);
   });
 });
 
+describe("an observed value is recorded, never reinterpreted", () => {
+  it("keeps an observed null as null", () => {
+    // `JsonValue` includes `null`, so a probe can legitimately report it. The
+    // merge must not reinterpret it as an absence, and certainly not as a
+    // truthiness default.
+    const fact = only(mergeContributions([known("declared", null, "signals.json")]));
+    expect(valueOf(fact)).toBeNull();
+  });
+
+  it("keeps an observed false as false", () => {
+    const fact = only(mergeContributions([known("derived", false, "a.json")]));
+    expect(valueOf(fact)).toBe(false);
+  });
+
+  it("keeps an observed empty string and zero as themselves", () => {
+    expect(valueOf(only(mergeContributions([known("declared", "", "a.json")])))).toBe("");
+    expect(valueOf(only(mergeContributions([known("declared", 0, "a.json")])))).toBe(0);
+  });
+
+  it("agrees on two identical falsy observations rather than calling it absent", () => {
+    const fact = only(
+      mergeContributions([known("derived", false, "a.json"), known("declared", false, "b.json")]),
+    );
+    expect(valueOf(fact)).toBe(false);
+    expect(isContradictory(fact)).toBe(false);
+  });
+});
+
 describe("absence is not inaccessibility, and inaccessibility is not absence", () => {
   it("keeps a value-shaped probe's not-found result unknown rather than false", () => {
-    // A `value` probe that found nothing has established nothing about the
-    // value. Turning that into `false` would be evidence the probe never
-    // gathered.
-    const fact = only(
-      mergeContributions([
-        {
-          id: "repository.packageManager",
-          reason: "no-evidence",
-          evidence: [{ source: "package.json" }],
-        },
-      ]),
-    );
+    // A probe that found nothing has established nothing about the value.
+    // Turning that into `false` would be evidence the probe never gathered.
+    const fact = only(mergeContributions([unknown("no-evidence", ["a.json"])]));
     expect(fact.kind).toBe("unknown");
     expect(fact.kind === "unknown" && fact.reason).toBe("no-evidence");
-    // The path that was inspected is retained, so "we looked and found
-    // nothing" stays inspectable and distinct from "we did not look".
-    expect(fact.kind === "unknown" && fact.evidence).toEqual([{ source: "package.json" }]);
+    // The path inspected is retained, so "we looked and found nothing" stays
+    // inspectable and distinct from "we did not look".
+    expect(fact.kind === "unknown" && fact.evidence).toEqual([{ source: "a.json" }]);
   });
 
   it("never downgrades a failure to absence, and never upgrades absence to a value", () => {
-    const failed = only(
-      mergeContributions([
-        {
-          id: "repository.packageManager",
-          reason: "probe-failed",
-          evidence: [{ source: "package.json" }],
-        },
-      ]),
-    );
+    const failed = only(mergeContributions([unknown("probe-failed", ["a.json"])]));
     expect(failed.kind === "unknown" && failed.reason).toBe("probe-failed");
     expect("value" in failed).toBe(false);
   });
@@ -161,10 +179,7 @@ describe("absence is not inaccessibility, and inaccessibility is not absence", (
     // A failure tells a consumer strictly more than a completed-and-empty
     // inspection, so it must not be diluted by the weaker reason.
     const fact = only(
-      mergeContributions([
-        { id: "repository.packageManager", reason: "no-evidence", evidence: [{ source: "a" }] },
-        { id: "repository.packageManager", reason: "probe-failed", evidence: [{ source: "b" }] },
-      ]),
+      mergeContributions([unknown("no-evidence", ["a"]), unknown("probe-failed", ["b"])]),
     );
     expect(fact.kind === "unknown" && fact.reason).toBe("probe-failed");
     // Both inspected paths are retained.
@@ -174,24 +189,18 @@ describe("absence is not inaccessibility, and inaccessibility is not absence", (
   it("keeps a fact known when one probe confirms it and another merely failed", () => {
     const fact = only(
       mergeContributions([
-        known("repository.packageManager", "declared", "pnpm", "package.json"),
-        {
-          id: "repository.packageManager",
-          reason: "probe-failed",
-          evidence: [{ source: "yarn.lock" }],
-        },
+        known("declared", "observed", "a.json"),
+        unknown("probe-failed", ["b.json"]),
       ]),
     );
-    expect(valueOf(fact)).toBe("pnpm");
+    expect(valueOf(fact)).toBe("observed");
     expect(hasEvidence(fact)).toBe(true);
   });
 });
 
 describe("corroboration means independence, not repetition", () => {
   it("is not corroborated by a single source however confident it is", () => {
-    const fact = only(
-      mergeContributions([known("repository.packageManager", "derived", "pnpm", "pnpm-lock.yaml")]),
-    );
+    const fact = only(mergeContributions([known("derived", "x", "a.json")]));
     expect(corroborationOf(fact).corroborated).toBe(false);
   });
 
@@ -199,20 +208,14 @@ describe("corroboration means independence, not repetition", () => {
     // One file inspected twice is one source. Reporting this as independent
     // verification is the specific overclaim the boundary exists to prevent.
     const fact = only(
-      mergeContributions([
-        known("repository.packageManager", "derived", "pnpm", "agent-ready.yaml"),
-        known("repository.packageManager", "author-declared", "pnpm", "agent-ready.yaml"),
-      ]),
+      mergeContributions([known("derived", "x", "same.json"), known("declared", "x", "same.json")]),
     );
     expect(corroborationOf(fact).corroborated).toBe(false);
   });
 
   it("is corroborated by two claims citing different evidence", () => {
     const fact = only(
-      mergeContributions([
-        known("repository.packageManager", "declared", "pnpm", "package.json"),
-        known("repository.packageManager", "derived", "pnpm", "pnpm-lock.yaml"),
-      ]),
+      mergeContributions([known("declared", "x", "a.json"), known("derived", "x", "b.json")]),
     );
     expect(corroborationOf(fact).corroborated).toBe(true);
   });
@@ -221,10 +224,10 @@ describe("corroboration means independence, not repetition", () => {
     const fact = only(
       mergeContributions([
         {
-          id: "repository.declarationSurface.present",
+          id: SURFACE,
           kind: "derived",
           value: false,
-          evidence: [{ source: "AGENTS.md" }, { source: "CLAUDE.md" }, { source: ".cursorrules" }],
+          evidence: [{ source: "a" }, { source: "b" }, { source: "c" }],
         },
       ]),
     );
@@ -233,115 +236,97 @@ describe("corroboration means independence, not repetition", () => {
   });
 
   it("keeps an author claim visibly uncorroborated while the repository is silent", () => {
-    const fact = only(
-      mergeContributions([
-        known("repository.packageManager", "author-declared", "pnpm", "agent-ready.yaml"),
-      ]),
-    );
+    const fact = only(mergeContributions([known("author-declared", "x", "contract.yaml")]));
     expect(corroborationOf(fact).authorDeclared).toBe(true);
     expect(corroborationOf(fact).corroborated).toBe(false);
-    // The maintainer's description is the value, but its kind is not upgraded.
+    // The claim is the value, but its kind is never upgraded to observed.
     expect(fact.kind).toBe("author-declared");
   });
 });
 
 describe("an inferred capability is never relabelled as an observed one", () => {
-  it("labels a lockfile signal derived and a package.json field declared", async () => {
-    const snapshot = await discoverRepository(
-      repoWith({ "pnpm-lock.yaml": "lockfileVersion: '9.0'\n", "package.json": "{}" }),
-      { startDir: "/repo" },
-    );
-    expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
-    // Only the lockfile: derived, never declared.
-    const lockfileOnly = snapshot.snapshot.facts["repository.packageManager"];
-    expect(lockfileOnly?.kind).toBe("derived");
-    if (!lockfileOnly || !("claims" in lockfileOnly)) throw new Error("expected claims");
-    expect(lockfileOnly.claims.every((claim) => claim.kind === "derived")).toBe(true);
-  });
-
   it("keeps every contributing kind published even when one is strongest", () => {
     const fact = only(
       mergeContributions([
-        known("repository.packageManager", "author-declared", "pnpm", "agent-ready.yaml"),
-        known("repository.packageManager", "derived", "pnpm", "pnpm-lock.yaml"),
-        known("repository.packageManager", "declared", "pnpm", "package.json"),
+        known("author-declared", "x", "contract.yaml"),
+        known("derived", "x", "b.json"),
+        known("declared", "x", "a.json"),
       ]),
     );
     expect(corroborationOf(fact).kinds).toEqual(["author-declared", "declared", "derived"]);
+  });
+
+  it("does not let an author claim overwrite what the repository shows", () => {
+    const fact = only(
+      mergeContributions([
+        known("declared", "observed", "a.json"),
+        known("author-declared", "claimed", "contract.yaml"),
+      ]),
+    );
+    expect("value" in fact).toBe(false);
+    expect(claimsOf(fact).map((claim) => [claim.kind, claim.value])).toEqual([
+      ["author-declared", "claimed"],
+      ["declared", "observed"],
+    ]);
   });
 });
 
 describe("evidence is canonicalized", () => {
   it("collapses an exactly repeated citation instead of growing one per look", () => {
-    const fact = buildUnknownFact("repository.declarationSurface.present", "no-evidence", [
-      { source: "AGENTS.md", detail: "not present" },
-      { source: "AGENTS.md", detail: "not present" },
-      { source: "CLAUDE.md", detail: "not present" },
+    const fact = buildUnknownFact(SURFACE, "no-evidence", [
+      { source: "a", detail: "not present" },
+      { source: "a", detail: "not present" },
+      { source: "b", detail: "not present" },
     ]);
     expect(fact.evidence).toEqual([
-      { source: "AGENTS.md", detail: "not present" },
-      { source: "CLAUDE.md", detail: "not present" },
+      { source: "a", detail: "not present" },
+      { source: "b", detail: "not present" },
     ]);
   });
 
   it("orders evidence by code unit, not by the order the probes happened to run", () => {
-    const forwards = mergeContributions([
-      {
-        id: "repository.contract.valid",
-        reason: "no-evidence",
-        evidence: [{ source: "b" }, { source: "a" }],
-      },
-    ]);
-    const backwards = mergeContributions([
-      {
-        id: "repository.contract.valid",
-        reason: "no-evidence",
-        evidence: [{ source: "a" }, { source: "b" }],
-      },
-    ]);
+    const forwards = mergeContributions([unknown("no-evidence", ["b", "a"])]);
+    const backwards = mergeContributions([unknown("no-evidence", ["a", "b"])]);
     expect(forwards).toEqual(backwards);
     const fact = only(forwards);
     expect(fact.kind === "unknown" && fact.evidence.map((e) => e.source)).toEqual(["a", "b"]);
   });
 });
 
-describe("every fact id in the public registry is reachable and every emitted fact is one of them", () => {
+describe("the published fact vocabulary is what the implementation emits", () => {
   it("emits a subset of the declared fact ids, with no invented identifiers", async () => {
-    const snapshot = await discoverRepository(
-      repoWith({
-        "agent-ready.yaml": VALID_CONTRACT,
-        "package.json": '{"packageManager":"pnpm@10.0.0"}',
-        "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
-        "AGENTS.md": "# agents\n",
-      }),
+    const result = await discoverRepository(
+      repoWith({ "agent-ready.yaml": VALID_CONTRACT, "AGENTS.md": "# agents\n" }),
       { startDir: "/repo" },
     );
-    expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
-    for (const id of Object.keys(snapshot.snapshot.facts)) {
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    for (const id of Object.keys(result.snapshot.facts)) {
       expect(FACT_IDS as readonly string[]).toContain(id);
     }
   });
 
+  it("emits exactly the ids the vocabulary declares, with no gaps", async () => {
+    const result = await discoverRepository(repoWith({ "AGENTS.md": "# agents\n" }), {
+      startDir: "/repo",
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(Object.keys(result.snapshot.facts).sort()).toEqual([...FACT_IDS].sort());
+  });
+
   it("satisfies the evidence invariant for every fact in every reachable outcome", async () => {
     const probes: DiscoveryProbe[] = [
-      {
-        id: "explodes",
-        factId: "repository.declarationSurface.present",
-        kind: "derived",
-        shape: "existence",
-        run: () => Promise.reject(new Error("probe blew up")),
-      },
-    ];
-    const result = await discoverRepository(
-      repoWith({
-        "package.json": '{"packageManager":"pnpm@10.0.0"}',
-        "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
-        "package-lock.json": '{"lockfileVersion":3}',
+      probeReporting("explodes", SURFACE, "existence", "derived", {
+        status: "failed",
+        detail: "could not inspect",
+        evidence: [],
       }),
-      { startDir: "/repo", probes },
-    );
+    ];
+    const result = await discoverRepository(repoWith({ "AGENTS.md": "# agents\n" }), {
+      startDir: "/repo",
+      probes,
+    });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const facts = Object.values(result.snapshot.facts);
@@ -352,13 +337,13 @@ describe("every fact id in the public registry is reachable and every emitted fa
     }
   });
 
-  it("attributes a thrown probe to its fact without pretending it read anything", async () => {
-    const result = await discoverRepository(repoWith({ "package.json": "{}" }), {
+  it("attributes a failed probe to its fact without pretending it read anything", async () => {
+    const result = await discoverRepository(repoWith({}), {
       startDir: "/repo",
       probes: [
         {
           id: "explodes",
-          factId: "repository.declarationSurface.present",
+          factId: SURFACE,
           kind: "derived",
           shape: "existence",
           run: () => Promise.reject(new Error("probe blew up")),
@@ -367,7 +352,7 @@ describe("every fact id in the public registry is reachable and every emitted fa
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const fact = result.snapshot.facts["repository.declarationSurface.present"];
+    const fact = result.snapshot.facts[SURFACE];
     if (fact === undefined) {
       throw new Error("expected a fact for the failing probe");
     }
@@ -378,129 +363,66 @@ describe("every fact id in the public registry is reachable and every emitted fa
     expect(isSelfDescribing(fact)).toBe(false);
     // The operation is still reported as incomplete, with the probe named.
     const partial = result.snapshot.diagnostics.find((d) => d.code === "DISCOVERY_PARTIAL");
-    expect(partial?.metadata).toMatchObject({
-      probeId: "explodes",
-      factId: "repository.declarationSurface.present",
-    });
+    expect(partial?.metadata).toMatchObject({ probeId: "explodes", factId: SURFACE });
   });
 
   it("reports an ordinary unknown fact as self-describing", () => {
-    expect(
-      isSelfDescribing(
-        buildUnknownFact("repository.packageManager", "no-evidence", [{ source: "package.json" }]),
-      ),
-    ).toBe(true);
-    expect(isSelfDescribing(buildUnknownFact("repository.contract.valid", "not-probed", []))).toBe(
+    expect(isSelfDescribing(buildUnknownFact(SURFACE, "no-evidence", [{ source: "a" }]))).toBe(
       true,
     );
+    expect(isSelfDescribing(buildUnknownFact(SURFACE, "not-probed", []))).toBe(true);
   });
 });
 
 describe("a diagnostic is a statement about the operation, never a fact", () => {
   it("names a factId that exists in the same snapshot", async () => {
-    const snapshot = await discoverRepository(
-      repoWith({
-        "package.json": '{"packageManager":"pnpm@10.0.0"}',
-        "pnpm-lock.yaml": "x",
-        "package-lock.json": "y",
-      }),
-      { startDir: "/repo" },
-    );
-    expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
-    expect(snapshot.snapshot.diagnostics.length).toBeGreaterThan(0);
-    for (const diagnostic of snapshot.snapshot.diagnostics) {
+    const result = await discoverRepository(repoWith({}), {
+      startDir: "/repo",
+      probes: [
+        claimingValue("a", SURFACE, "declared", "one", "a.json"),
+        claimingValue("b", SURFACE, "derived", "two", "b.json"),
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.snapshot.diagnostics.length).toBeGreaterThan(0);
+    for (const diagnostic of result.snapshot.diagnostics) {
       const factId = diagnostic.metadata?.["factId"];
       if (typeof factId !== "string") continue;
-      expect(Object.keys(snapshot.snapshot.facts)).toContain(factId);
+      expect(Object.keys(result.snapshot.facts)).toContain(factId);
     }
   });
 
   it("counts one fact per contributed fact id, so a diagnostic cannot invent one", async () => {
-    const snapshot = await discoverRepository(repoWith({ "package.json": "{}" }), {
+    const result = await discoverRepository(repoWith({ "AGENTS.md": "# agents\n" }), {
       startDir: "/repo",
-    });
-    expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
-    const expected = new Set<FactId>([
-      "repository.root",
-      "repository.contract.present",
-      "repository.contract.valid",
-      "repository.declarationSurface.present",
-      "repository.packageManager",
-    ]);
-    expect(Object.keys(snapshot.snapshot.facts).sort()).toEqual([...expected].sort());
-    expect(snapshot.snapshot.summary.facts).toBe(expected.size);
-  });
-});
-
-describe("a probe cannot report a value it never supplied", () => {
-  it("downgrades a value-shaped found-with-no-value result to unknown", async () => {
-    // Defaulting this to `true` would record a value the probe never observed —
-    // the fabrication the whole boundary exists to prevent.
-    const result = await discoverRepository(repoWith({ "package.json": "{}" }), {
-      startDir: "/repo",
-      probes: [
-        {
-          id: "valueless",
-          factId: "repository.packageManager",
-          kind: "declared",
-          shape: "value",
-          run: () => Promise.resolve({ status: "found", evidence: [{ source: "package.json" }] }),
-        },
-      ],
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const fact = result.snapshot.facts["repository.packageManager"];
-    if (fact === undefined) throw new Error("expected a fact");
-    expect(fact.kind === "unknown" && fact.reason).toBe("probe-failed");
-    expect("value" in fact).toBe(false);
-    expect(result.snapshot.summary.complete).toBe(false);
-    expect(result.snapshot.diagnostics.map((d) => d.code)).toContain("DISCOVERY_PARTIAL");
-  });
-
-  it("still records existence probes that are found with no value as true", async () => {
-    // "It is there" is the whole answer for an existence probe, so a bare
-    // `found` is legitimate and must not be treated as a defect.
-    const result = await discoverRepository(repoWith({ "AGENTS.md": "# a\n" }), {
-      startDir: "/repo",
-      probes: [
-        {
-          id: "present",
-          factId: "repository.declarationSurface.present",
-          kind: "derived",
-          shape: "existence",
-          run: () => Promise.resolve({ status: "found", evidence: [{ source: "AGENTS.md" }] }),
-        },
-      ],
-    });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    const fact = result.snapshot.facts["repository.declarationSurface.present"];
-    expect(fact && "value" in fact ? fact.value : undefined).toBe(true);
-    expect(result.snapshot.diagnostics).toEqual([]);
+    const emitted = Object.keys(result.snapshot.facts);
+    expect(emitted).toHaveLength(FACT_IDS.length);
+    expect(result.snapshot.summary.facts).toBe(FACT_IDS.length);
   });
 });
 
 describe("mergeContributions is total over the contribution union", () => {
   it("returns a deterministic, code-unit-ordered fact list", () => {
+    // Three distinct ids, contributed out of order, so the sort is what is
+    // under test rather than the input order.
     const contributions: Contribution[] = [
-      { id: "repository.packageManager", reason: "not-probed", evidence: [] },
-      known("repository.contract.present", "derived", true, "agent-ready.yaml"),
       { id: "repository.root", reason: "not-probed", evidence: [] },
+      known("derived", true, "a.json"),
+      { id: "repository.contract.valid", reason: "not-probed", evidence: [] },
     ];
     expect(mergeContributions(contributions).map((fact) => fact.id)).toEqual([
-      "repository.contract.present",
-      "repository.packageManager",
+      "repository.contract.valid",
+      "repository.declarationSurface.present",
       "repository.root",
     ]);
   });
 
   it("treats an unsupported probe as not-probed, never as a false value", () => {
-    const fact = only(
-      mergeContributions([{ id: "repository.contract.valid", reason: "not-probed", evidence: [] }]),
-    );
+    const fact = only(mergeContributions([unknown("not-probed", [])]));
     expect(fact.kind === "unknown" && fact.reason).toBe("not-probed");
     expect("value" in fact).toBe(false);
     // `not-probed` is the one unknown that legitimately cites nothing.
@@ -509,16 +431,13 @@ describe("mergeContributions is total over the contribution union", () => {
 });
 
 describe("the snapshot projection adds no knowledge of its own", () => {
-  it("carries the same facts the snapshot computed, with nothing re-derived", async () => {
-    const result = await discoverRepository(
-      repoWith({ "package.json": '{"packageManager":"pnpm@10.0.0"}', "pnpm-lock.yaml": "x" }),
-      { startDir: "/repo" },
-    );
+  it("keys every fact by its own id, and counts match", async () => {
+    const result = await discoverRepository(repoWith({ "AGENTS.md": "# agents\n" }), {
+      startDir: "/repo",
+    });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const snapshot: DiscoverySnapshot = result.snapshot;
-    // The record is keyed by the fact's own id, and every key is present in
-    // the summary count, so a rendering cannot invent or drop a fact.
     for (const [id, fact] of Object.entries(snapshot.facts)) {
       expect(fact.id).toBe(id);
     }

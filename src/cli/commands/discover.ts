@@ -109,19 +109,12 @@ function renderHuman(snapshot: DiscoverySnapshot, repoRoot: string): string {
   const contractPresent = snapshot.facts["repository.contract.present"];
   const contractValid = snapshot.facts["repository.contract.valid"];
   lines.push("Agent-Ready contract");
-  lines.push(...factRow("Present", contractPresent, describeBoolean));
-  lines.push(...factRow("Valid", contractValid, describeBoolean));
+  lines.push(...factRow("Present", contractPresent));
+  lines.push(...factRow("Valid", contractValid));
   lines.push("");
 
   lines.push("Repository signals");
-  lines.push(
-    ...factRow(
-      "Surfaces",
-      snapshot.facts["repository.declarationSurface.present"],
-      describeBoolean,
-    ),
-  );
-  lines.push(...factRow("Packages", snapshot.facts["repository.packageManager"], describeValue));
+  lines.push(...factRow("Surfaces", snapshot.facts["repository.declarationSurface.present"]));
   lines.push("");
 
   const { facts, known, unknown, conflicts, complete } = snapshot.summary;
@@ -168,12 +161,15 @@ function renderEvidence(fact: Fact | undefined, indent: string): string[] {
  * One fact as a labelled row, followed by its corroborating claims when it
  * has any. Returns the row and its evidence as a unit so the two can never
  * drift apart in the output.
+ *
+ * Every fact in this issue's vocabulary is boolean-shaped, so one describer
+ * serves all of them. A value-shaped fact — Issue #37's first — needs its own
+ * describer alongside this one rather than a `String(value)` fallback that
+ * would print an object as `[object Object]`.
  */
-function factRow(label: string, fact: Fact | undefined, describe: DescribeFn): string[] {
-  return [`  ${label.padEnd(11)}${describe(fact)}`, ...renderEvidence(fact, "    ")];
+function factRow(label: string, fact: Fact | undefined): string[] {
+  return [`  ${label.padEnd(11)}${describeBoolean(fact)}`, ...renderEvidence(fact, "    ")];
 }
-
-type DescribeFn = (fact: Fact | undefined) => string;
 
 /**
  * Renders a boolean-shaped fact. Only a real boolean is rendered as yes/no:
@@ -195,19 +191,4 @@ function describeBoolean(fact: Fact | undefined): string {
     return JSON.stringify(fact.value);
   }
   return fact.value ? "yes" : "no";
-}
-
-function describeValue(fact: Fact | undefined): string {
-  if (fact === undefined) {
-    return "not probed";
-  }
-  if (fact.kind === "unknown") {
-    return `unknown (${fact.reason})`;
-  }
-  if (!("value" in fact)) {
-    return "conflicting";
-  }
-  // Never `String(value)`: a JSON object would render as "[object Object]",
-  // which reads as a value while discarding what was actually claimed.
-  return typeof fact.value === "string" ? fact.value : JSON.stringify(fact.value);
 }

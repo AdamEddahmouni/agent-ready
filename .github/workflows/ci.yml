@@ -133,7 +133,8 @@ jobs:
           echo "$output"
           echo "$output" | grep -q '"ok": true'
           echo "$output" | grep -q '"snapshotVersion": 0'
-          echo "$output" | grep -q '"repository.packageManager"'
+          echo "$output" | grep -q '"repository.contract.present"'
+          echo "$output" | grep -q '"repository.declarationSurface.present"'
           echo "$output" | grep -q '"complete": true'
 
           again="$(node dist/cli/index.js discover --json)"
