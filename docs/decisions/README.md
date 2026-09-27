@@ -52,3 +52,4 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0042](0042-v1-freeze-and-parallel-vnext-surface.md)          | Freeze the v1 contract and CLI; add vNext as a parallel surface |
 | [0043](0043-core-posture-and-integration-quarantine.md)       | Deterministic-core posture and quarantined integrations         |
 | [0044](0044-repository-discovery-model.md)                    | Repository discovery model and its fact boundary                |
+| [0045](0045-package-and-workspace-discovery-semantics.md)     | Package and workspace discovery semantics                       |

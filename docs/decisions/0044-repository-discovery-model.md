@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted
+Accepted. Partially amended by
+[ADR-0045](0045-package-and-workspace-discovery-semantics.md), which supersedes
+three specific rules below; the amendments are marked inline and ADR-0045 governs
+where they conflict.
 
 ## Context
 
@@ -136,6 +139,19 @@ The governing rule is _unknown beats wrong_, stated in a form that can fail a te
   lockfile — the snapshot retains both values with their evidence and raises
   `DISCOVERY_FACT_CONFLICT`. It does not pick a winner. Choosing is precisely the
   confidently-wrong failure this decision exists to prevent.
+
+  > **Amended by
+  > [ADR-0045](0045-package-and-workspace-discovery-semantics.md).** The rule above
+  > models contradiction as a single outcome, and the real package domain showed it
+  > has two. Two sources of the _same_ kind that disagree remain a conflict with no
+  > value. A `declared` claim contradicted by `derived` evidence is instead an
+  > _incomplete_ fact: the declaration is carried forward, every contradicting
+  > artifact is retained beside it, and no winner is chosen. A conflict model built
+  > only on peer comparison cannot express that without either dropping a true claim
+  > or promoting an artifact to a declaration. ADR-0045 also amends the corroboration
+  > rule that follows, and makes `DISCOVERY_FACT_UNSUPPORTED` reachable. Read it as
+  > governing; the rules above are retained because each amendment narrows them.
+
 - **A probe that fails is not a probe that finds nothing.** An unreadable path
   yields `unknown` with `reason: "probe-failed"` and raises `DISCOVERY_PARTIAL`. It
   is never reported as absence, because absence and inaccessibility are different
@@ -221,8 +237,27 @@ family. The registry is `src/diagnostics/codes.ts`; the reference is
 | `DISCOVERY_ROOT_UNREADABLE`  | error    | The root path is missing, is not a directory, or cannot be read. The only fatal condition.                                                                                      |
 | `DISCOVERY_PARTIAL`          | warning  | At least one probe could not run. The snapshot is usable but incomplete.                                                                                                        |
 | `DISCOVERY_FACT_CONFLICT`    | warning  | A declared fact and a derived fact disagree. Both are retained with evidence.                                                                                                   |
-| `DISCOVERY_NO_SIGNALS`       | info     | Every probe ran and none found evidence. A valid, complete, empty result.                                                                                                       |
-| `DISCOVERY_FACT_UNSUPPORTED` | info     | **Reserved, not currently reachable.** Held for a fact kind outside the four kinds defined here, following the `ADAPTER_NOT_YET_IMPLEMENTED` and `COMMAND_DUPLICATE` precedent. |
+| `DISCOVERY_NO_SIGNALS`       | warning  | Every probe ran and none found evidence. A valid, complete, empty result. Does not fail the command.                                                                            |
+| `DISCOVERY_FACT_UNSUPPORTED` | warning  | **Reserved, not currently reachable.** Held for a fact kind outside the four kinds defined here, following the `ADAPTER_NOT_YET_IMPLEMENTED` and `COMMAND_DUPLICATE` precedent. |
+
+[ADR-0045](0045-package-and-workspace-discovery-semantics.md) makes
+`DISCOVERY_FACT_UNSUPPORTED` reachable — for a fact whose _shape_ this
+implementation does not support, rather than a kind outside the four — and adds
+`DISCOVERY_FACT_INCOMPLETE`, `DISCOVERY_WORKSPACE_UNSUPPORTED`, and
+`DISCOVERY_LOCKFILE_UNREADABLE`. The four epistemic kinds are unchanged.
+
+> **Corrected in place, not amended.** The `info` entries in the table above
+> are not severities the codebase can express. [ADR-0008](0008-diagnostics-and-exit-codes.md)
+> fixes `Severity` at `"error" | "warning"`, and the codes emitted as warnings
+> are listed once in `WARNING_DIAGNOSTIC_CODES`, which is also what
+> `agent-ready explain` reads. Both `DISCOVERY_NO_SIGNALS` and
+> `DISCOVERY_FACT_UNSUPPORTED` are therefore emitted as `warning`, and this
+> table now says so. "Informational" below always meant _does not fail the
+> command_, which remains exactly true: `resolveExitCode` keys on `error`
+> severity alone, so a warning is not a non-zero exit. The rows are left
+> otherwise as written because the distinction a reader needs is _warning_,
+> not _error_ — and that is what the registry, the renderer, and `explain` all
+> agree on.
 
 ### Snapshot versioning
 
@@ -267,7 +302,10 @@ its own semantics, not a confidence score bolted onto `derived`.
 
 Reconsider the read budget when package discovery lands, since the bounded
 root-level probe set must then become a bounded but recursive walk. That change
-alters the determinism argument and needs its own decision.
+alters the determinism argument and needs its own decision. **Done** — see
+[ADR-0045](0045-package-and-workspace-discovery-semantics.md) §7 and §8, which
+bounds the walk, fences it to the repository root, and adds one read-only
+`listDirectory` capability to the shared `FileSystem` boundary.
 
 Reconsider the no-write rule if a consumer needs discovery persisted. Persistence is
 [#41](https://github.com/AdamEddahmouni/agent-ready/issues/41) and will be decided on
