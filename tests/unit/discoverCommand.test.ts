@@ -242,6 +242,52 @@ const EXPECTED_SNAPSHOT = `{
       ]
     }
   },
+  "graph": {
+    "nodes": [],
+    "edges": [],
+    "sourceUniverse": {
+      "strategy": "bounded-traversal",
+      "tsconfigs": [],
+      "resolutionMode": "",
+      "extensions": [
+        ".ts",
+        ".mts",
+        ".cts",
+        ".tsx",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".jsx"
+      ],
+      "files": [],
+      "truncated": false
+    },
+    "ownership": {
+      "status": "absent",
+      "source": null,
+      "rules": 0,
+      "unsupportedPatterns": [],
+      "detail": null
+    },
+    "counts": {
+      "nodes": 0,
+      "edges": 0,
+      "packages": 0,
+      "modules": 0,
+      "externalDependencies": 0,
+      "owners": 0,
+      "importEdges": 0,
+      "resolvedImports": 0,
+      "unresolvedImports": 0,
+      "dependencyEdges": 0,
+      "resolvedDependencies": 0,
+      "workspaceDependencies": 0,
+      "ownedSubjects": 0,
+      "unownedSubjects": 0
+    },
+    "complete": true,
+    "truncatedBy": null
+  },
   "summary": {
     "facts": 13,
     "known": 3,
@@ -344,6 +390,15 @@ describe("discover human output", () => {
         "Verification",
         "  Entrypoints unknown (no-evidence)",
         "  Required   unknown (no-evidence)",
+        "",
+        "Graph",
+        "  Nodes      0 (0 package, 0 module, 0 dependency, 0 owner)",
+        "  Edges      0 (0 import, 0 dependency, 0 ownership)",
+        "  Imports    0 resolved, 0 unresolved",
+        "  Depend.    0 declared, 0 resolved from a lockfile, 0 workspace target(s) not found",
+        "  Ownership  no CODEOWNERS file found; owned 0, unowned 0",
+        "  Universe   bounded-traversal (0 file(s))",
+        "  Complete   yes",
         "",
         "Discovery",
         "  Facts      13",

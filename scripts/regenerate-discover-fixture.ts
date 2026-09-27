@@ -74,7 +74,7 @@ writeFileSync(target, next, "utf8");
 process.stdout.write("regenerated discover fixtures\n");
 
 /**
- * Fails when the text being written is not a #37-shaped snapshot.
+ * Fails when the text being written is not a #39-shaped snapshot.
  *
  * The two replacements are regexes, and a regex that stops matching produces a
  * script that reports success while changing nothing — the most expensive
@@ -84,7 +84,8 @@ process.stdout.write("regenerated discover fixtures\n");
  *
  * So the check is on the thing that matters: the fixture must actually contain
  * the snapshot the implementation produces, including the package, workspace, and
- * command facts that distinguish it from the pre-#37 four-fact output.
+ * command facts that distinguish it from the pre-#37 four-fact output, and the
+ * graph keys that distinguish it from the pre-#39 graph-less one.
  */
 function assertFixtureIsCurrent(text: string): void {
   const required = [
@@ -97,6 +98,16 @@ function assertFixtureIsCurrent(text: string): void {
     "repository.verificationEntrypoints",
     "repository.contract.verification",
     '"snapshotVersion": 0',
+    // Issue #39. An empty `graph` object would satisfy `"nodes": []` on its own,
+    // so the guard checks the *empty-graph* markers this fixture legitimately
+    // produces — a documentation-only repository has no packages, no modules,
+    // and no ownership policy, and saying so completely is the shape #39 must
+    // ship. If a future change makes the graph non-empty here, these markers
+    // stop matching and the guard does its job.
+    '"graph": {',
+    '"sourceUniverse": {',
+    '"ownership": {',
+    '"truncatedBy": null',
   ];
   const missing = required.filter((marker) => !text.includes(marker));
   if (missing.length > 0) {

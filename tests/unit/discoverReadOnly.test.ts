@@ -10,6 +10,7 @@
 
 import { describe, expect, it } from "vitest";
 import { discoverRepository } from "../../src/discover/discover.js";
+import { MAX_LOCKFILE_BYTES } from "../../src/discover/graph/lockfiles.js";
 import { evidenceBudgetFor } from "../../src/discover/probe.js";
 import type { DiscoveryProbe, ProbeResult } from "../../src/discover/probe.js";
 import { isKnownFact } from "../../src/discover/types.js";
@@ -46,18 +47,26 @@ describe("discovery remains read-only, now that it walks the tree", () => {
     expect(result.ok).toBe(true);
 
     // The counter is the assertion mechanism: there is no way to mutate without
-    // one of these firing. A walk that created a directory to stat it, or
-    // touched a lockfile it was reading, would show up here.
+    // one of these firing. A walk that created a directory to stat it, or that
+    // wrote back a lockfile it was reading, would show up here.
     expect(fs.mutatingCalls()).toEqual([]);
     // And it did real work, so the assertion above is not vacuous.
     expect(fs.calls.filter((call) => call.startsWith("read:"))).not.toHaveLength(0);
     expect(fs.calls.filter((call) => call.startsWith("listdir:"))).not.toHaveLength(0);
   });
 
-  it("never reads a lockfile's contents, only its presence", async () => {
-    // A lockfile is the largest file in most repositories. Reading it would make
-    // discovery cost scale with install state, and nothing in the model needs
-    // its contents: the artifact's existence is the whole observation.
+  it("reads lockfile contents only where the graph needs a line, and never past the cap", async () => {
+    // ADR-0045 stat-ed lockfiles and nothing more, because a lockfile is the
+    // largest file in most repositories and its existence was the whole
+    // observation. ADR-0047 changed that deliberately: a resolved version is
+    // repository information, and repository information has to cite a line. So
+    // a root lockfile in a supported format is now *read* — and that is the
+    // whole exception, bounded three ways so the cost cannot scale with install
+    // state:
+    //
+    //   1. only the repository root's own lockfiles, never a member's;
+    //   2. only the two formats this version models, by exact filename;
+    //   3. only under MAX_LOCKFILE_BYTES, checked before parsing.
     const fs = new RecordingFileSystem("/repo");
     for (const [path, content] of Object.entries(WORKSPACE_REPO)) {
       fs.addFile(`/repo/${path}`, content);
@@ -65,13 +74,44 @@ describe("discovery remains read-only, now that it walks the tree", () => {
     fs.addDirectory("/repo/.git");
     const result = await discoverRepository(fs, { startDir: "/repo" });
     expect(result.ok).toBe(true);
-    // Every lockfile is only ever stat-ed, never read. The probe does look for
-    // lockfiles beside each discovered manifest — a member's lockfile is evidence
-    // about that member — so more than one `stat` is expected; a single `read`
-    // of any lockfile is not.
+
     const lockfileCalls = fs.calls.filter((call) => call.includes("lock"));
-    expect(lockfileCalls.filter((call) => call.startsWith("read:"))).toEqual([]);
-    expect(lockfileCalls.every((call) => call.startsWith("stat:"))).toBe(true);
+    // A member's lockfile is still only evidence about that member, so the
+    // package-manager probe continues to stat it and nothing more.
+    expect(lockfileCalls.filter((call) => call.startsWith("read:"))).toEqual([
+      "read:/repo/pnpm-lock.yaml",
+    ]);
+    expect(lockfileCalls).toContain("stat:/repo/packages/b/package-lock.json");
+  });
+
+  it("declines an oversized lockfile before parsing it, and says so", async () => {
+    // The cap is a real bound, not an aspiration: a lockfile past it costs its
+    // own resolved versions and nothing else, and the consequence is published
+    // rather than the read attempted.
+    const fs = new RecordingFileSystem("/repo");
+    fs.addFile("/repo/package.json", manifest({ name: "big", dependencies: { left: "1.0.0" } }));
+    fs.addFile("/repo/pnpm-lock.yaml", `# ${"x".repeat(MAX_LOCKFILE_BYTES)}\n`);
+    fs.addDirectory("/repo/.git");
+    const result = await discoverRepository(fs, { startDir: "/repo" });
+    if (!result.ok) throw new Error("expected discovery to succeed");
+
+    // The declaration survives: only the resolution is lost, because a version
+    // nobody can cite is worse than no version at all. The declared-versus-
+    // resolved split is the point — they are separate fields, so declining one
+    // cannot silently blank the other.
+    const graph = result.snapshot.graph;
+    const edge = graph?.edges.find((candidate) => candidate.kind === "package-depends-on");
+    expect(edge?.declarations).toMatchObject([
+      { dependencyClass: "runtime", declaredSpecifier: "1.0.0" },
+    ]);
+    // The byte cap is reported as exactly what it is — a lockfile this version
+    // declined to parse — rather than as a dependency that failed to resolve.
+    expect(edge?.resolution).toMatchObject({ status: "unsupported", source: "pnpm-lock.yaml" });
+    expect(edge?.resolution.status === "unsupported" ? edge.resolution.detail : "").toContain(
+      "byte limit",
+    );
+    // The node the declaration created is still there, still cited.
+    expect(graph?.nodes.map((node) => node.id)).toContain("dependency:left");
   });
 
   it("never enters node_modules or .git", async () => {

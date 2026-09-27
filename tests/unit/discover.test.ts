@@ -563,7 +563,7 @@ describe("strict read-only behaviour", () => {
 });
 
 describe("diagnostic registry", () => {
-  it("reserves the DISCOVERY_ namespace exactly as ADR-0044 and ADR-0045 define it", () => {
+  it("reserves the DISCOVERY_ namespace exactly as ADR-0044 through ADR-0047 define it", () => {
     const reserved = DIAGNOSTIC_CODES.filter((code) => code.startsWith("DISCOVERY_"));
     expect(reserved).toEqual([
       "DISCOVERY_ROOT_UNREADABLE",
@@ -574,6 +574,9 @@ describe("diagnostic registry", () => {
       "DISCOVERY_LOCKFILE_UNREADABLE",
       "DISCOVERY_NO_SIGNALS",
       "DISCOVERY_FACT_UNSUPPORTED",
+      // ADR-0047 §3.
+      "DISCOVERY_IMPORT_UNRESOLVED",
+      "DISCOVERY_GRAPH_PROVENANCE_INVALID",
     ]);
   });
 

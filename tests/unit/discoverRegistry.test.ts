@@ -46,6 +46,13 @@ describe("the DISCOVERY_ namespace is registered in the shared registry", () => 
       "DISCOVERY_LOCKFILE_UNREADABLE",
       "DISCOVERY_NO_SIGNALS",
       "DISCOVERY_FACT_UNSUPPORTED",
+      // Added by ADR-0047 §3 for an import declaration that resolved to no
+      // target the graph can name. Repository information, so a warning.
+      "DISCOVERY_IMPORT_UNRESOLVED",
+      // Added by ADR-0047 §3 for a graph that fails its own provenance
+      // invariants. An Agent-Ready defect, and the only discovery error other
+      // than an unreadable root.
+      "DISCOVERY_GRAPH_PROVENANCE_INVALID",
     ]);
   });
 
@@ -77,10 +84,17 @@ describe("severity is declared once, in the shared registry", () => {
     }
   });
 
-  it("treats only DISCOVERY_ROOT_UNREADABLE as an error", () => {
+  it("treats exactly two discovery codes as errors, and the second is ours", () => {
+    // ADR-0047 §21: an unreadable root is a location that could not be used,
+    // and a graph whose citations do not check out is a defect in Agent-Ready.
+    // Everything else is repository or model information and stays a warning.
+    const errors = DISCOVERY_CODES.filter((code) => !isWarningDiagnosticCode(code));
+    expect(errors).toEqual(["DISCOVERY_ROOT_UNREADABLE", "DISCOVERY_GRAPH_PROVENANCE_INVALID"]);
     for (const code of DISCOVERY_CODES) {
       expect(isWarningDiagnosticCode(code)).toBe(
-        code === "DISCOVERY_ROOT_UNREADABLE" ? false : true,
+        code === "DISCOVERY_ROOT_UNREADABLE" || code === "DISCOVERY_GRAPH_PROVENANCE_INVALID"
+          ? false
+          : true,
       );
     }
   });
@@ -220,8 +234,10 @@ describe("the diagnostics specification documents every registered code", () => 
   it("documents no code that the registry does not define", () => {
     // Guards the reverse direction: a stale row left behind by a rename, or a
     // code invented in prose. The allowlist is only the non-code identifiers
-    // the reference legitimately names.
-    const allowlist = new Set(["DISCOVERY_", "PATH", "WARNING_DIAGNOSTIC_CODES"]);
+    // the reference legitimately names. `FACT_IDS` is there because ADR-0047's
+    // amendment 1 is specifically about the fact vocabulary *not* changing, and
+    // the reference has to be able to say so by name.
+    const allowlist = new Set(["DISCOVERY_", "PATH", "WARNING_DIAGNOSTIC_CODES", "FACT_IDS"]);
     const documented = new Set(
       [...spec.matchAll(/`([A-Z][A-Z0-9_]{3,})`/g)].map((match) => match[1] ?? ""),
     );

@@ -1092,6 +1092,7 @@ describe("discovery gains no capability for commands", () => {
       brokenManifests: [],
       unmodelledPackageManagers: [],
       scripts: [],
+      manifests: [],
     });
     const members = Object.keys(
       createProbeContext(
