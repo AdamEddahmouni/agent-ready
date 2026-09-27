@@ -54,3 +54,4 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0044](0044-repository-discovery-model.md)                    | Repository discovery model and its fact boundary                |
 | [0045](0045-package-and-workspace-discovery-semantics.md)     | Package and workspace discovery semantics                       |
 | [0046](0046-command-and-verification-discovery-semantics.md)  | Command and verification discovery semantics                    |
+| [0047](0047-provenance-carrying-repository-graph.md)          | Provenance-carrying repository graph semantics                  |
