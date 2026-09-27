@@ -1,5 +1,6 @@
 import type { FileSystem } from "../filesystem/types.js";
 import { joinPath } from "../filesystem/pathJoin.js";
+import { REPOSITORY_ROOT } from "./graph/provenance.js";
 import type { DiscoveryProbeContext } from "./probe.js";
 import type { DiscoveryDiagnostic, Evidence } from "./types.js";
 
@@ -32,12 +33,22 @@ export type RootResolution =
  * never required and the `git` executable is never invoked; only the presence
  * of the entry is checked, exactly as in ADR-0004. With no `.git` boundary
  * within the depth bound, the start directory is the root.
+ *
+ * **`startDir` is made absolute before anything else happens.** This is load
+ * bearing rather than cosmetic, and Issue #39 found it the hard way: a
+ * relative start directory such as the default `.` walks up to itself and
+ * returns `.` as the repository root, so every later absolute-path operation
+ * that assumed an absolute root — resolving an import, converting a path back
+ * to a repository-relative one — silently failed. Every probe is handed
+ * `repoRoot` as an absolute path and the *snapshot* stays repository-relative;
+ * the two are different jobs and only one of them is the contract.
  */
 export async function resolveRepositoryRoot(
   fs: FileSystem,
   startDir: string,
 ): Promise<RootResolution> {
-  const startStat = await statOrFail(fs, startDir);
+  const absoluteStart = isAbsoluteLike(startDir) ? startDir : joinPath(fs.cwd, startDir);
+  const startStat = await statOrFail(fs, absoluteStart);
   if (startStat?.isDirectory !== true) {
     return {
       ok: false,
@@ -51,7 +62,7 @@ export async function resolveRepositoryRoot(
     };
   }
 
-  let current = startDir;
+  let current = absoluteStart;
   let previous: string | undefined;
   for (let depth = 0; previous !== current && depth < MAX_ANCESTOR_DEPTH; depth++) {
     const gitStat = await fs.stat(joinPath(current, ".git"));
@@ -77,7 +88,7 @@ export async function resolveRepositoryRoot(
   return {
     ok: true,
     root: {
-      repoRoot: startDir,
+      repoRoot: absoluteStart,
       evidence: [
         {
           source: ".",
@@ -90,10 +101,34 @@ export async function resolveRepositoryRoot(
 }
 
 /**
+ * Whether a path is absolute on either supported platform.
+ *
+ * A POSIX absolute path, a Windows drive-absolute path, and a UNC path all
+ * count. A bare `.` does not, which is exactly the case this function exists to
+ * catch.
+ */
+function isAbsoluteLike(path: string): boolean {
+  if (path.startsWith("/") || path.startsWith("\\\\")) {
+    return true;
+  }
+  return /^[A-Za-z]:[/\\]/.test(path);
+}
+
+/**
  * Builds the only capability probes receive: repository-relative reads, stats,
  * and directory listings. No writer, no process runner, no Git client, and no
  * HTTP client is reachable from a probe, which is the read-only guarantee from
  * ADR-0044 enforced by construction rather than by review.
+ *
+ * **`"."` resolves to the root itself, not to a `.` appended to it.** The
+ * repository root's own repository-relative path is `"."` (ADR-0047's
+ * `REPOSITORY_ROOT`), and joining that onto the root yields `/repo/.`. A real
+ * `readdir` tolerates the trailing `/.`, so the bug hides on a workstation and
+ * appears only against a strict boundary — where it is not a cosmetic one: a
+ * listing of `/repo/.` throws, `safeList` cannot tell that from absence, and the
+ * source walk returns **nothing** for a repository with no `tsconfig.json` and
+ * no workspaces. Issue #39's adversarial matrix found it. Every relative path
+ * goes through `absoluteFor` so the special case exists in exactly one place.
  *
  * Two accessors are memos scoped to a single run. Neither changes an observable
  * behaviour — each only avoids parsing or walking the same thing twice — but
@@ -109,12 +144,14 @@ export function createProbeContext(
   readContractVerification: DiscoveryProbeContext["readContractVerification"],
   readRepositoryLayout: DiscoveryProbeContext["readRepositoryLayout"],
 ): DiscoveryProbeContext {
+  const absoluteFor = (relativePath: string): string =>
+    relativePath === REPOSITORY_ROOT ? repoRoot : joinPath(repoRoot, relativePath);
   return {
     repoRoot,
-    readTextFile: (relativePath) => fs.readTextFile(joinPath(repoRoot, relativePath)),
-    stat: (relativePath) => fs.stat(joinPath(repoRoot, relativePath)),
-    listDirectory: (relativePath) => fs.listDirectory(joinPath(repoRoot, relativePath)),
-    realPath: (relativePath) => fs.realPath(joinPath(repoRoot, relativePath)),
+    readTextFile: (relativePath) => fs.readTextFile(absoluteFor(relativePath)),
+    stat: (relativePath) => fs.stat(absoluteFor(relativePath)),
+    listDirectory: (relativePath) => fs.listDirectory(absoluteFor(relativePath)),
+    realPath: (relativePath) => fs.realPath(absoluteFor(relativePath)),
     readContract,
     readContractPackageManager,
     readContractVerification,

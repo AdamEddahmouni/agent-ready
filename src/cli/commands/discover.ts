@@ -20,6 +20,7 @@ import type {
   WorkspaceCandidateEntry,
   WorkspaceDeclarationEntry,
 } from "../../discover/types.js";
+import type { RepositoryGraph } from "../../discover/graph/types.js";
 import type { CliOutcome } from "./validate.js";
 
 export interface DiscoverArgs {
@@ -120,6 +121,14 @@ interface DiscoveryJson {
   readonly snapshotVersion: number;
   readonly root: string;
   readonly facts: Readonly<Record<string, unknown>>;
+  /**
+   * The repository graph, verbatim.
+   *
+   * Published in full because this is the machine interface: a consumer needs
+   * every node, every edge, every provenance record, and every resolution
+   * status, and none of them may depend on what a terminal chose to elide.
+   */
+  readonly graph: DiscoverySnapshot["graph"];
   readonly summary: DiscoverySnapshot["summary"];
   readonly diagnostics: ReturnType<typeof renderDiagnosticsJson>;
 }
@@ -135,6 +144,7 @@ function toJson(snapshot: DiscoverySnapshot): DiscoveryJson {
     snapshotVersion: snapshot.snapshotVersion,
     root: snapshot.root,
     facts: snapshot.facts,
+    graph: snapshot.graph,
     summary: snapshot.summary,
     diagnostics: renderDiagnosticsJson(snapshot.diagnostics),
   };
@@ -201,6 +211,10 @@ function renderHuman(snapshot: DiscoverySnapshot, repoRoot: string): string {
 
   lines.push("Verification");
   lines.push(...renderVerification(snapshot));
+  lines.push("");
+
+  lines.push("Graph");
+  lines.push(...renderGraph(snapshot));
   lines.push("");
 
   const { facts, known, unknown, conflicts, complete } = snapshot.summary;
@@ -667,6 +681,123 @@ function readDeclarations(value: JsonValue): readonly WorkspaceDeclarationEntry[
     (item): item is WorkspaceDeclarationEntry => typeof item["source"] === "string",
   );
 }
+
+/**
+ * Renders the graph as a summary, never as the graph itself.
+ *
+ * The human form is a *summary* of the same data the JSON carries in full, and
+ * three rules keep it honest:
+ *
+ *  - It never implies more certainty than the snapshot holds. A workspace import
+ *    that resolved to a *package* and not to a module is printed as
+ *    `package`, not as `resolved`, because "resolved" would be a claim about a
+ *    file that was never established.
+ *  - It never hides a problem inside the JSON. Unresolved imports and unowned
+ *    subjects get their own counts, and a bounded list of examples follows so a
+ *    reader can see the actual condition rather than only its size.
+ *  - It never scores. No "healthy", no "coverage score", no recommendation: a
+ *    repository model that judges is a repository model that is wrong by
+ *    opinion.
+ */
+function renderGraph(snapshot: DiscoverySnapshot): string[] {
+  const graph = snapshot.graph;
+  if (graph === null) {
+    return factRow("Status", undefined, () => "not built (see the diagnostics below)");
+  }
+  const counts = graph.counts;
+  const lines: string[] = [];
+  lines.push(
+    `  Nodes      ${String(counts.nodes)} (${String(counts.packages)} package, ${String(counts.modules)} module, ${String(counts.externalDependencies)} dependency, ${String(counts.owners)} owner)`,
+  );
+  lines.push(
+    `  Edges      ${String(counts.edges)} (${String(counts.importEdges)} import, ${String(counts.dependencyEdges)} dependency, ${String(counts.edges - counts.importEdges - counts.dependencyEdges)} ownership)`,
+  );
+  lines.push(
+    `  Imports    ${String(counts.resolvedImports)} resolved, ${String(counts.unresolvedImports)} unresolved`,
+  );
+  lines.push(
+    `  Depend.    ${String(counts.dependencyEdges)} declared, ${String(counts.resolvedDependencies)} resolved from a lockfile, ${String(counts.workspaceDependencies)} workspace target(s) not found`,
+  );
+  lines.push(...ownershipRows(graph.ownership.status, graph.ownership.rules, counts));
+  const universe = graph.sourceUniverse;
+  // The resolution mode is omitted rather than printed empty when no tsconfig
+  // declared one — a bounded walk over a repository with no `tsconfig.json`
+  // genuinely has no mode, and printing `moduleResolution ` with nothing after
+  // it reads as a value that failed to render.
+  lines.push(
+    `  Universe   ${universe.strategy} (${String(universe.files.length)} file(s)${
+      universe.resolutionMode === "" ? "" : `, moduleResolution ${universe.resolutionMode}`
+    })`,
+  );
+  lines.push(
+    `  Complete   ${graph.complete ? "yes" : `no${graph.truncatedBy === null ? "" : ` — stopped at ${graph.truncatedBy}`}`}`,
+  );
+  const unresolved = readUnresolvedImports(graph);
+  if (unresolved.length === 0) {
+    return lines;
+  }
+  lines.push("");
+  lines.push(`  Unresolved imports (${String(unresolved.length)})`);
+  for (const example of unresolved.slice(0, MAX_UNRESOLVED_EXAMPLES)) {
+    lines.push(`${COMMAND_INDENT}${example}`);
+  }
+  const remaining = unresolved.length - MAX_UNRESOLVED_EXAMPLES;
+  if (remaining > 0) {
+    lines.push(
+      `${COMMAND_INDENT}+ ${String(remaining)} more; every one is in the JSON with its file, line, and reason`,
+    );
+  }
+  return lines;
+}
+
+/** The ownership counts, distinguishing the four states a reader must not confuse. */
+function ownershipRows(
+  status: RepositoryGraph["ownership"]["status"],
+  rules: number,
+  counts: RepositoryGraph["counts"],
+): string[] {
+  const owned = `owned ${String(counts.ownedSubjects)}, unowned ${String(counts.unownedSubjects)}`;
+  if (status === "absent") {
+    // "No CODEOWNERS file" and "every file is unowned" are different answers,
+    // and printing only the second would make a repository without an
+    // ownership policy look like a repository whose policy declined to match.
+    return [`  Ownership  no CODEOWNERS file found; ${owned}`];
+  }
+  if (status === "unreadable" || status === "unsupported") {
+    return [`  Ownership  ${status}; ${owned}`];
+  }
+  return [`  Ownership  ${String(rules)} rule(s) in the ownership surface; ${owned}`];
+}
+
+/**
+ * One `path:line  "specifier"` line per unresolved import, code-unit ordered.
+ *
+ * Narrowed defensively for the same reason every other reader in this file is:
+ * a renderer that trusted a missing field would print `undefined` as though the
+ * repository had written it.
+ */
+function readUnresolvedImports(graph: RepositoryGraph): string[] {
+  const lines: string[] = [];
+  for (const edge of graph.edges) {
+    if (edge.kind !== "imports" || edge.resolution.status !== "unresolved") {
+      continue;
+    }
+    const line = edge.provenance.line;
+    lines.push(
+      `${edge.source.replace(/^module:/, "")}:${String(line)}  ${JSON.stringify(edge.specifier)} — ${edge.resolution.reason}`,
+    );
+  }
+  return lines.sort(compareCodeUnits);
+}
+
+/**
+ * How many unresolved imports the terminal names before deferring to the JSON.
+ *
+ * A display limit, not a model limit: the graph carries every one of them, and a
+ * reader who needs the full list has it in `--json`. Flooding a terminal with
+ * hundreds of lines is how a real finding gets scrolled past.
+ */
+const MAX_UNRESOLVED_EXAMPLES = 10;
 
 /**
  * The per-package command inventories, narrowed defensively.

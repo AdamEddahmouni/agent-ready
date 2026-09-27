@@ -21,6 +21,7 @@
 
 import type { Diagnostic } from "../diagnostics/types.js";
 import type { DiagnosticCode } from "../diagnostics/codes.js";
+import type { RepositoryGraph } from "./graph/types.js";
 
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | readonly JsonValue[] | { readonly [k: string]: JsonValue };
@@ -610,6 +611,21 @@ export interface DiscoverySnapshot {
   readonly ok: true;
   readonly snapshotVersion: number;
   readonly facts: Readonly<Record<string, Fact>>;
+  /**
+   * The repository graph: nodes, edges, and every item's source line.
+   *
+   * A **sibling of `facts`, not a fact** (ADR-0047 amendment 1). A fact's
+   * evidence is a bounded, corroboratable set of claims about one conceptual
+   * property; a graph's evidence is one entry per node and per edge — thousands
+   * of paths from one inspection — which the ADR-0045 evidence budget exists to
+   * prevent and which cannot be compressed into a claim without losing per-item
+   * provenance. So `FACT_IDS` is unchanged, the merge and corroboration rules are
+   * untouched, and the graph is published beside the vocabulary it projects.
+   *
+   * Null only when graph construction could not run at all; the diagnostic
+   * explains why, and a missing graph is never presented as an empty one.
+   */
+  readonly graph: RepositoryGraph | null;
   readonly summary: DiscoverySummary;
   /** Describes the discovery operation, not repository knowledge. */
   readonly diagnostics: readonly Diagnostic[];

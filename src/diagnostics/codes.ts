@@ -73,6 +73,22 @@ export const DIAGNOSTIC_CODES = [
   "DISCOVERY_LOCKFILE_UNREADABLE",
   "DISCOVERY_NO_SIGNALS",
   "DISCOVERY_FACT_UNSUPPORTED",
+  // Repository graph (ADR-0047).
+  //
+  // DISCOVERY_IMPORT_UNRESOLVED is repository information: an import
+  // declaration was read and resolved to no in-repository target. It is a
+  // warning, because an unresolved import is a true statement about a
+  // repository rather than a failure of this run.
+  //
+  // DISCOVERY_GRAPH_PROVENANCE_INVALID is the opposite. A graph that cites a
+  // line which is not in the file, or an edge whose target does not exist, is a
+  // defect in Agent-Ready: the graph's entire value is that its edges can be
+  // audited, and an unauditable one is not shipped. It is therefore the only
+  // non-warning this command family adds, and `resolveExitCode` keys on error
+  // severity alone, so the command fails loudly rather than emitting an
+  // artifact it cannot stand behind.
+  "DISCOVERY_IMPORT_UNRESOLVED",
+  "DISCOVERY_GRAPH_PROVENANCE_INVALID",
 ] as const;
 
 export type DiagnosticCode = (typeof DIAGNOSTIC_CODES)[number];
@@ -105,6 +121,7 @@ export const WARNING_DIAGNOSTIC_CODES = [
   "DISCOVERY_LOCKFILE_UNREADABLE",
   "DISCOVERY_NO_SIGNALS",
   "DISCOVERY_FACT_UNSUPPORTED",
+  "DISCOVERY_IMPORT_UNRESOLVED",
 ] as const satisfies readonly DiagnosticCode[];
 
 export type WarningDiagnosticCode = (typeof WARNING_DIAGNOSTIC_CODES)[number];

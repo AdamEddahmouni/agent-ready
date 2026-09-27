@@ -622,4 +622,22 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
       related: ["DISCOVERY_WORKSPACE_UNSUPPORTED"],
     },
   ],
+  [
+    "DISCOVERY_IMPORT_UNRESOLVED",
+    {
+      what: "An import declaration in a source file was read, but it resolved to no target the graph can name. The edge is still in `snapshot.graph.edges`, carrying the specifier, the reason it did not resolve, and the file and line of the declaration itself.",
+      why: "An import that resolves to nothing is information about the repository, not a failure of the run: a bare specifier for a package that is not installed, a path into a directory this version does not model, a CommonJS `require` this version does not resolve, or a file outside the source universe. Dropping the edge would make the graph look complete, and the whole point of the graph is that its edges can be audited — so an unresolved import has to be visible as an unresolved import rather than as an absence.",
+      fix: "1. Read the edge in `agent-ready discover --json`: it names the specifier and a structured `reason` such as `unresolvable` or `unsupported-syntax`.\n2. `unresolvable` usually means the dependency is not installed in the working tree — run your package manager's install step, or ignore it if the import is genuinely optional.\n3. `unsupported-syntax` means this version does not resolve that form (for example CommonJS `require`); the declaration is still cited, only its target is absent.\n4. The command still exits successfully. An unresolved import is a truthful result, not a defect.",
+      related: ["DISCOVERY_GRAPH_PROVENANCE_INVALID"],
+    },
+  ],
+  [
+    "DISCOVERY_GRAPH_PROVENANCE_INVALID",
+    {
+      what: "The graph Agent-Ready just built failed its own invariants: a node or edge cites a line outside its file, an edge names a target that does not exist, an ownership state disagrees with its edges, or a collection is out of order. This is a bug in Agent-Ready, not in the repository.",
+      why: "The graph's entire value is that every node and every edge cites a repository-relative file and a 1-based line a reader can open and check. A graph that cannot be audited is worse than no graph, because it looks authoritative. This is the one place in `discover` where an error is the correct severity, and the command fails loudly rather than emitting an artifact it cannot stand behind. The contrast with `DISCOVERY_IMPORT_UNRESOLVED` is deliberate: an unresolved import is true of the repository, an invalid citation is true of us.",
+      fix: "1. This is not a repository defect — do not edit your source files in response to it.\n2. Read the diagnostic's `detail`, which names each violated invariant and the offending node or edge id.\n3. Please report it with the repository you ran it against and the Agent-Ready version. The `detail` is the bug report: it names exactly which citation is wrong.",
+      related: ["DISCOVERY_IMPORT_UNRESOLVED"],
+    },
+  ],
 ]);

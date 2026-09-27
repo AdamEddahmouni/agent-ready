@@ -6,6 +6,11 @@ import { createProbeContext, resolveRepositoryRoot } from "./context.js";
 import { compareCodeUnits } from "./ordering.js";
 import { isContradictory, mergeContributions } from "./fact.js";
 import type { Contribution } from "./fact.js";
+import { buildRepositoryGraph } from "./graph/build.js";
+import type { GraphObservation, GraphResult } from "./graph/build.js";
+import { describeViolation, validateGraph } from "./graph/validate.js";
+import type { RepositoryGraph } from "./graph/types.js";
+import { safeRead } from "./read.js";
 import { readRepositoryLayout, toDiscoveryLayout } from "./packages/layout.js";
 import { MAX_WORKSPACE_DEPTH, MAX_WORKSPACE_ENTRIES } from "./packages/expand.js";
 import type {
@@ -166,7 +171,12 @@ export async function discoverRepository(
     diagnostics.push(noSignalsDiagnostic());
   }
 
-  const summary = summarize(facts, contributions, incompleteLayoutItems);
+  const graphOutcome = await buildAndDescribeGraph(runContext);
+  diagnostics.push(...graphOutcome.diagnostics);
+  const incompleteLayoutItemsIncludingGraph =
+    incompleteLayoutItems + (graphOutcome.incomplete ? 1 : 0);
+
+  const summary = summarize(facts, contributions, incompleteLayoutItemsIncludingGraph);
   return {
     ok: true,
     repoRoot,
@@ -174,9 +184,205 @@ export async function discoverRepository(
       ok: true,
       snapshotVersion: DISCOVERY_SNAPSHOT_VERSION,
       facts: toFactRecord(facts),
+      graph: graphOutcome.graph,
       summary,
       diagnostics,
       root: ".",
+    },
+  };
+}
+
+/**
+ * Builds the repository graph and turns what it observed into diagnostics.
+ *
+ * Run after the probes, from the same run-scoped layout memo, so the graph and
+ * the facts are two views of one set of reads rather than two reads that could
+ * disagree. A graph that fails its own invariants produces an **error**-severity
+ * diagnostic: the artifact Agent-Ready is about to publish is not auditable, and
+ * shipping it anyway would be the one outcome the whole record exists to
+ * prevent.
+ */
+async function buildAndDescribeGraph(context: DiscoveryProbeContext): Promise<{
+  graph: RepositoryGraph | null;
+  diagnostics: DiscoveryDiagnostic[];
+  incomplete: boolean;
+}> {
+  let layout: DiscoveryLayout;
+  try {
+    layout = await context.readRepositoryLayout();
+  } catch {
+    // The layout already failed and the probes already reported it. A graph
+    // built from a layout nobody could read would be a graph with no
+    // foundation, and reporting it as absent would be indistinguishable from a
+    // repository with no structure.
+    return {
+      graph: null,
+      incomplete: true,
+      diagnostics: [
+        {
+          code: "DISCOVERY_PARTIAL",
+          severity: "warning",
+          summary:
+            "The repository graph was not built because the package layout could not be read.",
+          detail:
+            "A graph is a projection of the package and workspace layout, so without that layout there is nothing to project. Every other fact is unaffected.",
+          remediation: "Check read permissions on the repository and re-run.",
+        },
+      ],
+    };
+  }
+
+  let result: GraphResult;
+  try {
+    result = await buildRepositoryGraph(context, {
+      layout,
+      readTextFile: async (path) => {
+        const read = await safeRead(context, path);
+        return read.status === "read"
+          ? { ok: true, content: read.content }
+          : { ok: false, detail: read.status === "failed" ? read.detail : "not present" };
+      },
+    });
+  } catch (error) {
+    return {
+      graph: null,
+      incomplete: true,
+      diagnostics: [
+        {
+          code: "DISCOVERY_GRAPH_PROVENANCE_INVALID",
+          severity: "error",
+          summary: "Repository graph construction failed.",
+          detail:
+            error instanceof Error
+              ? error.message
+              : "Graph construction threw an unknown error. This is a defect in Agent-Ready, not a property of the repository.",
+          remediation:
+            "This is an Agent-Ready defect rather than something to fix in the repository. No graph is published.",
+        },
+      ],
+    };
+  }
+
+  const violations = validateGraph(result.graph, result.lineCounts);
+  const described = describeGraphObservations(result.observations.diagnostics);
+  if (violations.length > 0) {
+    described.unshift({
+      code: "DISCOVERY_GRAPH_PROVENANCE_INVALID",
+      severity: "error",
+      summary: `The repository graph violated ${String(violations.length)} of its own invariants, so it is not published.`,
+      detail: violations.map(describeViolation).join(" "),
+      remediation:
+        "This is an Agent-Ready defect rather than something to fix in the repository. Every node and edge must cite a repository file and an in-range line; a graph that cannot is not an auditable graph.",
+      metadata: { violations: violations.map((violation) => violation.invariant) },
+    });
+  }
+
+  return {
+    graph: violations.length > 0 ? null : result.graph,
+    diagnostics: described,
+    incomplete: result.observations.incomplete,
+  };
+}
+
+/**
+ * Turns each graph observation into the one diagnostic that fits it.
+ *
+ * Three kinds and three codes, chosen so the *remediation* matches: an
+ * unresolved import is a repository condition a reader can act on, a partial
+ * read is "something was not established", and an unsupported construct is "this
+ * version does not model that". Per-reason codes would be codes per vocabulary
+ * synonym, so the reason itself travels in `metadata` and on the edge.
+ *
+ * Unresolved imports are the one kind that is **aggregated**. Everything else
+ * names a specific path and line, so one diagnostic per occurrence is the right
+ * size; an unresolved import is a per-run property, and a repository with three
+ * thousand of them — a monorepo whose dependencies are simply not installed, say
+ * — would otherwise produce three thousand warnings and train every consumer to
+ * ignore the code. The total goes in the summary, the first few go in `detail`,
+ * and the edges themselves remain the complete, per-item record.
+ */
+function describeGraphObservations(
+  observations: readonly GraphObservation[],
+): DiscoveryDiagnostic[] {
+  const described: DiscoveryDiagnostic[] = [];
+  const unresolved = observations.filter(
+    (observation): observation is Extract<GraphObservation, { kind: "unresolved-import" }> =>
+      observation.kind === "unresolved-import",
+  );
+  if (unresolved.length > 0) {
+    described.push(describeUnresolvedImports(unresolved));
+  }
+  for (const observation of observations) {
+    if (observation.kind === "unresolved-import") {
+      continue;
+    }
+    if (observation.kind === "partial") {
+      described.push({
+        code: "DISCOVERY_PARTIAL",
+        severity: "warning",
+        summary: observation.summary,
+        detail: observation.detail,
+        remediation:
+          "Everything the snapshot reports outside this condition is unaffected; treat the graph as a lower bound rather than a complete picture.",
+        ...(observation.path === undefined ? {} : { sourcePath: observation.path }),
+        metadata: observation.line === undefined ? {} : { line: observation.line },
+      });
+      continue;
+    }
+    described.push({
+      code: "DISCOVERY_FACT_UNSUPPORTED",
+      severity: "warning",
+      summary: observation.summary,
+      detail: observation.detail,
+      remediation:
+        "Nothing needs fixing in the repository. The construct was reported rather than interpreted, and everything beside it that this version does support is still reported.",
+      ...(observation.path === undefined ? {} : { sourcePath: observation.path }),
+      metadata: observation.line === undefined ? {} : { line: observation.line },
+    });
+  }
+  return described;
+}
+
+/** How many unresolved imports a single diagnostic names in full. */
+const MAX_UNRESOLVED_NAMED = 5;
+
+/**
+ * One warning for every unresolved import in the run, with a bounded sample.
+ *
+ * The sample is stated as a sample. A diagnostic that said "and more" without
+ * saying how many would leave a reader unable to tell a truncated list from a
+ * complete one, which is the same ambiguity the graph's own `truncated` field
+ * exists to remove.
+ */
+function describeUnresolvedImports(
+  observations: readonly Extract<GraphObservation, { kind: "unresolved-import" }>[],
+): DiscoveryDiagnostic {
+  const named = observations
+    .slice(0, MAX_UNRESOLVED_NAMED)
+    .map(
+      (observation) =>
+        `${observation.path} line ${String(observation.line)}: ${observation.specifier} (${observation.reason})`,
+    );
+  const remaining = observations.length - named.length;
+  return {
+    code: "DISCOVERY_IMPORT_UNRESOLVED",
+    severity: "warning",
+    summary: `${String(observations.length)} import${observations.length === 1 ? "" : "s"} in this repository resolved to no in-repository target.`,
+    detail:
+      named.join("; ") +
+      (remaining > 0
+        ? `; and ${String(remaining)} more. Every one of them is in \`graph.edges\` with its specifier and reason.`
+        : ". Every one of them is in `graph.edges` with its specifier and reason."),
+    remediation:
+      "A specifier may name a file this version does not analyse, a package with no installed copy, or a construct outside the supported import syntax. The declarations are reported with their reasons rather than given a guessed target, and the command still exits successfully.",
+    metadata: {
+      unresolved: observations.length,
+      examples: observations.slice(0, MAX_UNRESOLVED_NAMED).map((observation) => ({
+        path: observation.path,
+        line: observation.line,
+        specifier: observation.specifier,
+        reason: observation.reason,
+      })),
     },
   };
 }

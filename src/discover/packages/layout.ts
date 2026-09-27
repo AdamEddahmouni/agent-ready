@@ -18,7 +18,12 @@
 
 import { CANONICAL_CONTRACT_FILENAME } from "../../contract/discovery.js";
 import { compareCodeUnits } from "../ordering.js";
-import type { DiscoveryLayout, DiscoveryProbeContext, DiscoveryScripts } from "../probe.js";
+import type {
+  DiscoveryLayout,
+  DiscoveryManifest,
+  DiscoveryProbeContext,
+  DiscoveryScripts,
+} from "../probe.js";
 import { safeRead } from "../read.js";
 import type { JsonValue, ManifestStatus, PackageEntry, WorkspaceCandidateEntry } from "../types.js";
 import { expandPatterns, normalizeWorkspacePattern } from "./expand.js";
@@ -32,7 +37,8 @@ import {
   unobservableScripts,
   unreadableEntry,
 } from "./manifest.js";
-import type { ManifestRead, ScriptDeclaration } from "./manifest.js";
+import type { LocatedDependencyDeclaration, ManifestRead, ScriptDeclaration } from "./manifest.js";
+import type { JsonLocationIndex } from "../graph/jsonSource.js";
 import {
   PACKAGE_MANAGER_FIELD,
   PNPM_WORKSPACE_FILE,
@@ -70,6 +76,34 @@ export interface LocatedScripts {
   /** Repository-relative package directory; `.` for the root. */
   readonly packagePath: string;
   readonly declaration: ScriptDeclaration;
+}
+
+/**
+ * One manifest, with everything a later reader needs from it.
+ *
+ * The *parsed* document is deliberately not carried: the graph needs the
+ * declarations and their positions, and re-exposing the whole object would make
+ * it possible for a second reader to re-derive something the first already
+ * decided. Carrying the declarations and the position index means the graph
+ * cites what the manifest reader observed rather than looking at the file again.
+ */
+export interface LocatedManifest {
+  readonly manifestPath: string;
+  /** Repository-relative package directory; `.` for the root. */
+  readonly packagePath: string;
+  /** Every dependency declaration, with the line each was written on. */
+  readonly dependencies: readonly LocatedDependencyDeclaration[];
+  /** Dependency fields present in a shape this version does not model. */
+  readonly unsupportedDependencyFields: readonly {
+    readonly field: string;
+    readonly reason: string;
+  }[];
+  /** JSON Pointer → position index for this manifest. */
+  readonly locations: JsonLocationIndex;
+  /** Lines in the file, so a citation can be range-checked. */
+  readonly lineCount: number;
+  /** `malformed` or `unreadable` when nothing was observed. */
+  readonly status: Exclude<ManifestStatus, "read"> | "read";
 }
 
 export interface RepositoryLayout {
@@ -122,6 +156,15 @@ export interface RepositoryLayout {
    * the same file in the same snapshot.
    */
   readonly scripts: readonly LocatedScripts[];
+  /**
+   * Every discovered manifest, with its dependency declarations.
+   *
+   * Added by ADR-0047 as an extension of this one authoritative parse, for the
+   * same reason ADR-0046 §11 gave for `scripts`: a graph that re-read the
+   * manifests would be a second answer to "what does this package declare",
+   * free to disagree with the first about a size cap or a failure mode.
+   */
+  readonly manifests: readonly LocatedManifest[];
 }
 
 /**
@@ -156,6 +199,32 @@ export function toDiscoveryLayout(layout: RepositoryLayout): DiscoveryLayout {
     brokenManifests: layout.brokenManifests,
     unmodelledPackageManagers: layout.unmodelledPackageManagers,
     scripts: layout.scripts.map(toDiscoveryScripts),
+    manifests: layout.manifests.map(toDiscoveryManifest),
+  };
+}
+
+/**
+ * Projects the parsed manifest onto the probe protocol's structural shape.
+ *
+ * The position index is carried by reference rather than copied. It is derived
+ * from one read of one file and is immutable for the run; a copy would be the
+ * same size as the thing it copied, on every probe that asked for it.
+ */
+function toDiscoveryManifest(located: LocatedManifest): DiscoveryManifest {
+  return {
+    manifestPath: located.manifestPath,
+    packagePath: located.packagePath,
+    status: located.status,
+    dependencies: located.dependencies.map((declaration) => ({
+      name: declaration.name,
+      dependencyClass: declaration.dependencyClass,
+      declaredSpecifier: declaration.declaredSpecifier,
+      pointer: declaration.pointer,
+      provenance: declaration.provenance,
+    })),
+    unsupportedDependencyFields: located.unsupportedDependencyFields,
+    locations: located.locations,
+    lineCount: located.lineCount,
   };
 }
 
@@ -207,9 +276,11 @@ export async function readRepositoryLayout(
   const brokenManifests: { path: string; status: ManifestStatus }[] = [];
   const unmodelledPackageManagers: { path: string; raw: unknown }[] = [];
   const scripts: LocatedScripts[] = [];
+  const manifests: LocatedManifest[] = [];
   if (rootManifestRead.status !== "absent") {
     packages.push(entryFor(ROOT_DIRECTORY, rootManifestRead));
     scripts.push(locateScripts(ROOT_DIRECTORY, ROOT_MANIFEST, rootManifestRead));
+    manifests.push(locateManifest(ROOT_DIRECTORY, ROOT_MANIFEST, rootManifestRead));
     if (rootManifestRead.status !== "read") {
       brokenManifests.push({ path: ROOT_MANIFEST, status: rootManifestRead.status });
     } else {
@@ -229,6 +300,7 @@ export async function readRepositoryLayout(
     }
     packages.push(entryFor(directory, read));
     scripts.push(locateScripts(directory, manifestPath, read));
+    manifests.push(locateManifest(directory, manifestPath, read));
     if (read.status !== "read") {
       brokenManifests.push({ path: manifestPath, status: read.status });
     } else {
@@ -249,6 +321,49 @@ export async function readRepositoryLayout(
       compareCodeUnits(a.path, b.path),
     ),
     scripts: scripts.sort((a, b) => compareCodeUnits(a.manifestPath, b.manifestPath)),
+    manifests: manifests.sort((a, b) => compareCodeUnits(a.manifestPath, b.manifestPath)),
+  };
+}
+
+/**
+ * Records what a manifest declared about its dependencies.
+ *
+ * A manifest that never parsed carries `status: "malformed"` or `"unreadable"`
+ * and **no** declarations, which is not the same as carrying an empty list. The
+ * difference is the whole point: "this package declares no dependencies" is a
+ * fact, and "this package's dependencies could not be read" is ignorance, and a
+ * flat list of edges could not tell them apart.
+ */
+function locateManifest(
+  packagePath: string,
+  manifestPath: string,
+  read: ManifestRead,
+): LocatedManifest {
+  if (read.status !== "read") {
+    if (read.status === "absent") {
+      // A directory with no manifest is not a package, so there is nothing to
+      // describe. Callers filter this case before building an entry; reaching
+      // here would mean a caller had already decided a non-package is one.
+      throw new Error("A manifest record cannot be built for a manifest that is not present.");
+    }
+    return {
+      manifestPath,
+      packagePath,
+      dependencies: [],
+      unsupportedDependencyFields: [],
+      locations: new Map(),
+      lineCount: 0,
+      status: read.status,
+    };
+  }
+  return {
+    manifestPath,
+    packagePath,
+    dependencies: read.dependencies,
+    unsupportedDependencyFields: read.unsupportedDependencyFields,
+    locations: read.locations,
+    lineCount: read.lineCount,
+    status: "read",
   };
 }
 

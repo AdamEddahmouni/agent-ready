@@ -1,4 +1,6 @@
 import type { DiscoveryDiagnosticCode } from "./types.js";
+import type { JsonLocationIndex } from "./graph/jsonSource.js";
+import type { DependencyClass, SourceLocation } from "./graph/types.js";
 import type {
   Evidence,
   FactId,
@@ -279,6 +281,54 @@ export interface DiscoveryLayout {
    * snapshot.
    */
   readonly scripts: readonly DiscoveryScripts[];
+  /**
+   * Every discovered manifest, with its dependency declarations and their lines.
+   *
+   * Added by ADR-0047 as an extension of the one authoritative manifest parse.
+   * A graph reader that re-read the manifests would be free to disagree with
+   * this one about a byte cap, a depth guard, or what "malformed" means, and
+   * then two answers about one file would appear in one snapshot.
+   */
+  readonly manifests: readonly DiscoveryManifest[];
+}
+
+/**
+ * One manifest's dependency declarations, as the manifest reader observed them.
+ *
+ * `status` is `malformed` or `unreadable` when the manifest produced no
+ * declarations at all, and that is deliberately distinct from a manifest with
+ * zero declarations: the first is ignorance, the second is a fact.
+ */
+export interface DiscoveryManifest {
+  readonly manifestPath: string;
+  /** Repository-relative package directory; `.` for the root. */
+  readonly packagePath: string;
+  readonly status: "read" | "malformed" | "unreadable";
+  readonly dependencies: readonly DiscoveryDependencyDeclaration[];
+  /** Dependency fields present in a shape this version does not model. */
+  readonly unsupportedDependencyFields: readonly {
+    readonly field: string;
+    readonly reason: string;
+  }[];
+  /** JSON Pointer → position index for this manifest. */
+  readonly locations: JsonLocationIndex;
+  readonly lineCount: number;
+}
+
+/**
+ * One manifest field's dependency declaration, with the line it is written on.
+ *
+ * `declaredSpecifier` is the repository's string verbatim. It is never
+ * normalised through a semver range and never rewritten, because a rewritten
+ * specifier is a claim about what the repository declared rather than a
+ * reproduction of it.
+ */
+export interface DiscoveryDependencyDeclaration {
+  readonly name: string;
+  readonly dependencyClass: DependencyClass;
+  readonly declaredSpecifier: string;
+  readonly pointer: string;
+  readonly provenance: SourceLocation;
 }
 
 /**
