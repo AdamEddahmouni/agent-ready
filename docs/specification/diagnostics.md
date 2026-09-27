@@ -63,9 +63,12 @@ Codes are stable; human message text is not (see
 | `UPGRADE_WRITE_FAILED`                    | upgrade          | A validated upgrade proposal could not be written to the contract file.                                                                                                                                                                                                                                                                                                                                          | Check permissions and disk space, then retry `upgrade --write`.                                                 |
 | `DISCOVERY_ROOT_UNREADABLE`               | discover         | The `--root` path is missing, is not a directory, or could not be read. The only fatal discovery condition. See [ADR-0044](../decisions/0044-repository-discovery-model.md).                                                                                                                                                                                                                                     | Pass `--root` with a path to an existing repository directory.                                                  |
 | `DISCOVERY_PARTIAL`                       | discover         | At least one probe could not complete. The affected fact is `unknown` with reason `probe-failed`. The snapshot is usable but incomplete. Informational — does not fail the command.                                                                                                                                                                                                                              | Check read permissions on the diagnostic's `sourcePath`, then re-run.                                           |
-| `DISCOVERY_FACT_CONFLICT`                 | discover         | Two or more sources assert different values for the same fact. Every claim is retained with its evidence and the fact is reported with **no** value. Informational — does not fail the command.                                                                                                                                                                                                                  | Decide which source is authoritative and make the repository agree with itself.                                 |
+| `DISCOVERY_FACT_CONFLICT`                 | discover         | Two or more sources assert different values for the same fact. Every claim is retained with its evidence and the fact is reported with **no** value. Informational — does not fail the command. See [ADR-0045](../decisions/0045-package-and-workspace-discovery-semantics.md).                                                                                                                                  | Decide which source is authoritative and make the repository agree with itself.                                 |
+| `DISCOVERY_FACT_INCOMPLETE`               | discover         | A declared value is reported alongside evidence that contradicts it. The declaration is carried forward, the contradicting values are published in the fact's `contradictedBy`, and every claim is retained. Informational — does not fail the command. See [ADR-0045](../decisions/0045-package-and-workspace-discovery-semantics.md).                                                                          | Read `contradictedBy` and decide which source is authoritative.                                                 |
+| `DISCOVERY_WORKSPACE_UNSUPPORTED`         | discover         | A workspace declaration exists in a form this version does not model, or a declared pattern was refused as unsafe. Nothing is interpreted and no membership is derived from it. Informational — does not fail the command. See [ADR-0045](../decisions/0045-package-and-workspace-discovery-semantics.md).                                                                                                       | Use an array of strings, an object with a `packages` array, or `packages:` in `pnpm-workspace.yaml`.            |
+| `DISCOVERY_LOCKFILE_UNREADABLE`           | discover         | A package-manager lockfile path could not be inspected, so its existence is not reported as evidence for that manager. The affected fact is `unknown` with reason `probe-failed`. Informational — does not fail the command. See [ADR-0045](../decisions/0045-package-and-workspace-discovery-semantics.md).                                                                                                     | Check read permissions on the named path, then re-run.                                                          |
 | `DISCOVERY_NO_SIGNALS`                    | discover         | Every probe completed and none found any evidence. A valid, complete, empty result. Informational — does not fail the command. Never emitted together with `DISCOVERY_PARTIAL`, because it asserts a completeness the partial snapshot does not have.                                                                                                                                                            | Confirm `--root` points at the repository you intended to inspect.                                              |
-| `DISCOVERY_FACT_UNSUPPORTED`              | discover         | Reserved for a discovery fact whose kind falls outside the four defined by ADR-0044. **Not currently reachable**; held in the registry so a future release cannot silently reuse a published string for a different meaning, following the `COMMAND_DUPLICATE` and `ADAPTER_NOT_YET_IMPLEMENTED` precedent.                                                                                                      | N/A today. If seen, the discovery fact kinds have been extended and ADR-0044 should be updated with them.       |
+| `DISCOVERY_FACT_UNSUPPORTED`              | discover         | A probe read a **shape** this version does not model — for example a `packageManager` field that is not a `<name>@<version>` string. The fact is `unknown` with reason `not-probed` rather than approximated. Reachable as of [ADR-0045](../decisions/0045-package-and-workspace-discovery-semantics.md), which repurposed the ADR-0044 reservation.                                                             | Nothing in the repository needs fixing; read the diagnostic's `detail` to see what was found.                   |
 
 ## Repository discovery diagnostics
 
@@ -167,9 +170,10 @@ does not exist or is not a directory.`, followed by a `detail` naming the
 ### `DISCOVERY_FACT_CONFLICT`
 
 - **Trigger** — two or more claims for the same fact id assert different
-  values. The production probe set produces one source per fact, so today this
-  is reachable only through injected probes; Issue #37 supplies the first real
-  multi-source case, where a declaration and a derived signal can disagree.
+  values on the comparison axis for that fact. The canonical case is two
+  manager-specific artifacts with no declaration: `pnpm-lock.yaml` beside
+  `yarn.lock` is a conflict, because npm and pnpm are different values for the
+  same identity and neither outranks the other.
 - **Severity / category** — `warning`. Stage: fact merge.
 - **Human rendering** — the fact's row reads `conflicting` rather than any
   value, and every retained claim is listed beneath it:
@@ -198,6 +202,118 @@ does not exist or is not a directory.`, followed by a `detail` naming the
   disagree"), `tests/unit/discoverFactBoundary.test.ts` ("reports a conflicting
   fact with no value rather than a ranked winner", "does not let an author claim
   overwrite what the repository shows").
+
+### `DISCOVERY_FACT_INCOMPLETE`
+
+- **Trigger** — a `declared` or `author-declared` claim is contradicted by a
+  `derived` claim about the same fact. The production case is a
+  `packageManager` field naming one tool beside another tool's lockfile.
+- **Why a separate code** — a declaration and an artifact are not peers, so
+  ADR-0044's conflict shape does not fit. Reporting no value would deny that
+  the repository declared anything, which is false; reporting the lockfile would
+  promote an artifact to an opinion. The fact is therefore _valued but
+  contested_, and that is a third outcome, not a variant of the second.
+- **Severity / category** — `warning`. Stage: fact merge.
+- **Human rendering** — the value is never printed bare. It is rendered with the
+  contradicting managers named:
+
+  ```text
+  Package manager
+    Root         incomplete (pnpm; contradicted by npm)
+  ```
+
+- **Structured representation** — the fact keeps its `value` **and** gains
+  `contradictedBy`, a code-unit-sorted, deduplicated list of the values the
+  retained claims disagree with. `contradictedBy` is non-empty on this variant
+  by construction, so "this is incomplete" is checkable from the shape alone and
+  a renderer cannot read a contested value as a settled one.
+- **Fact / evidence behaviour** — the fact is counted in `summary.known`, not in
+  `summary.conflicts`: it is a resolved-as-contested observation, not ignorance.
+  Every claim is retained with its evidence, and nothing is ranked.
+- **Blocks execution** — no. The command exits `0`.
+- **Informational only** — yes.
+- **Explain** — `agent-ready explain --code DISCOVERY_FACT_INCOMPLETE`; related
+  codes: `DISCOVERY_FACT_CONFLICT`, `DISCOVERY_PARTIAL`.
+- **Pinned by** — `tests/unit/discoverPackageManager.test.ts` ("keeps the
+  declaration and publishes the artifact that contradicts it"),
+  `tests/unit/discoverFactBoundary.test.ts` ("distinguishes an incomplete fact
+  from both an agreed one and a conflict").
+
+### `DISCOVERY_WORKSPACE_UNSUPPORTED`
+
+- **Trigger** — a workspace declaration was found but is in a form this
+  implementation does not model (`workspaces` as a bare string, a non-string
+  entry in a pattern list, a `packages:` key that is not a list of strings, a
+  `pnpm-workspace.yaml` that is not valid YAML), **or** a declared pattern was
+  refused during normalization.
+- **Severity / category** — `warning`. Stage: workspace declaration parsing and
+  pattern normalization.
+- **Human rendering** — appended below the discovery summary, naming the file
+  and, for a refused pattern, the pattern itself:
+
+  ```text
+  warning[DISCOVERY_WORKSPACE_UNSUPPORTED]: A workspace pattern in pnpm-workspace.yaml was not expanded.
+    pnpm-workspace.yaml declares "../outside", which was not expanded: Path escapes the repository root.
+    suggestion: Repository-relative patterns only. A pattern that is absolute or escapes the root is never read from the file system.
+  ```
+
+- **Structured representation** — `metadata.source`, and for a refused pattern
+  `metadata.pattern` and `metadata.reason`. An unsupported _declaration_ form is
+  also visible in the fact itself: `repository.workspace.declarations` carries
+  `form: "unsupported"` and an `unsupportedReason`, with `patterns: []`.
+- **Fact / evidence behaviour** — an unsupported declaration contributes **no**
+  patterns, so `repository.workspace.candidates` and
+  `repository.workspace.members` are derived from the declarations that _were_
+  understood. The declaration itself is never dropped: it stays in the fact
+  list with its reason, so the snapshot cannot present an unmodelled workspace
+  as though it did not exist.
+- **Path safety** — a refused pattern never reaches the file system.
+  Normalization rejects absolute paths, `..` escapes, extglobs, and unbalanced
+  brackets before any read, and matched directories are confirmed to be inside
+  the repository by real path. Symbolic links are never traversed. The one
+  documented departure from ADR-0005 is that `.` is accepted, because
+  `packages: ["."]` is how a single-package pnpm repository declares the root as
+  a member.
+- **Blocks execution** — no. The command exits `0`.
+- **Informational only** — yes.
+- **Explain** — `agent-ready explain --code DISCOVERY_WORKSPACE_UNSUPPORTED`;
+  related codes: `DISCOVERY_FACT_UNSUPPORTED`, `DISCOVERY_PARTIAL`.
+- **Pinned by** — `tests/unit/discoverWorkspace.test.ts` ("reports an
+  unrecognised workspaces form as unsupported rather than coercing it",
+  "refuses a pattern that escapes the repository root before reading anything",
+  "accepts `packages: ['.']`, which declares the root as a member").
+
+### `DISCOVERY_LOCKFILE_UNREADABLE`
+
+- **Trigger** — the package-manager probe could not `stat` a lockfile path it
+  expected to inspect, and no other artifact for that identity could be seen
+  either. The condition is about the **inspection**, not about the file's
+  contents: discovery never reads a lockfile, so "unreadable" means "existence
+  could not be established", and the remedy is a permission check rather than a
+  parse check.
+- **Severity / category** — `warning`. Stage: package-manager probing.
+- **Human rendering** — `warning[DISCOVERY_LOCKFILE_UNREADABLE]: Probe
+package-manager.lockfiles could not complete, so repository.packageManager.root
+is reported as unknown.`, naming the first offending path in `sourcePath` and
+  listing every one of them in `detail`.
+- **Structured representation** — `sourcePath` (the first unreadable path),
+  `metadata.probeId`, `metadata.factId`, and a `detail` naming all of them.
+- **Fact / evidence behaviour** — the affected package-manager fact is `unknown`
+  with reason `probe-failed`, never `no-evidence`: the inspection did not
+  complete, so "there is no lockfile here" was never established. When the
+  manifest itself declares a manager, that declaration is unaffected and is
+  still reported — with `corroborated: false`, because the one source that
+  would have supported it could not be read. A readable lockfile beside the
+  unreadable one still produces its own `derived` claim, so the code is only
+  raised when the inspection produced no evidence at all.
+- **Blocks execution** — no. The command exits `0`.
+- **Informational only** — yes.
+- **Explain** — `agent-ready explain --code DISCOVERY_LOCKFILE_UNREADABLE`;
+  related codes: `DISCOVERY_PARTIAL`, `DISCOVERY_FACT_CONFLICT`.
+- **Pinned by** — `tests/unit/discoverPackageManager.test.ts` ("reports an
+  unstat-able lockfile as its own condition, not as absence", "keeps a declared
+  manager when its lockfile cannot be inspected"), `tests/unit/discoverReadOnly.test.ts`
+  ("never reads a lockfile's contents, only its presence").
 
 ### `DISCOVERY_NO_SIGNALS`
 
@@ -235,29 +351,41 @@ does not exist or is not a directory.`, followed by a `detail` naming the
 
 ### `DISCOVERY_FACT_UNSUPPORTED`
 
-- **Trigger** — none today. Reserved for a discovery fact whose epistemic kind
-  falls outside `declared` / `derived` / `author-declared` / `unknown`.
-- **Severity / category** — `warning`, by the same reserved-code convention as
-  the other unreachable codes.
-- **Human rendering / structured representation** — not reachable, so neither
-  has an observed rendering. The registry entry exists so that a future
-  fifth fact kind gets a published string rather than reusing an existing one
-  with a different meaning.
-- **Fact / evidence behaviour** — none.
-- **Blocks execution** — no.
+- **Trigger** — a probe completed, read something, and deliberately declined to
+  interpret it. The production case is a `packageManager` field whose value is
+  not a `<name>@<version>` string: `pnpm` alone, `""`, a number, or an object.
+- **Severity / category** — `warning`. Stage: probe execution.
+- **Human rendering** — `warning[DISCOVERY_FACT_UNSUPPORTED]`, naming the probe,
+  the fact, and the raw value:
+
+  ```text
+  warning[DISCOVERY_FACT_UNSUPPORTED]: Probe package-manager.declaration found a form this version does not model, so repository.packageManager.root was not probed.
+    package.json declares "workspace:*", which is not a <name>@<version> string.
+    suggestion: Nothing needs fixing in the repository. Agent-Ready declined to guess; the value is reported as unknown rather than approximated.
+  ```
+
+- **Structured representation** — `metadata.probeId` and `metadata.factId`. The
+  raw value is in `detail`, because the fact itself must not carry a value: a
+  claim built from a shape we do not model would be a guess wearing a citation.
+- **Fact / evidence behaviour** — the fact becomes `unknown` with reason
+  `not-probed`, and carries **no** claim. Evidence from other sources for the
+  same fact is unaffected: a lockfile claim about the same package manager still
+  stands on its own, so an unmodelled declaration can prevent a declaration
+  claim without preventing the fact.
+- **Blocks execution** — no. The command exits `0`.
 - **Informational only** — yes.
 - **Explain** — `agent-ready explain --code DISCOVERY_FACT_UNSUPPORTED`;
-  related codes: `INTERNAL_INVARIANT_VIOLATION`.
-- **Pinned by** — `tests/unit/discover.test.ts` ("never emits the deliberately
-  unreachable reservation"),
-  `tests/unit/discoverRegistry.test.ts` ("adds only the five codes ADR-0044
-  defines", "gives every discovery code a non-empty explanation").
+  related codes: `DISCOVERY_WORKSPACE_UNSUPPORTED`.
+- **Pinned by** — `tests/unit/discoverPackageManager.test.ts` ("makes no name
+  claim for a declaration form it does not model, and still reports the
+  lockfile evidence").
 
 ### Stated deviations from ADR-0044
 
 ADR-0044 is the decision record; where the shipped implementation departs from
 its literal wording, the departure is recorded here rather than left for a
-reader to discover.
+reader to discover. ADR-0045 amends three of its rules deliberately; those
+amendments are listed at the end of this section.
 
 - **Snapshot version field.** ADR-0044 names the field `schemaVersion`. The
   shipped field is `snapshotVersion`, with its own constant
@@ -289,12 +417,49 @@ reader to discover.
   `GIT_REPOSITORY_NOT_FOUND`. No new code or bucket was introduced, and no v1
   code's exit code changes.
 - **Meaning of `corroborated`.** A fact's `corroboration.corroborated` is true
-  only when at least two claims support the value from _different_ evidence. A
-  single source — however direct, and even when repeated — does not corroborate
-  itself, and the weaker question ("is this more than the author's word?") is
-  already answered by `corroboration.kinds`. This is strictly narrower than the
-  first reading of the field, in the direction of under-claiming rather than
-  over-claiming.
+  only when at least two claims support the value. A single source — however
+  direct, and even when repeated — does not corroborate itself, and the weaker
+  question ("is this more than the author's word?") is already answered by
+  `corroboration.kinds`. This is strictly narrower than the first reading of the
+  field, in the direction of under-claiming rather than over-claiming.
+- **Contradiction has two shapes.** ADR-0044 models disagreement as one outcome.
+  The implementation has two, because a `declared` claim and a `derived` claim
+  are not peers. Two sources of the same kind that disagree are a
+  `ConflictedFact` with no value, exactly as ADR-0044 requires. A declaration
+  contradicted by an artifact is an `IncompleteFact`: it keeps the declaration as
+  its value and publishes the contradicting values in `contradictedBy`, because
+  a conflict shape built only on peer comparison cannot express "the repository
+  said pnpm and there is also an npm artifact" without either dropping a true
+  claim or promoting an artifact to a declaration. Neither shape names a winner.
+  This is ADR-0045's first amendment.
+
+### Amendments recorded by ADR-0045
+
+ADR-0045 is a separate decision record that amends ADR-0044 in three places.
+Each amendment is narrower than the rule it replaces, and each is listed here so
+that a consumer reading the diagnostics does not have to reconstruct the
+reasoning from the code.
+
+- **Corroboration is about claims, not cited files.** ADR-0044 defined
+  `corroborated` as two claims whose evidence comes from different files. That
+  holds for the single-file facts #36 shipped and collapses for a fact whose
+  evidence is naturally spread over several files: a package manager evidenced by
+  three lockfiles would report `corroborated: false` for every claim. It is now
+  two claims. The property ADR-0044 protected is preserved by two narrower rules
+  enforced at the probe boundary in `src/discover/discover.ts`: **one claim is
+  one source** (a claim may not cite more than `evidenceBudgetFor(kind)` paths —
+  two for `derived`, one otherwise), and **one document is one source** (no
+  probe may split a single document into more than one claim). A violation is
+  downgraded to a failed probe, so manufactured corroboration is recorded as
+  nothing at all rather than as support.
+- **Contradiction is incomplete as well as conflicting.** As described above.
+- **`DISCOVERY_FACT_UNSUPPORTED` is reachable.** It was reserved for a fact
+  _kind_ outside the four ADR-0044 defines. It is now used for a fact _shape_
+  this implementation does not model. The four epistemic kinds are unchanged and
+  no fifth kind exists; only the code's meaning was narrowed to something real,
+  so it is no longer a dead registry entry. Its registry entry, severity,
+  renderer behaviour, JSON behaviour, explain support, and documentation are all
+  updated with it, so it is not an orphan code.
 
 ## Severity
 
@@ -316,10 +481,12 @@ The warning codes are:
   contract is not yet probed by doctor, so the row is informational only.
 - `UPGRADE_NO_CHANGES_NEEDED` and `UPGRADE_MANUAL_REVIEW_REQUIRED` — they
   describe a successful no-op and a maintainer-review outcome respectively.
-- `DISCOVERY_PARTIAL`, `DISCOVERY_FACT_CONFLICT`, `DISCOVERY_NO_SIGNALS`, and
-  `DISCOVERY_FACT_UNSUPPORTED` — the discovery conditions that leave a snapshot
-  usable. See [Repository discovery diagnostics](#repository-discovery-diagnostics)
-  and the stated deviations from ADR-0044 recorded there.
+- `DISCOVERY_PARTIAL`, `DISCOVERY_FACT_CONFLICT`, `DISCOVERY_FACT_INCOMPLETE`,
+  `DISCOVERY_WORKSPACE_UNSUPPORTED`, `DISCOVERY_LOCKFILE_UNREADABLE`,
+  `DISCOVERY_NO_SIGNALS`, and `DISCOVERY_FACT_UNSUPPORTED` — the discovery
+  conditions that leave a snapshot usable. See
+  [Repository discovery diagnostics](#repository-discovery-diagnostics) and the
+  stated deviations from ADR-0044 recorded there.
 
 Every other code is emitted as `"error"`.
 
@@ -333,9 +500,10 @@ maps to a single process exit code.
 Its consequences, which are part of the command's contract:
 
 - A snapshot with no diagnostics, or with warnings only — including
-  `DISCOVERY_PARTIAL`, `DISCOVERY_FACT_CONFLICT`, and `DISCOVERY_NO_SIGNALS` —
-  exits `0`. Partial, empty, and contradictory knowledge are all successful
-  results.
+  `DISCOVERY_PARTIAL`, `DISCOVERY_FACT_CONFLICT`, `DISCOVERY_FACT_INCOMPLETE`,
+  and `DISCOVERY_NO_SIGNALS` — exits `0`. Partial, empty, contradictory, and
+  contested knowledge are all successful results. A messy repository is still a
+  discoverable repository.
 - `DISCOVERY_ROOT_UNREADABLE` is the only fatal discovery condition, and it
   exits `2`, the "input was not readable" category, because the location
   `--root` named could not be used. It is not a validation failure: nothing was

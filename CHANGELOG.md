@@ -8,12 +8,14 @@ All notable changes to Agent-Ready are documented here. The project follows
 Adds `agent-ready discover` as the twelfth command, on the parallel vNext
 track. It ships the discovery _substrate_ — provenance, explicit uncertainty,
 the absence-versus-failure distinction, contradiction preservation, and a
-read-only capability boundary — over a deliberately small production fact
-vocabulary. Package, workspace, and command discovery are the first expansion of
-that vocabulary and land separately.
+read-only capability boundary — and now the first real domain on top of it:
+deterministic package and workspace discovery. Command discovery is the next
+expansion and lands separately.
 
 The v1 contract, the eleven v1 commands, the adapter-output corpus, and the
-public JSON Schema are unchanged.
+public JSON Schema are unchanged. The shared `FileSystem` interface gained a
+read-only `listDirectory`; it is additive, no v1 command calls it, and the
+existing v1 behaviour is covered by the unchanged suites.
 
 ### Added
 
@@ -38,10 +40,36 @@ public JSON Schema are unchanged.
   discovery.
 - Five `DISCOVERY_*` diagnostic codes in the shared registry
   (`DISCOVERY_ROOT_UNREADABLE`, `DISCOVERY_PARTIAL`, `DISCOVERY_FACT_CONFLICT`,
-  `DISCOVERY_NO_SIGNALS`, and the deliberately unreachable
-  `DISCOVERY_FACT_UNSUPPORTED`), reusing the existing diagnostic shape,
-  renderers, `explain` registry, and exit-code mapping. The full contract is in
+  `DISCOVERY_NO_SIGNALS`, and `DISCOVERY_FACT_UNSUPPORTED`), reusing the
+  existing diagnostic shape, renderers, `explain` registry, and exit-code
+  mapping. The full contract is in
   [docs/specification/diagnostics.md](docs/specification/diagnostics.md#repository-discovery-diagnostics).
+- Package and workspace discovery in the experimental `discover` snapshot, with
+  provenance-preserving package-manager evidence: a `packageManager`
+  declaration, the supported lockfile artifacts, and a contract's
+  `environment.packageManager` claim are each reported as their own claim, and a
+  repository with none is `unknown`/`no-evidence` — never `npm` by default. A
+  root manifest and a nested manifest own separate package-manager facts, so
+  heterogeneous managers are two true statements rather than one contradiction.
+- A new **incomplete** fact outcome, distinct from a conflict: a declaration
+  contradicted by another tool's artifact keeps the declaration, retains every
+  claim, and publishes the disagreement in `contradictedBy` with
+  `DISCOVERY_FACT_INCOMPLETE`. No winner is chosen in either shape.
+- Workspace discovery that keeps five things apart — declaration, pattern,
+  candidate, member, and the declaring manifest. Supported forms are
+  `package.json` `workspaces` as an array or as an object with a `packages`
+  array, plus `packages:` in `pnpm-workspace.yaml`, parsed through the existing
+  bounded YAML reader. An unrecognised form or a pattern that escapes the
+  repository root is reported, never coerced.
+- Bounded, fenced workspace traversal: a code-constant depth and entry ceiling,
+  a repository-root fence that refuses `..` and absolute patterns before any read
+  and declines to follow symbolic links out of the root, `node_modules` and
+  `.git` never entered, and explicit truncation reporting that never leaves
+  `summary.complete: true` behind. Discovery stays read-only, and no package
+  manager is ever executed.
+- ADR-0045 (package and workspace discovery semantics), which amends ADR-0044's
+  corroboration rule, splits contradiction into conflict-versus-incomplete, and
+  makes `DISCOVERY_FACT_UNSUPPORTED` reachable.
 - `WARNING_DIAGNOSTIC_CODES` as the single source of truth for which codes are
   emitted as `severity: "warning"`. `agent-ready explain` now derives the
   severity it reports from it instead of restating a hardcoded list.
