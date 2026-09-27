@@ -358,6 +358,118 @@ jobs:
             exit 1
           fi
 
+      # The graph is proved by Vitest against the full ADR-0047 adversarial
+      # matrix. What CI adds here is the packaging and wiring claim: that the
+      # built CLI emits a graph whose nodes and edges each carry a
+      # repository-relative file and a 1-based line, that a declared version and
+      # a resolved version are separately reported, that an unresolved import and
+      # an unowned subject are both explicit rather than absent, and that no
+      # citation escapes the repository root. The fixture is deliberately
+      # incomplete: one dependency resolves from a lockfile, one does not, one
+      # import does not resolve, and no CODEOWNERS file exists.
+      - name: CLI smoke test - discover repository graph
+        shell: bash
+        run: |
+          set -e
+          tmp="$(mktemp -d)"
+          cat > "$tmp/package.json" <<'JSON'
+          {
+            "name": "graph-smoke",
+            "dependencies": { "left": "^1.0.0" },
+            "devDependencies": { "right": "^2.0.0" }
+          }
+          JSON
+          cat > "$tmp/pnpm-lock.yaml" <<'YAML'
+          lockfileVersion: '9.0'
+          importers:
+            .:
+              dependencies:
+                left:
+                  specifier: ^1.0.0
+                  version: 1.4.2
+          YAML
+          mkdir -p "$tmp/src"
+          cat > "$tmp/src/index.ts" <<'TS'
+          import { thing } from "./thing.js";
+          import left from "left";
+          import "./missing.js";
+          export const x = [thing, left];
+          TS
+          echo 'export const thing = 1;' > "$tmp/src/thing.ts"
+          git -C "$tmp" init --quiet
+
+          output="$(node dist/cli/index.js discover --root "$tmp" --json)"
+          echo "$output"
+          echo "$output" | grep -q '"graph": {'
+
+          # Every node and every edge carries a repository-relative file and a
+          # 1-based line. The line is never zero, which is the off-by-one that
+          # would point a reader at a real line saying something else.
+          if echo "$output" | grep -q '"line": 0'; then
+            echo "the graph emitted a 0-based line" >&2
+            exit 1
+          fi
+          echo "$output" | grep -q '"id": "module:src/thing.ts"'
+          echo "$output" | grep -q '"id": "dependency:left"'
+          echo "$output" | grep -q '"id": "import:'
+
+          # A resolved internal import cites the line the declaration is on.
+          imports="$(echo "$output" | sed -n '/"kind": "imports"/,/"source": "package.json"/p')"
+          echo "$imports" | grep -q '"specifier": "./thing.js"'
+          echo "$imports" | grep -q '"targetPath": "src/thing.ts"'
+
+          # The declared version and the resolved version are two different
+          # facts, cited to two different files. Collapsing them would make
+          # "what was asked for" and "what was installed" indistinguishable.
+          echo "$output" | grep -q '"declaredSpecifier": "\^1.0.0"'
+          echo "$output" | grep -q '"pointer": "/dependencies/left"'
+          echo "$output" | grep -q '"version": "1.4.2"'
+          echo "$output" | grep -q '"source": "pnpm-lock.yaml"'
+          # `right` is declared and absent from the lockfile: that is a distinct
+          # state from "no lockfile", and it keeps its declaration.
+          echo "$output" | grep -q '"pointer": "/devDependencies/right"'
+          echo "$output" | grep -q '"status": "unresolved"'
+
+          # An import that resolves to nothing is surfaced, not swallowed: the
+          # edge survives with its specifier, a reason, and a citation.
+          echo "$output" | grep -q 'DISCOVERY_IMPORT_UNRESOLVED'
+          echo "$output" | grep -q '"specifier": "./missing.js"'
+          echo "$output" | grep -q '"reason": "target-not-found"'
+
+          # No CODEOWNERS file is a complete, successful answer: every subject
+          # is explicitly unowned and no owner is invented for it.
+          echo "$output" | grep -q '"status": "absent"'
+          echo "$output" | grep -q '"policy"'
+          echo "$output" | grep -q '"unownedSubjects":'
+          if echo "$output" | grep -q '"kind": "owner"'; then
+            echo "an owner node was invented for a repository with no CODEOWNERS" >&2
+            exit 1
+          fi
+
+          # Every path in the graph is repository-relative. A single absolute
+          # path would make the snapshot's bytes depend on where the
+          # repository is checked out.
+          if echo "$output" | grep -q "$tmp"; then
+            echo "the graph leaked the fixture's absolute path" >&2
+            exit 1
+          fi
+
+          # The human rendering reports the same graph, and never a value it
+          # could not derive.
+          human="$(node dist/cli/index.js discover --root "$tmp")"
+          echo "$human"
+          echo "$human" | grep -q '^Graph$'
+          echo "$human" | grep -qE '^  Nodes +[0-9]+ '
+          echo "$human" | grep -q 'no CODEOWNERS file found'
+          if echo "$human" | grep -qE 'npm run|pnpm run'; then
+            echo "the graph rendering printed an executable it could not derive" >&2
+            exit 1
+          fi
+          if echo "$human" | grep -q '\[object Object\]'; then
+            echo "the graph rendered a structured value as [object Object]" >&2
+            exit 1
+          fi
+
       - name: CLI smoke test - verify --execute (synthetic contract, real process spawning)
         shell: bash
         run: |
