@@ -135,6 +135,7 @@ jobs:
           echo "$output" | grep -q '"snapshotVersion": 0'
           echo "$output" | grep -q '"repository.contract.present"'
           echo "$output" | grep -q '"repository.declarationSurface.present"'
+          echo "$output" | grep -q '"repository.packageManager.root"'
           echo "$output" | grep -q '"complete": true'
 
           again="$(node dist/cli/index.js discover --json)"
@@ -169,9 +170,89 @@ jobs:
           fi
 
           # Every code discovery can emit must be explainable.
-          for code in DISCOVERY_ROOT_UNREADABLE DISCOVERY_PARTIAL DISCOVERY_FACT_CONFLICT DISCOVERY_NO_SIGNALS DISCOVERY_FACT_UNSUPPORTED; do
+          for code in DISCOVERY_ROOT_UNREADABLE DISCOVERY_PARTIAL DISCOVERY_FACT_CONFLICT DISCOVERY_FACT_INCOMPLETE DISCOVERY_WORKSPACE_UNSUPPORTED DISCOVERY_LOCKFILE_UNREADABLE DISCOVERY_NO_SIGNALS DISCOVERY_FACT_UNSUPPORTED; do
             node dist/cli/index.js explain --code "$code" --json | grep -q "\"$code\""
           done
+
+      # Package and workspace discovery is proved by Vitest against real
+      # repository shapes. What CI adds here is packaging and wiring: that the
+      # built CLI reports a package and workspace model at all, and that
+      # contradictory evidence is described rather than fatal. The fixture is
+      # deliberately messy - two managers' lockfiles, a declaration that
+      # disagrees with one of them, a declared path that is absent, a glob match
+      # that is not a package, and an unmodelled declaration form.
+      - name: CLI smoke test - discover packages and workspaces
+        shell: bash
+        run: |
+          set -e
+          tmp="$(mktemp -d)"
+          cat > "$tmp/package.json" <<'JSON'
+          {
+            "name": "smoke-root",
+            "packageManager": "pnpm@10.0.0",
+            "workspaces": ["packages/*", "apps/site"]
+          }
+          JSON
+          : > "$tmp/pnpm-lock.yaml"
+          : > "$tmp/package-lock.json"
+          mkdir -p "$tmp/packages/a" "$tmp/packages/docs" "$tmp/apps"
+          echo '{"name": "a"}' > "$tmp/packages/a/package.json"
+          echo '# notes, not a package' > "$tmp/packages/docs/README.md"
+          git -C "$tmp" init --quiet
+
+          output="$(node dist/cli/index.js discover --root "$tmp" --json)"
+          echo "$output"
+          echo "$output" | grep -q '"repository.packages"'
+          echo "$output" | grep -q '"repository.workspace.declarations"'
+          echo "$output" | grep -q '"repository.workspace.candidates"'
+          echo "$output" | grep -q '"repository.workspace.members"'
+          # The declared-but-absent path survives as an explicit absence.
+          echo "$output" | grep -q '"apps/site"'
+          # Two managers' artifacts beside a pnpm declaration is contested, not
+          # resolved: the snapshot must carry both codes and no winner.
+          echo "$output" | grep -q 'DISCOVERY_FACT_INCOMPLETE'
+          echo "$output" | grep -q '"contradictedBy"'
+          # `apps/site` was declared and is absent, which is a successful
+          # observation, not a failure.
+          echo "$output" | grep -q '"complete": true'
+          # The path is canonical: repository-relative, never the temp absolute
+          # root the fixture happens to live under.
+          if echo "$output" | grep -q "$tmp"; then
+            echo "discover --json leaked the fixture's absolute path" >&2
+            exit 1
+          fi
+
+          # Human output must describe the same facts without inventing
+          # certainty about the contested one.
+          human="$(node dist/cli/index.js discover --root "$tmp")"
+          echo "$human"
+          echo "$human" | grep -q 'incomplete (pnpm; contradicted by npm)'
+          if echo "$human" | grep -q '\[object Object\]'; then
+            echo "discover rendered a structured value as [object Object]" >&2
+            exit 1
+          fi
+
+          # A workspace declaration that escapes the root is refused, not read.
+          escape="$(mktemp -d)"
+          echo '{"name": "escape", "workspaces": ["../*"]}' > "$escape/package.json"
+          git -C "$escape" init --quiet
+          escaped="$(node dist/cli/index.js discover --root "$escape" --json)"
+          echo "$escaped"
+          echo "$escaped" | grep -q 'DISCOVERY_WORKSPACE_UNSUPPORTED'
+          # The declaration is still reported verbatim - the repository did write
+          # `"../*"` - but nothing was derived from it, and no path above the
+          # root was read. Both collections being empty is the observable form
+          # of "the refusal happened before any read".
+          echo "$escaped" | grep -q '"repository.workspace.candidates": {'
+          echo "$escaped" | grep -q '"repository.workspace.members": {'
+          derived="$(echo "$escaped" | sed -n '/"repository.workspace.candidates"/,/"repository.workspace.declarations"/p')"
+          echo "$derived" | grep -q '"value": \[\]'
+          members="$(echo "$escaped" | sed -n '/"repository.workspace.members"/,/"repository.workspace.root"/p')"
+          echo "$members" | grep -q '"value": \[\]'
+          if echo "$derived$members" | grep -q '\.\.'; then
+            echo "a refused workspace pattern reached outside the repository root" >&2
+            exit 1
+          fi
 
       - name: CLI smoke test - verify --execute (synthetic contract, real process spawning)
         shell: bash
