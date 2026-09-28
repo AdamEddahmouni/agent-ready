@@ -22,7 +22,7 @@
  * `version:` scalar — or the `"version"` property — is actually on.
  */
 
-import { LineCounter, isMap, isPair, isScalar, parseDocument } from "yaml";
+import { LineCounter, isMap, isPair, isScalar, parseAllDocuments } from "yaml";
 import { compareCodeUnits } from "../ordering.js";
 import { MAX_MANIFEST_DEPTH } from "../read.js";
 import { indexJsonPositions } from "./jsonSource.js";
@@ -127,16 +127,34 @@ export const pnpmAdapter: LockfileAdapter = {
     }
     const text = prepared.text;
     const lineCounter = new LineCounter();
-    let document: ReturnType<typeof parseDocument>;
+    let documents: ReturnType<typeof parseAllDocuments>;
     try {
-      document = parseDocument(text, { lineCounter, merge: false, uniqueKeys: true });
+      documents = parseAllDocuments(text, { lineCounter, merge: false, uniqueKeys: true });
     } catch (error) {
       return nothing("unreadable", describeError(error, path));
     }
-    if (document.errors.length > 0) {
+    // A current `pnpm-lock.yaml` is a **multi-document YAML stream**, not one
+    // document: pnpm writes the published `pnpm` binary's own platform
+    // `optionalDependencies` first, closes it with `---`, and only then writes
+    // the lockfile. `parseDocument` refused that stream outright, and the
+    // refusal was reported as "not parseable YAML", which is a misdiagnosis —
+    // the file is valid YAML, and the version of the format the project uses
+    // most was the one that failed. Issue #40's corpus study found it in five
+    // of the fifteen third-party repositories inspected, costing every declared
+    // dependency its resolved version.
+    const usable = documents.filter((document) => document.errors.length === 0);
+    if (usable.length === 0) {
+      const errors = documents.reduce((count, document) => count + document.errors.length, 0);
       return nothing(
         "unreadable",
-        `The document is not parseable YAML (${String(document.errors.length)} error(s)), so no resolved version was read from it.`,
+        `The document is not parseable YAML (${String(errors)} error(s)), so no resolved version was read from it.`,
+      );
+    }
+    const document = selectLockfileDocument(usable);
+    if (document === undefined) {
+      return nothing(
+        "unsupported",
+        "The lockfile declares no `lockfileVersion`, so this version does not know which layout it uses.",
       );
     }
     const version = firstScalar(document, ["lockfileVersion"]);
@@ -290,7 +308,40 @@ function describeError(error: unknown, subject: string): string {
 }
 
 /** The parsed-document shape the pnpm adapter reads. */
-type LockDocument = ReturnType<typeof parseDocument>;
+type LockDocument = ReturnType<typeof parseAllDocuments>[number];
+
+/**
+ * The one document in a stream that is the lockfile.
+ *
+ * Scanned from the end, and the test is structural rather than positional. A
+ * document that declares both `lockfileVersion` and `importers` is the lockfile
+ * this adapter reads, and that pair is what distinguishes pnpm's leading
+ * document of platform `optionalDependencies` from the lockfile behind it.
+ *
+ * A second pass covers a lockfile that declares a version and no `importers`: it
+ * is still a lockfile, it simply resolves nothing, and reading nothing from it is
+ * honest where reporting it as an unknown layout would not be. A single-document
+ * lockfile therefore behaves exactly as it did before, and a stream with no
+ * version at all is reported rather than guessed at.
+ */
+function selectLockfileDocument(documents: readonly LockDocument[]): LockDocument | undefined {
+  for (let index = documents.length - 1; index >= 0; index--) {
+    const document = documents[index];
+    if (
+      document?.hasIn(["importers"]) === true &&
+      firstScalar(document, ["lockfileVersion"]) !== undefined
+    ) {
+      return document;
+    }
+  }
+  for (let index = documents.length - 1; index >= 0; index--) {
+    const document = documents[index];
+    if (document !== undefined && firstScalar(document, ["lockfileVersion"]) !== undefined) {
+      return document;
+    }
+  }
+  return undefined;
+}
 
 /**
  * The position index of a JSON document, or an empty one.

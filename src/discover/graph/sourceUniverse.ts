@@ -40,8 +40,12 @@ import { REPOSITORY_ROOT, isRepositoryRelativePath, sourceExtensionOf } from "./
  *
  * Declaration files are deliberately **absent**: `sourceExtensionOf` reports
  * `.d.ts` as its own extension precisely so a declaration file is never
- * mistaken for the `.ts` module it describes. A graph edge to a declaration file
- * would assert a runtime relationship that does not exist.
+ * mistaken for the `.ts` module it describes, and nothing is ever *parsed* for
+ * imports from one. A declaration file or a JSON document may still be a
+ * legitimate import *target*, so such a file joins the resolvable set and
+ * becomes a module node when an import declaration names it — at which point
+ * `build.ts` reads it, under its own bound, so the node's provenance is a line
+ * that exists rather than a line that looks right.
  */
 export const SUPPORTED_SOURCE_EXTENSIONS: readonly string[] = [
   ".ts",
@@ -68,6 +72,19 @@ export const MAX_SOURCE_FILE_BYTES = 1_000_000;
 
 /** Maximum total source bytes parsed, so many large files cannot win. */
 export const MAX_TOTAL_SOURCE_BYTES = 32_000_000;
+
+/**
+ * Maximum total bytes read purely to make an out-of-universe import target
+ * citable.
+ *
+ * Separate from `MAX_TOTAL_SOURCE_BYTES` on purpose. Those bytes buy import
+ * *analysis*; these buy *provenance* for a file the universe deliberately does
+ * not analyse (a `.d.ts` or a `.json` some import resolves to). Sharing one
+ * budget would let a repository spend the parsing budget by naming large
+ * declaration files in imports, so the two costs are bounded independently and
+ * each is published when it runs out.
+ */
+export const MAX_TARGET_PROVENANCE_BYTES = 4_000_000;
 
 /** Maximum import declarations extracted from one file. */
 export const MAX_IMPORTS_PER_FILE = 500;
@@ -368,7 +385,7 @@ async function loadPackageConfig(
   if (hasSubstantiveConfigError(result.errors)) {
     notes.unusableConfigs.push({
       source: relative,
-      reason: describeConfigErrors(result.errors),
+      reason: describeConfigErrors(context.repoRoot, result.errors),
     });
     return undefined;
   }
@@ -534,11 +551,46 @@ function hasSubstantiveConfigError(errors: readonly ts.Diagnostic[]): boolean {
 }
 
 /** The real problems a config has, phrased for a reader who can act on them. */
-function describeConfigErrors(errors: readonly ts.Diagnostic[]): string {
+function describeConfigErrors(repoRoot: string, errors: readonly ts.Diagnostic[]): string {
   const texts = errors
     .filter((error) => !ENUMERATION_DIAGNOSTIC_CODES.includes(error.code))
-    .map((error) => ts.flattenDiagnosticMessageText(error.messageText, " "));
+    .map((error) => ts.flattenDiagnosticMessageText(error.messageText, " "))
+    .map((text) => portableConfigMessage(text, repoRoot));
   return `${texts.join(" ")} Its include and exclude settings were therefore not applied, and this package's source universe came from the bounded traversal instead.`;
+}
+
+/**
+ * Rewrites the absolute paths TypeScript writes into repository-relative ones.
+ *
+ * TypeScript's own messages quote the *absolute* path it tried to read, and
+ * that text was reaching the machine-readable snapshot verbatim. Two things
+ * broke at once: `discover --json` stopped being byte-identical across two
+ * checkouts of the same commit, because a `C:\\Users\\…` or `/home/runner/…`
+ * appeared in a diagnostic detail; and the snapshot published the operator's
+ * home directory to whoever consumed it. Issue #40's corpus study found this
+ * on one of the fifteen third-party repositories inspected, in seven
+ * diagnostics, all from a generated `tsconfig` that `extends` a file the
+ * repository does not contain.
+ *
+ * Only quoted tokens are rewritten, so a message that merely mentions the word
+ * "file" is untouched. A path inside the repository becomes the same
+ * repository-relative form every other field in the snapshot uses; a path
+ * outside it becomes a statement about the fence rather than about the machine,
+ * because the fence refusing to follow it is the reason the config was unusable.
+ */
+function portableConfigMessage(text: string, repoRoot: string): string {
+  return text.replace(/'([^']*)'/g, (whole, token: string) => {
+    if (!isAbsolutePathLike(token)) {
+      return whole;
+    }
+    const relative = toRepositoryRelative(repoRoot, token);
+    return relative === undefined ? "'<outside the repository>'" : `'${relative}'`;
+  });
+}
+
+/** True for a path that is absolute on either supported platform. */
+function isAbsolutePathLike(token: string): boolean {
+  return token.startsWith("/") || /^[A-Za-z]:[\\/]/.test(token) || token.startsWith("\\\\");
 }
 
 /**

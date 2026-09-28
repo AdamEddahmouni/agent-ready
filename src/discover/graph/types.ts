@@ -161,7 +161,18 @@ export type UnresolvedReason =
   | "unsupported-specifier"
   | "unsupported-syntax"
   | "outside-repository"
-  | "unsupported-package-subpath";
+  | "unsupported-package-subpath"
+  /**
+   * The resolver found a real in-repository file and this run could not read
+   * it, so no node can be published with a citation a reader could check.
+   *
+   * Distinct from `target-not-found` on purpose: the file exists, and a
+   * consumer that re-runs the analysis with a larger bound may well resolve
+   * this edge. Reporting it as "not found" would claim a repository condition
+   * that does not exist; publishing the node anyway would cite a line nobody
+   * verified, which is the decorative provenance ADR-0047 refuses.
+   */
+  | "target-not-readable";
 
 /**
  * Where an import declaration's target ended up.

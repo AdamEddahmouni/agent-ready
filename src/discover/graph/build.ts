@@ -52,6 +52,7 @@ import {
   MAX_GRAPH_NODES,
   MAX_IMPORTS_PER_FILE,
   MAX_SOURCE_FILE_BYTES,
+  MAX_TARGET_PROVENANCE_BYTES,
   MAX_TOTAL_SOURCE_BYTES,
   SUPPORTED_SOURCE_EXTENSIONS,
   isSupportedSourcePath,
@@ -213,6 +214,8 @@ export async function buildRepositoryGraph(
   // be read first instead of the line the manifest wrote the name on.
   edges.push(...dependencyEdgesFor(inputs.layout.manifests, workspaceNames, lockfiles, nodes));
 
+  const citableTargets = new CitableTargets(context, cache, note);
+
   for (const path of modulePaths) {
     const owned = sources.get(path);
     if (owned === undefined) {
@@ -228,13 +231,14 @@ export async function buildRepositoryGraph(
       ownership: { status: "unowned", policy: { status: "absent", source: null } },
     });
     for (const extracted of owned.imports) {
-      const edge = importEdgeFor(
+      const edge = await importEdgeFor(
         extracted,
         path,
         packagePath,
         resolutionContext,
         nodes,
         packagePaths,
+        citableTargets,
       );
       edges.push(edge);
       if (edge.resolution.status === "unresolved") {
@@ -460,24 +464,110 @@ async function readSourceFiles(
 
 /** Reached when a source file is absent from the universe it was selected from. */
 
+/**
+ * Makes a resolved import target citable, on demand and under a bound.
+ *
+ * ADR-0047's invariant is that every node cites a repository file and a line
+ * that exist. A file in the module universe satisfies that for free: it was
+ * read to extract its imports, so its line count is known. A file *outside* the
+ * universe — a `.d.ts` or a `.json` that some import resolves to — was only
+ * stat-ed by the resolver, so citing its line 1 would be a decoration rather
+ * than a citation, and `validateGraph` rejects one.
+ *
+ * So the read happens here instead, lazily: only a target some import actually
+ * reaches costs anything, and a file already in the line cache costs nothing at
+ * all. Bytes are bounded separately from the universe's budget because these
+ * reads serve provenance rather than analysis, and a repository must not be
+ * able to spend the source-parsing budget by naming a large declaration file in
+ * an import.
+ *
+ * A target that cannot be made citable is reported rather than cited: the edge
+ * falls back to `unresolved` with `target-not-readable`, which says "the
+ * resolver found a file and this run could not stand behind a node for it" and
+ * is a true statement, where a fabricated line 1 would not be.
+ */
+class CitableTargets {
+  private readonly verdicts = new Map<string, boolean>();
+  private spentBytes = 0;
+
+  constructor(
+    private readonly context: DiscoveryProbeContext,
+    private readonly cache: LineIndexCache,
+    private readonly note: (observation: GraphObservation) => void,
+  ) {}
+
+  /** True when `path` has a real line 1 this run can cite. */
+  async ensure(path: string): Promise<boolean> {
+    const known = this.verdicts.get(path);
+    if (known !== undefined) {
+      return known;
+    }
+    if (this.cache.lineCountOf(path) > 0) {
+      // Already read for another reason, so its line count is already real.
+      this.verdicts.set(path, true);
+      return true;
+    }
+    if (!isRepositoryRelativePath(path)) {
+      this.verdicts.set(path, false);
+      return false;
+    }
+    const outcome = await safeRead(this.context, path);
+    if (outcome.status !== "read") {
+      this.note({
+        kind: "partial",
+        summary: `A resolved import target could not be read: ${path}.`,
+        detail:
+          outcome.status === "absent"
+            ? "The file is no longer present, so the import is reported as unresolved rather than resolved to a target this run cannot cite."
+            : `${outcome.detail} The import is reported as unresolved rather than resolved to a target this run cannot cite.`,
+        path,
+      });
+      this.verdicts.set(path, false);
+      return false;
+    }
+    const bytes = Buffer.byteLength(outcome.content, "utf8");
+    if (bytes > MAX_SOURCE_FILE_BYTES || this.spentBytes + bytes > MAX_TARGET_PROVENANCE_BYTES) {
+      this.note({
+        kind: "partial",
+        summary: `A resolved import target is larger than this run cites: ${path}.`,
+        detail: `Provenance reads are bounded at ${String(MAX_TARGET_PROVENANCE_BYTES)} bytes in total and ${String(MAX_SOURCE_FILE_BYTES)} bytes per file, so this target could not be cited. The import is reported as unresolved rather than resolved to a target this run cannot stand behind.`,
+        path,
+      });
+      this.verdicts.set(path, false);
+      return false;
+    }
+    this.spentBytes += bytes;
+    this.cache.remember(path, outcome.content);
+    this.verdicts.set(path, true);
+    return true;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Import edges
 // ---------------------------------------------------------------------------
 
-function importEdgeFor(
+async function importEdgeFor(
   extracted: ExtractedImport,
   fromPath: string,
   packagePath: string,
   context: ResolutionContext,
   nodes: Map<GraphNodeId, GraphNode>,
   packagePaths: readonly string[],
-): ImportEdge {
+  citableTargets: CitableTargets,
+): Promise<ImportEdge> {
   const resolution =
     extracted.unsupportedReason === null
       ? resolveSpecifier(extracted.specifier, fromPath, packagePath, context)
       : { kind: "unresolved" as const, reason: extracted.unsupportedReason };
 
-  const published = publishResolution(resolution, extracted, nodes, packagePaths);
+  const published = await publishResolution(
+    resolution,
+    extracted,
+    nodes,
+    packagePaths,
+    citableTargets,
+  );
   return {
     id: importEdgeId(fromPath, extracted, published.targetId),
     kind: "imports",
@@ -506,12 +596,13 @@ interface PublishedResolution {
  * **declaring site**: the manifest declaration when one exists, and otherwise
  * the import site that first made the name visible. Both are real lines.
  */
-function publishResolution(
+async function publishResolution(
   resolution: ReturnType<typeof resolveSpecifier>,
   extracted: ExtractedImport,
   nodes: Map<GraphNodeId, GraphNode>,
   packagePaths: readonly string[],
-): PublishedResolution {
+  citableTargets: CitableTargets,
+): Promise<PublishedResolution> {
   switch (resolution.kind) {
     case "module": {
       const id = moduleId(resolution.path);
@@ -520,6 +611,21 @@ function publishResolution(
         // declaration file, a file a `tsconfig` excluded. It is still a real
         // in-repository file and therefore a real target: demoting it would
         // invent a problem the repository does not have.
+        //
+        // It is also a file this run has not read, so its line 1 is not yet a
+        // citation — it is a guess. `CitableTargets` reads it first, under the
+        // same bounds as the universe, so the node's provenance is a line a
+        // reader can open rather than a line that merely looks right. Issue
+        // #40's corpus found the guessing version of this: a module node
+        // citing a file nobody read is a `provenance-file-was-read` violation,
+        // which is error severity, which suppressed the entire graph for seven
+        // of the fifteen third-party repositories the study inspected.
+        if (!(await citableTargets.ensure(resolution.path))) {
+          return {
+            resolution: { status: "unresolved", reason: "target-not-readable" },
+            targetId: null,
+          };
+        }
         nodes.set(id, {
           id,
           kind: "module",
