@@ -55,3 +55,4 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0045](0045-package-and-workspace-discovery-semantics.md)     | Package and workspace discovery semantics                       |
 | [0046](0046-command-and-verification-discovery-semantics.md)  | Command and verification discovery semantics                    |
 | [0047](0047-provenance-carrying-repository-graph.md)          | Provenance-carrying repository graph semantics                  |
+| [0048](0048-discovery-snapshot-stability-and-conformance.md)  | Discovery snapshot stability and conformance                    |
