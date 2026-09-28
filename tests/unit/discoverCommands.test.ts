@@ -1160,10 +1160,16 @@ describe("summary semantics", () => {
     expect(snapshot.summary.facts).toBe(ids.length);
   });
 
-  it("AH3: snapshotVersion stays 0", async () => {
+  it("AH3: snapshotVersion is 1, and is independent of the contract version", async () => {
     const snapshot = await snapshotOf(singlePackage({ test: "vitest run" }));
-    // ADR-0040's taxonomy and ADR-0045 §10: growth does not bump the version.
-    expect(snapshot.snapshotVersion).toBe(0);
+    // ADR-0040's taxonomy: three version axes, none of which moves because
+    // another one does. ADR-0048 set this to 1 — the first version that carries
+    // a compatibility promise — while `agent-ready.yaml` stays at contract
+    // version 1 and the npm package stays pre-1.0. The number matching the
+    // contract version is a coincidence of naming, not a shared axis, which is
+    // why the schema lives at `schemas/discovery/snapshot-v1/` and never
+    // validates `agent-ready.yaml`.
+    expect(snapshot.snapshotVersion).toBe(1);
   });
 });
 

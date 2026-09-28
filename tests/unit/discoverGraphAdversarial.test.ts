@@ -1247,6 +1247,7 @@ describe("S–V. a graph that fails its own invariants is a bug, not a warning",
       target: "dependency:x",
       declarations: [
         {
+          name: "x",
           dependencyClass: "runtime",
           declaredSpecifier: "1.0.0",
           pointer: "/dependencies/x",

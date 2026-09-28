@@ -13,6 +13,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runDiscover } from "../src/cli/commands/discover.js";
+import { DISCOVERY_SNAPSHOT_VERSION } from "../src/discover/types.js";
 import { InMemoryFileSystem } from "../src/filesystem/inMemoryFileSystem.js";
 
 function fixtureRepo(): InMemoryFileSystem {
@@ -74,7 +75,7 @@ writeFileSync(target, next, "utf8");
 process.stdout.write("regenerated discover fixtures\n");
 
 /**
- * Fails when the text being written is not a #39-shaped snapshot.
+ * Fails when the text being written is not a current-shaped snapshot.
  *
  * The two replacements are regexes, and a regex that stops matching produces a
  * script that reports success while changing nothing — the most expensive
@@ -86,6 +87,12 @@ process.stdout.write("regenerated discover fixtures\n");
  * the snapshot the implementation produces, including the package, workspace, and
  * command facts that distinguish it from the pre-#37 four-fact output, and the
  * graph keys that distinguish it from the pre-#39 graph-less one.
+ *
+ * The snapshot version is compared against the *constant* rather than written
+ * out, for the same reason. Hardcoding `0` here meant the guard went stale at
+ * exactly the moment the version moved — it would have reported "the fixture
+ * does not look current" for a fixture that was perfectly current, and a
+ * maintainer under pressure would have "fixed" the guard instead of reading it.
  */
 function assertFixtureIsCurrent(text: string): void {
   const required = [
@@ -97,7 +104,7 @@ function assertFixtureIsCurrent(text: string): void {
     "repository.commands",
     "repository.verificationEntrypoints",
     "repository.contract.verification",
-    '"snapshotVersion": 0',
+    `"snapshotVersion": ${String(DISCOVERY_SNAPSHOT_VERSION)}`,
     // Issue #39. An empty `graph` object would satisfy `"nodes": []` on its own,
     // so the guard checks the *empty-graph* markers this fixture legitimately
     // produces — a documentation-only repository has no packages, no modules,

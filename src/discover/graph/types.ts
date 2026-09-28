@@ -226,6 +226,19 @@ export type DependencyClass = "runtime" | "dev" | "peer" | "optional";
 
 /** One manifest field that declares a dependency. */
 export interface DependencyDeclaration {
+  /**
+   * The dependency's name, exactly as the manifest wrote it.
+   *
+   * Declared here because the graph emits it, not because the interface had it
+   * when #39 shipped: `build.ts` spreads the manifest's own declaration, which
+   * carries `name`, so every published dependency declaration has always
+   * carried one. Issue #40 found the omission by validating real output against
+   * the published schema, which is exactly the drift a hand-authored schema
+   * exists to surface. The alternative — stripping it at the boundary — would
+   * have thrown away a name a consumer needs in order to read one declaration
+   * without holding the edge open.
+   */
+  readonly name: string;
   readonly dependencyClass: DependencyClass;
   /** `^8.17.1`, `workspace:*`, `file:../x` — exactly as written. */
   readonly declaredSpecifier: string;

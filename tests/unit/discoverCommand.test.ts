@@ -29,7 +29,7 @@ import {
  */
 const EXPECTED_SNAPSHOT = `{
   "ok": true,
-  "snapshotVersion": 0,
+  "snapshotVersion": 1,
   "root": ".",
   "facts": {
     "repository.commands": {
@@ -326,7 +326,12 @@ describe("discover --json", () => {
   it("carries an explicit snapshot version independent of the contract version", async () => {
     const outcome = await runDiscover(fixtureRepo(), { json: true, root: "/repo" });
     const parsed = JSON.parse(outcome.stdout) as Record<string, unknown>;
-    expect(parsed["snapshotVersion"]).toBe(0);
+    // The snapshot format version, which happens to be 1 — the same numeral the
+    // contract version uses, and entirely unrelated to it. ADR-0048 §15 keeps
+    // the two axes apart, and the fact that the numbers coincide is exactly why
+    // the schema for this lives in its own directory rather than beside the
+    // contract schema.
+    expect(parsed["snapshotVersion"]).toBe(1);
     // The v1 contract version is a different concept and must not appear here.
     expect(parsed).not.toHaveProperty("version");
   });

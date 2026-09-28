@@ -303,23 +303,32 @@ export function isKnownFact(fact: Fact): fact is AgreedFact | IncompleteFact | C
 
 /**
  * Discovery snapshot format version. Independent of the `agent-ready.yaml`
- * contract `version` and of the npm package version, per ADR-0040's
- * version taxonomy. `0` means *unstable*: no field carries the pre-1.0
- * stability promise of ADR-0009, and the published field-stability statement
- * is deferred to Issue #40. Versioned from first appearance so that
- * accidental drift is visible.
+ * contract `version` and of the npm package version, per ADR-0040's version
+ * taxonomy, and independent of both of those in practice as well as in name.
  *
- * Issue #37 grew the vocabulary additively and deliberately did **not** bump
- * this. No field was removed and none changed meaning, and `0` already denies
- * stability — reserving a version bump for routine vocabulary growth would
- * make the number carry no information at all. The bump is held for a change a
- * consumer could not survive. See ADR-0045.
+ * **`1` is the first version that promises anything.** `0` was real and is
+ * recorded in this repository's history: Issues #36 through #39 grew the
+ * vocabulary under `0`, which meant *no field carried a compatibility promise*
+ * and the published field-stability statement was deferred to Issue #40. There is
+ * no migration path from `0` and none is offered, because `0` promised nothing
+ * and so there is nothing to migrate from; a consumer holding a `0` snapshot
+ * regenerates it.
  *
- * Issue #38 added three more facts on the same reasoning: nothing was removed,
- * nothing changed meaning, and the three are projections of declarations ADR-0045
- * already published. See ADR-0046 §10.
+ * What `1` promises is deliberately smaller than what this file defines. The
+ * consumer-facing policy is `docs/vnext/SNAPSHOT-STABILITY.md`, the decision is
+ * ADR-0048, and the evidence behind the split between the two is
+ * `docs/research/snapshot-v1-corpus-study.md`. In short: the envelope, the
+ * epistemic discriminators, evidence and provenance, package identity, the
+ * command inventory and the graph's structural invariants are stable; the source
+ * universe, the import resolution vocabulary, the verification role projection
+ * and the CODEOWNERS pattern breadth are provisional.
+ *
+ * The bump was held across #37 and #38 for the same reason it was made here:
+ * a version number that moves for routine growth carries no information. It moves
+ * when a consumer could not survive the change. See ADR-0045, ADR-0046 §10 and
+ * ADR-0048.
  */
-export const DISCOVERY_SNAPSHOT_VERSION = 0;
+export const DISCOVERY_SNAPSHOT_VERSION = 1;
 
 // ---------------------------------------------------------------------------
 // Command and verification value shapes (ADR-0046)
