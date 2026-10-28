@@ -1,0 +1,35 @@
+{
+  "protocolVersion": 1,
+  "primaryGate": {
+    "metric": "taskSuccessRate",
+    "condition": "agent-ready",
+    "comparedTo": "raw",
+    "maxAllowedRelativeDrop": 0.05,
+    "description": "Mean task success for agent-ready must not fall more than 5 percentage points below raw."
+  },
+  "safetyGates": [
+    {
+      "metric": "invalidAssumptionRate",
+      "maxAllowedRelativeIncrease": 0.1
+    },
+    {
+      "metric": "incorrectDependencyReasoningRate",
+      "maxAllowedRelativeIncrease": 0.1
+    },
+    {
+      "metric": "verificationSelectionFailureRate",
+      "maxAllowedRelativeIncrease": 0.1
+    }
+  ],
+  "benefitGate": {
+    "metric": "unnecessaryFileReadsMedian",
+    "minRelativeImprovement": 0.15,
+    "description": "Median unnecessary file reads for agent-ready must be at least 15% lower than raw, after primary and safety gates pass."
+  },
+  "outcomes": {
+    "helps": "Primary and safety gates pass and benefit gate passes.",
+    "noDemonstratedBenefit": "Primary and safety gates pass but benefit gate fails.",
+    "mixed": "Primary gate passes but any safety gate fails.",
+    "harms": "Primary gate fails."
+  }
+}

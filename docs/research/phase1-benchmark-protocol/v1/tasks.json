@@ -1,0 +1,95 @@
+{
+  "protocolVersion": 1,
+  "tasks": [
+    {
+      "id": "axios-01-identify-test-script",
+      "repositoryId": "axios",
+      "prompt": "Without modifying the repository, identify the npm script name and exact command body used to run the project's unit tests on the root package. Reply with script name and body only.",
+      "successOracle": { "type": "json-path-equals", "path": "expectedScript", "value": "test" },
+      "forbidden": ["modifying any file", "running install"],
+      "verificationSurface": ["package.json scripts.test"],
+      "timeoutMinutes": 15
+    },
+    {
+      "id": "axios-02-add-devdep",
+      "repositoryId": "axios",
+      "prompt": "Add `semver` as a runtime dependency at version ^7.6.0 in the root package.json only (do not run install). Ensure the dependency entry is under \"dependencies\", not devDependencies.",
+      "successOracle": { "type": "file-contains", "path": "package.json", "substring": "\"semver\": \"^7.6.0\"" },
+      "forbidden": ["changing unrelated dependencies", "modifying lockfile"],
+      "verificationSurface": ["package.json"],
+      "timeoutMinutes": 20
+    },
+    {
+      "id": "jest-01-count-workspace-packages",
+      "repositoryId": "jest",
+      "prompt": "Report how many workspace member packages the root package.json declares under its workspaces field (count glob entries, not expanded packages).",
+      "successOracle": { "type": "manual-rubric", "rubricId": "jest-workspace-declaration-count" },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["package.json workspaces"],
+      "timeoutMinutes": 15
+    },
+    {
+      "id": "jest-02-locate-package-scripts",
+      "repositoryId": "jest",
+      "prompt": "Find any package under packages/ that declares a `test` script and report its package path and script body.",
+      "successOracle": { "type": "manual-rubric", "rubricId": "jest-package-test-script" },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["packages/*/package.json"],
+      "timeoutMinutes": 20
+    },
+    {
+      "id": "vite-01-root-package-manager",
+      "repositoryId": "vite",
+      "prompt": "State the package manager and version declared in the root package.json packageManager field verbatim.",
+      "successOracle": { "type": "manual-rubric", "rubricId": "vite-package-manager-field" },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["package.json packageManager"],
+      "timeoutMinutes": 15
+    },
+    {
+      "id": "vite-02-playground-package",
+      "repositoryId": "vite",
+      "prompt": "Name one package path under playground/ that has its own package.json (repository-relative path).",
+      "successOracle": { "type": "manual-rubric", "rubricId": "vite-playground-manifest" },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["playground/**/package.json"],
+      "timeoutMinutes": 20
+    },
+    {
+      "id": "lodash-01-dist-awareness",
+      "repositoryId": "lodash",
+      "prompt": "Does the repository contain committed JavaScript under dist/ that is not listed as publish artifact only? Answer yes or no and cite one path if yes.",
+      "successOracle": { "type": "manual-rubric", "rubricId": "lodash-dist-present" },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["dist/**"],
+      "timeoutMinutes": 15
+    },
+    {
+      "id": "lodash-02-verification-command",
+      "repositoryId": "lodash",
+      "prompt": "Which npm script would you run to validate types or tests if only package.json is available—name the script and quote its body.",
+      "successOracle": { "type": "manual-rubric", "rubricId": "lodash-verification-script" },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["package.json scripts"],
+      "timeoutMinutes": 15
+    },
+    {
+      "id": "nestjs-01-visible-packages",
+      "repositoryId": "nestjs",
+      "prompt": "How many packages does Agent-Ready-style discovery report at the workspace root (packages with readable manifests under declared workspace scope)? Report the count and list paths.",
+      "successOracle": { "type": "manual-rubric", "rubricId": "nestjs-package-count" },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["package.json workspaces", "packages/*"],
+      "timeoutMinutes": 20
+    },
+    {
+      "id": "nestjs-02-sample-manifests",
+      "repositoryId": "nestjs",
+      "prompt": "Are there package.json files under sample/ that are NOT workspace members? Answer yes/no and cite one path if yes.",
+      "successOracle": { "type": "manual-rubric", "rubricId": "nestjs-sample-outside-scope" },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["sample/**/package.json"],
+      "timeoutMinutes": 20
+    }
+  ]
+}

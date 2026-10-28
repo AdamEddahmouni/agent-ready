@@ -5,6 +5,31 @@ All notable changes to Agent-Ready are documented here. The project follows
 
 ## Unreleased
 
+### Added
+
+- **Discovery Snapshot Format 1** (`snapshotVersion: 1`) for `agent-ready
+  discover --json`, with a hand-authored schema at
+  `schemas/discovery/snapshot-v1.schema.json`, field-level stability contract
+  in `docs/vnext/SNAPSHOT-STABILITY.md`, and a local eight-case conformance
+  corpus under `conformance/discovery/v1/` enforced by `pnpm conformance:check`
+  and integration tests. See
+  [ADR-0048](docs/decisions/0048-discovery-snapshot-stability-and-conformance.md).
+- Pre-freeze corrections from a fifteen-repository study: graph provenance must
+  cite files that were actually read, multi-document `pnpm-lock.yaml` parsing,
+  and checkout-independent diagnostics (no absolute paths in canonical JSON).
+
+### Added (continued)
+
+- Phase 1 benchmark protocol v1 (research): fixed repository and task manifests,
+  decision rule, raw-run schema, and offline validators under
+  `docs/research/phase1-benchmark-protocol/v1/`.
+- Experimental `agent-ready twin build` and `agent-ready twin query` (ADR-0049).
+
+### Changed
+
+- `discover --json` now emits `snapshotVersion: 1` (was `0`). Version `0`
+  promised nothing; there is no migration path from `0` snapshots.
+
 Adds `agent-ready discover` as the twelfth command, on the parallel vNext
 track. It ships the discovery _substrate_ — provenance, explicit uncertainty,
 the absence-versus-failure distinction, contradiction preservation, and a

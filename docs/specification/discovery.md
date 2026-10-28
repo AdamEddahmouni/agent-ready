@@ -56,3 +56,24 @@ ancestor traversal because any entry marks the repository boundary.
 - Alternate contract filenames — only `agent-ready.yaml` is recognized.
 - Nested or monorepo-aware contract inheritance (an explicit non-goal for
   this phase; see [../../ROADMAP.md](../../ROADMAP.md)).
+
+## `agent-ready discover`
+
+Read-only repository inspection. With `--json`, stdout is a single JSON document:
+**Discovery Snapshot Format 1** (`snapshotVersion: 1`). Human-readable output is
+not part of the compatibility contract.
+
+- Published schema:
+  [`schemas/discovery/snapshot-v1.schema.json`](../../schemas/discovery/snapshot-v1.schema.json)
+- Stability contract:
+  [`docs/vnext/SNAPSHOT-STABILITY.md`](../vnext/SNAPSHOT-STABILITY.md)
+- Decision: [ADR-0048](../decisions/0048-discovery-snapshot-stability-and-conformance.md)
+- Conformance corpus: [`conformance/discovery/v1/`](../../conformance/discovery/v1/)
+  — checked in CI via `pnpm conformance:check`
+
+```bash
+agent-ready discover --json
+agent-ready discover --json --root /path/to/repository
+```
+
+Fatal conditions (unreadable root) produce a CLI error envelope, not a snapshot.

@@ -77,9 +77,9 @@
       ]
     },
     "factId": {
-      "description": "A fact identity. Either one of the fixed conceptual identities of the fact vocabulary, or a scoped package-manager identity whose suffix is a repository-relative package path. Scoped identities are a closed template, not an open key space: a repository cannot invent a fact identity.",
+      "description": "A fact identity. Either one of the fixed conceptual identities of the fact vocabulary, or a scoped package-manager identity whose suffix is a repository-relative package path. Scoped identities are a closed template, not an open key space: a repository cannot invent a fact identity, and a scope that escapes the repository, globs, or collapses to `.` is not a scope.",
       "type": "string",
-      "pattern": "^repository\\.(root|contract\\.(present|valid|verification)|declarationSurface\\.present|packages|workspace\\.(root|declarations|candidates|members)|commands|verificationEntrypoints|packageManager\\.(?!\\.{1,2}/)(?!/)(?!.*\\.\\.)(?!.*[/\\\\*?\\[\\]{}])[^/\\\\*?\\[\\]{}]+)$"
+      "pattern": "^repository\\.(root|contract\\.(present|valid|verification)|declarationSurface\\.present|packages|workspace\\.(root|declarations|candidates|members)|commands|verificationEntrypoints|packageManager\\.(?!\\.{1,2}(?:[/\\\\]|$))(?!(?:[^/\\\\]*[/\\\\])*\\.\\.(?:[/\\\\]|[^/\\\\]|$))[^/\\\\*?\\[\\]{}](?:[^/\\\\*?\\[\\]{}]|[^/\\\\]/(?![/\\\\]))*)$"
     },
     "knownFactKind": {
       "description": "What kind of claim a fact is. `declared` is asserted by a repository file, `derived` is computed by a fixed rule from repository content, `author-declared` is a human claim in agent-ready.yaml. CLOSED: adding a value is a breaking change.",

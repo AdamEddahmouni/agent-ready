@@ -211,6 +211,14 @@ describe("impossible states are rejected", () => {
     expect(validate(document), paths()).toBe(false);
   });
 
+  it("rejects a conflicted fact that carries a selected value", () => {
+    const document = validDocument();
+    const fact: Record<string, unknown> = conflictedFact("repository.root");
+    fact["value"] = "a";
+    (document["facts"] as Record<string, unknown>)["repository.root"] = fact;
+    expect(validate(document), paths()).toBe(false);
+  });
+
   it("rejects a known fact whose claim cites nothing", () => {
     const document = validDocument();
     const fact: Record<string, unknown> = agreedFact("repository.root", ".");

@@ -199,6 +199,13 @@ explicitly, and the graph is not persisted and has no command of its own.
 
 ### Issue #5 — Stable JSON snapshot and schema
 
+**Status**: implemented on branch `feat/vnext-snapshot-conformance` (GitHub
+[#40](https://github.com/AdamEddahmouni/agent-ready/issues/40)). Recorded in
+[ADR-0048](../decisions/0048-discovery-snapshot-stability-and-conformance.md);
+consumer stability in
+[SNAPSHOT-STABILITY.md](SNAPSHOT-STABILITY.md); conformance in
+[`conformance/discovery/v1/`](../../conformance/discovery/v1/).
+
 **Depends on:** #4. **Blocks**: #6.
 
 **Deliverable.** The snapshot format versioned independently of the `agent-ready.yaml`

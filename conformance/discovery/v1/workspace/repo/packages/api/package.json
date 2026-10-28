@@ -1,0 +1,10 @@
+{
+  "name": "@scope/api",
+  "version": "0.1.0",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@scope/core": "workspace:*"
+  }
+}
