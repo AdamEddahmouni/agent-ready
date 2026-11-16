@@ -42,45 +42,39 @@ describe("built CLI discover --json", () => {
     expect(stdout).not.toContain(repoRoot.replace(/\\/g, "/"));
   });
 
-  it.skipIf(!existsSync(cli))(
-    "matches the minimal-package corpus case on disk",
-    () => {
-      const fixture = join(repoRoot, "conformance/discovery/v1/minimal-package/repo");
-      const temporary = mkdtempSync(join(tmpdir(), "agent-ready-cli-conformance-"));
-      try {
-        const root = join(temporary, "repo");
-        cpSync(fixture, root, { recursive: true });
-        mkdirSync(join(root, ".git"), { recursive: true });
-        const expected = readFileSync(
-          join(repoRoot, "conformance/discovery/v1/minimal-package/expected.json"),
-          "utf8",
-        );
-        const { stdout } = runDiscoverJson(root);
-        expect(stdout).toBe(expected);
-      } finally {
-        rmSync(temporary, { recursive: true, force: true });
-      }
-    },
-  );
+  it.skipIf(!existsSync(cli))("matches the minimal-package corpus case on disk", () => {
+    const fixture = join(repoRoot, "conformance/discovery/v1/minimal-package/repo");
+    const temporary = mkdtempSync(join(tmpdir(), "agent-ready-cli-conformance-"));
+    try {
+      const root = join(temporary, "repo");
+      cpSync(fixture, root, { recursive: true });
+      mkdirSync(join(root, ".git"), { recursive: true });
+      const expected = readFileSync(
+        join(repoRoot, "conformance/discovery/v1/minimal-package/expected.json"),
+        "utf8",
+      );
+      const { stdout } = runDiscoverJson(root);
+      expect(stdout).toBe(expected);
+    } finally {
+      rmSync(temporary, { recursive: true, force: true });
+    }
+  });
 
-  it.skipIf(!existsSync(cli))(
-    "matches the unresolved-import corpus case on disk",
-    () => {
-      const fixture = join(repoRoot, "conformance/discovery/v1/unresolved-import/repo");
-      const temporary = mkdtempSync(join(tmpdir(), "agent-ready-cli-conformance-"));
-      try {
-        const root = join(temporary, "repo");
-        cpSync(fixture, root, { recursive: true });
-        mkdirSync(join(root, ".git"), { recursive: true });
-        const expected = readFileSync(
-          join(repoRoot, "conformance/discovery/v1/unresolved-import/expected.json"),
-          "utf8",
-        );
-        const { stdout } = runDiscoverJson(root);
-        expect(stdout).toBe(expected);
-      } finally {
-        rmSync(temporary, { recursive: true, force: true });
-      }
-    },
-  );
+  it.skipIf(!existsSync(cli))("matches the unresolved-import corpus case on disk", () => {
+    const fixture = join(repoRoot, "conformance/discovery/v1/unresolved-import/repo");
+    const temporary = mkdtempSync(join(tmpdir(), "agent-ready-cli-conformance-"));
+    try {
+      const root = join(temporary, "repo");
+      cpSync(fixture, root, { recursive: true });
+      mkdirSync(join(root, ".git"), { recursive: true });
+      const expected = readFileSync(
+        join(repoRoot, "conformance/discovery/v1/unresolved-import/expected.json"),
+        "utf8",
+      );
+      const { stdout } = runDiscoverJson(root);
+      expect(stdout).toBe(expected);
+    } finally {
+      rmSync(temporary, { recursive: true, force: true });
+    }
+  });
 });

@@ -122,16 +122,21 @@ for (const entry of cases) {
     note:
       `CONFORMANCE DRIFT against ${displayPath(root, join(entry.casePath, "expected.json"))}\n      ` +
       firstDifference(entry.expected, actual) +
-      (leaks.length > 0 ? `\n      recorded expected output leaks the environment: ${leaks.join("; ")}` : ""),
+      (leaks.length > 0
+        ? `\n      recorded expected output leaks the environment: ${leaks.join("; ")}`
+        : ""),
   });
 }
 
 const width = Math.max(...rows.map((row) => row.name.length), 4);
 for (const row of rows) {
-  const state = row.status === "known-inaccurate" ? "conforms to recorded current behaviour" : "conforms";
+  const state =
+    row.status === "known-inaccurate" ? "conforms to recorded current behaviour" : "conforms";
   const mark = row.matched ? "ok  " : "FAIL";
   const schemaMark = row.schemaValid ? "schema-valid" : "SCHEMA-INVALID";
-  process.stdout.write(`${mark} ${row.name.padEnd(width)}  ${row.status.padEnd(18)} ${schemaMark}  ${row.note === "" ? state : row.note}\n`);
+  process.stdout.write(
+    `${mark} ${row.name.padEnd(width)}  ${row.status.padEnd(18)} ${schemaMark}  ${row.note === "" ? state : row.note}\n`,
+  );
 }
 
 const matchedCount = rows.filter((row) => row.matched).length;

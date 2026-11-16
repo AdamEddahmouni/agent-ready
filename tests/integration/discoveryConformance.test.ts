@@ -64,8 +64,9 @@ describe("metadata contract", () => {
   it.each(cases.map((entry) => [entry.metadata.name, entry] as const))(
     "%s has valid machine-readable metadata.json",
     (_name, entry) => {
-      const parsed = JSON.parse(readFileSync(join(entry.casePath, "metadata.json"), "utf8")) as
-        Partial<CorpusCaseMetadata>;
+      const parsed = JSON.parse(
+        readFileSync(join(entry.casePath, "metadata.json"), "utf8"),
+      ) as Partial<CorpusCaseMetadata>;
       expect(metadataValidationProblems(entry.metadata.name, parsed)).toEqual([]);
     },
   );
@@ -151,8 +152,10 @@ describe("A. every case conforms", () => {
 
         const outcome = await runDiscover(new NodeFileSystem(), { json: true, root: repo });
         expect(outcome.stderr, entry.metadata.name).toBe("");
-        expect(outcome.stdout, `${entry.metadata.name}: ${firstDifference(entry.expected, outcome.stdout)}`)
-          .toBe(entry.expected);
+        expect(
+          outcome.stdout,
+          `${entry.metadata.name}: ${firstDifference(entry.expected, outcome.stdout)}`,
+        ).toBe(entry.expected);
       } finally {
         rmSync(temporary, { recursive: true, force: true });
       }
@@ -251,9 +254,7 @@ describe("E. the corpus fails when behaviour changes", () => {
     // through on its own. So simulate the fix — the same fixture with the
     // generated tree withheld — and require that it does NOT reproduce the
     // recorded bytes, and that what changes is precisely the source universe.
-    const entry = cases.find(
-      (candidate) => candidate.metadata.status === "known-inaccurate",
-    );
+    const entry = cases.find((candidate) => candidate.metadata.status === "known-inaccurate");
     if (entry === undefined) throw new Error("no known-inaccurate case to check");
 
     const fs = buildFixtureFileSystem(entry.repoPath, {
@@ -264,16 +265,19 @@ describe("E. the corpus fails when behaviour changes", () => {
 
     // The recorded output really does admit the generated tree…
     const recorded = JSON.parse(entry.expected) as {
+      facts: unknown;
       graph: { sourceUniverse: { files: string[] }; nodes: { id: string }[] };
     };
-    expect(recorded.graph.sourceUniverse.files.filter((file) => file.startsWith("dist/"))).not
-      .toEqual([]);
+    expect(
+      recorded.graph.sourceUniverse.files.filter((file) => file.startsWith("dist/")),
+    ).not.toEqual([]);
     expect(recorded.graph.nodes.filter((node) => node.id.startsWith("module:dist/"))).not.toEqual(
       [],
     );
 
     // …and withholding it removes both, which is the whole difference.
     const produced = JSON.parse(withoutBuildOutput.stdout) as {
+      facts: unknown;
       graph: { sourceUniverse: { files: string[] }; nodes: { id: string }[] };
     };
     expect(produced.graph.sourceUniverse.files).not.toEqual(recorded.graph.sourceUniverse.files);

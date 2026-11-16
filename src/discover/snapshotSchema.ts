@@ -18,7 +18,9 @@ export function snapshotFormat1Validator(): ValidateFunction {
 }
 
 export interface SnapshotValidationFailure {
-  readonly code: "TWIN_SNAPSHOT_UNSUPPORTED_VERSION" | "TWIN_SNAPSHOT_INVALID" | "TWIN_SNAPSHOT_NOT_OBJECT";
+  readonly ok: false;
+  readonly code:
+    "TWIN_SNAPSHOT_UNSUPPORTED_VERSION" | "TWIN_SNAPSHOT_INVALID" | "TWIN_SNAPSHOT_NOT_OBJECT";
   readonly detail: string;
 }
 
@@ -30,14 +32,19 @@ export function parseValidatedSnapshotFormat1(
   try {
     parsed = JSON.parse(text) as unknown;
   } catch {
-    return { code: "TWIN_SNAPSHOT_INVALID", detail: "the snapshot is not valid JSON" };
+    return { ok: false, code: "TWIN_SNAPSHOT_INVALID", detail: "the snapshot is not valid JSON" };
   }
   if (typeof parsed !== "object" || parsed === null) {
-    return { code: "TWIN_SNAPSHOT_NOT_OBJECT", detail: "the snapshot must be a JSON object" };
+    return {
+      ok: false,
+      code: "TWIN_SNAPSHOT_NOT_OBJECT",
+      detail: "the snapshot must be a JSON object",
+    };
   }
   const document = parsed as Record<string, unknown>;
   if (document["ok"] !== true) {
     return {
+      ok: false,
       code: "TWIN_SNAPSHOT_INVALID",
       detail: "a discovery error envelope is not a snapshot artifact",
     };
@@ -45,6 +52,7 @@ export function parseValidatedSnapshotFormat1(
   const version = document["snapshotVersion"];
   if (version !== DISCOVERY_SNAPSHOT_VERSION) {
     return {
+      ok: false,
       code: "TWIN_SNAPSHOT_UNSUPPORTED_VERSION",
       detail: `expected snapshotVersion ${String(DISCOVERY_SNAPSHOT_VERSION)}, got ${JSON.stringify(version)}`,
     };
@@ -52,6 +60,7 @@ export function parseValidatedSnapshotFormat1(
   const validate = snapshotFormat1Validator();
   if (!validate(document)) {
     return {
+      ok: false,
       code: "TWIN_SNAPSHOT_INVALID",
       detail:
         validate.errors?.map((entry) => entry.message ?? "invalid").join("; ") ??
