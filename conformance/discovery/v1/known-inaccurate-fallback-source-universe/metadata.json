@@ -1,0 +1,18 @@
+{
+  "name": "known-inaccurate-fallback-source-universe",
+  "purpose": "Pins a known limitation so that fixing it cannot happen silently. A package with no `tsconfig.json` gets the deliberately blind bounded traversal, which cannot tell source from build output, so committed `dist/` enters the module universe.",
+  "exercises": [
+    "bounded-traversal strategy is published, not inferred",
+    "generated output is admitted as source — deliberately, and wrongly",
+    "CommonJS require is reported as unsupported-syntax rather than resolved"
+  ],
+  "snapshotVersion": 1,
+  "status": "known-inaccurate",
+  "knownLimitation": "With no `tsconfig.json`, the fallback walk excludes only `node_modules` and `.git`, because \"this directory looks like build output\" is a guess and a guess that silently drops files produces a graph that is quietly incomplete. The cost is that committed `dist/` and `lib/` are treated as source, so `graph.sourceUniverse.files` is not the repository's source and `graph.nodes` contains generated code.",
+  "correctFutureBehaviour": "A documented exclusion rule for build output, with its own decision and its own diagnostics — not a growing list of directory names that look like build output. The corpus study also found a second route to the same inaccuracy: a `tsconfig.json` that states no `files` and no `include` reproduces TypeScript's own `**/*` default and admits generated trees just as well, so a fix has to cover both.",
+  "inspiredBy": {
+    "repository": "https://github.com/lodash/lodash",
+    "commit": "2b5e6f7399a7b48005140b5d5c6bc6c0e62919a8",
+    "originalBehaviour": "7 of 55 modules are in `dist/`. The same inaccuracy reached webpack at e95be18b465117b38d4f260b608d4f084a500bdc through a `tsconfig.json` default include rather than the fallback walk, where 640 of 765 modules are in a committed, generated `lib/`."
+  }
+}

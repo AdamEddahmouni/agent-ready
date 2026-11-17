@@ -97,6 +97,8 @@ The required `command:` input below accepts exactly one of:
 - `explain`
 - `init`
 - `upgrade`
+- `discover`
+- `twin`
 - `verify`
 
 This list is the source of truth shared with `action.yml`'s
@@ -107,25 +109,31 @@ which asserts the action accepts every subcommand the CLI wires.
 Widening any of these three widens all three in the same PR — see the
 Path A note further down in this section.
 
-| Input          | Maps to                                                                   | Default                  |
-| -------------- | ------------------------------------------------------------------------- | ------------------------ |
-| `command`      | (required) one of the [Accepted subcommands](#accepted-subcommands) above | —                        |
-| `config`       | `--config <path>`                                                         | discovery, unset         |
-| `code`         | (explain) `--code <CODE>`                                                 | unset                    |
-| `json`         | `--json`                                                                  | `false`                  |
-| `write`        | (generate/init/upgrade) `--write`                                         | `false`                  |
-| `check`        | (generate) `--check`                                                      | `false`                  |
-| `force`        | (generate --write) `--force`                                              | `false`                  |
-| `staged`       | (check) `--staged`                                                        | `false`                  |
-| `against`      | (check) `--against <ref>`                                                 | unset                    |
-| `execute`      | (verify) `--execute`                                                      | `false`                  |
-| `timeout`      | (verify --execute) `--timeout <seconds>`                                  | unset (CLI default: 900) |
-| `record`       | (verify --execute) `--record`                                             | `false`                  |
-| `node-version` | Node.js version used to build and run Agent-Ready                         | `"22"`                   |
+| Input             | Maps to                                                                   | Default                  |
+| ----------------- | ------------------------------------------------------------------------- | ------------------------ |
+| `command`         | (required) one of the [Accepted subcommands](#accepted-subcommands) above | —                        |
+| `config`          | `--config <path>`                                                         | discovery, unset         |
+| `code`            | (explain) `--code <CODE>`                                                 | unset                    |
+| `json`            | `--json`                                                                  | `false`                  |
+| `write`           | (generate/init/upgrade) `--write`                                         | `false`                  |
+| `check`           | (generate) `--check`                                                      | `false`                  |
+| `force`           | (generate --write) `--force`                                              | `false`                  |
+| `staged`          | (check) `--staged`                                                        | `false`                  |
+| `against`         | (check) `--against <ref>`                                                 | unset                    |
+| `execute`         | (verify) `--execute`                                                      | `false`                  |
+| `timeout`         | (verify --execute) `--timeout <seconds>`                                  | unset (CLI default: 900) |
+| `record`          | (verify --execute) `--record`                                             | `false`                  |
+| `twin-command`    | (twin) `build` or `query` — required when `command: twin`                 | unset                    |
+| `output`          | (twin build) `--output <path>`                                            | unset                    |
+| `snapshot`        | (twin query) `--snapshot <path>`                                          | unset                    |
+| `query-kind`      | (twin query) `--kind <kind>`                                              | unset                    |
+| `query-parameter` | (twin query) `--parameter <value>`                                        | unset                    |
+| `query-limit`     | (twin query) `--limit <n>`                                                | unset                    |
+| `node-version`    | Node.js version used to build and run Agent-Ready                         | `"22"`                   |
 
 A step's exit code is exactly the CLI's exit code (see
 [cli-reference.md](cli-reference.md#exit-codes)) — a failing
-`validate`/`check`/`analyze`/`schema`/`doctor`/`explain`/`init`/`upgrade`/`verify`
+`validate`/`check`/`analyze`/`schema`/`doctor`/`explain`/`init`/`upgrade`/`discover`/`twin`/`verify`
 fails the job with no extra
 wiring. The action never captures or parses the CLI's stdout/stderr; it
 flows straight to the job log exactly as if you had run the command
@@ -134,7 +142,9 @@ required inputs in the same PR, so the composite action does not advertise a
 subcommand it cannot invoke. The
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) `dogfood-action`
 matrix grows the same way; if a future command does not accept `--config` (since `agent-ready schema` does not, per
-[ADR-0022](../decisions/0022-agent-ready-schema-command.md)),
+[ADR-0022](../decisions/0022-agent-ready-schema-command.md), and neither does
+`agent-ready discover`, which takes `--root` instead — see
+[ADR-0044](../decisions/0044-repository-discovery-model.md)),
 extend the `config:` line's `if(...)` predicate so its matrix entry
 also gets an empty `config:` value — otherwise the bash step appends a
 `--config` flag that commander rejects.

@@ -1,0 +1,461 @@
+{
+  "ok": true,
+  "snapshotVersion": 1,
+  "root": ".",
+  "facts": {
+    "repository.commands": {
+      "id": "repository.commands",
+      "kind": "declared",
+      "value": [
+        {
+          "packagePath": ".",
+          "scriptsStatus": "absent",
+          "commands": [],
+          "unmodelledScripts": [],
+          "unsupportedReason": null
+        }
+      ],
+      "claims": [
+        {
+          "kind": "declared",
+          "value": [
+            {
+              "packagePath": ".",
+              "scriptsStatus": "absent",
+              "commands": [],
+              "unmodelledScripts": [],
+              "unsupportedReason": null
+            }
+          ],
+          "evidence": [
+            {
+              "source": "package.json",
+              "pointer": "/scripts",
+              "detail": "no scripts field"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "declared"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.contract.present": {
+      "id": "repository.contract.present",
+      "kind": "derived",
+      "value": false,
+      "claims": [
+        {
+          "kind": "derived",
+          "value": false,
+          "evidence": [
+            {
+              "source": "agent-ready.yaml",
+              "detail": "not present"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.contract.valid": {
+      "id": "repository.contract.valid",
+      "kind": "unknown",
+      "reason": "not-probed",
+      "evidence": []
+    },
+    "repository.contract.verification": {
+      "id": "repository.contract.verification",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "agent-ready.yaml",
+          "detail": "declares no verification sequence"
+        }
+      ]
+    },
+    "repository.declarationSurface.present": {
+      "id": "repository.declarationSurface.present",
+      "kind": "derived",
+      "value": false,
+      "claims": [
+        {
+          "kind": "derived",
+          "value": false,
+          "evidence": [
+            {
+              "source": "AGENTS.md",
+              "detail": "not present"
+            },
+            {
+              "source": "CLAUDE.md",
+              "detail": "not present"
+            },
+            {
+              "source": ".cursorrules",
+              "detail": "not present"
+            },
+            {
+              "source": ".github/copilot-instructions.md",
+              "detail": "not present"
+            },
+            {
+              "source": ".github/workflows",
+              "detail": "not present"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.packageManager.root": {
+      "id": "repository.packageManager.root",
+      "kind": "declared",
+      "value": "pnpm@9.15.9",
+      "claims": [
+        {
+          "kind": "declared",
+          "value": "pnpm@9.15.9",
+          "evidence": [
+            {
+              "source": "package.json",
+              "pointer": "/packageManager",
+              "detail": "declared package manager"
+            }
+          ]
+        },
+        {
+          "kind": "derived",
+          "value": "package-lock.json",
+          "evidence": [
+            {
+              "source": "package-lock.json",
+              "detail": "an npm lockfile exists"
+            }
+          ]
+        },
+        {
+          "kind": "derived",
+          "value": "pnpm-lock.yaml",
+          "evidence": [
+            {
+              "source": "pnpm-lock.yaml",
+              "detail": "a pnpm lockfile exists"
+            }
+          ]
+        }
+      ],
+      "contradictedBy": [
+        "npm"
+      ],
+      "corroboration": {
+        "kinds": [
+          "declared",
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": true
+      }
+    },
+    "repository.packages": {
+      "id": "repository.packages",
+      "kind": "derived",
+      "value": [
+        {
+          "path": ".",
+          "name": "conflicted",
+          "nameStatus": "declared",
+          "private": null,
+          "version": null,
+          "manifestStatus": "read"
+        }
+      ],
+      "claims": [
+        {
+          "kind": "derived",
+          "value": [
+            {
+              "path": ".",
+              "name": "conflicted",
+              "nameStatus": "declared",
+              "private": null,
+              "version": null,
+              "manifestStatus": "read"
+            }
+          ],
+          "evidence": [
+            {
+              "source": "package.json",
+              "detail": "package manifest"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.root": {
+      "id": "repository.root",
+      "kind": "derived",
+      "value": ".",
+      "claims": [
+        {
+          "kind": "derived",
+          "value": ".",
+          "evidence": [
+            {
+              "source": ".git",
+              "detail": "nearest ancestor directory containing a .git entry"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.verificationEntrypoints": {
+      "id": "repository.verificationEntrypoints",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "no declared script name matches a recognised verification role"
+        }
+      ]
+    },
+    "repository.workspace.candidates": {
+      "id": "repository.workspace.candidates",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "present, declares no workspace"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.declarations": {
+      "id": "repository.workspace.declarations",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "present, declares no workspace"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.members": {
+      "id": "repository.workspace.members",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "present, declares no workspace"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.root": {
+      "id": "repository.workspace.root",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "present, declares no workspace"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    }
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "dependency:ajv",
+        "kind": "external-dependency",
+        "name": "ajv",
+        "provenance": {
+          "source": "package.json",
+          "line": 5,
+          "pointer": "/dependencies/ajv"
+        }
+      },
+      {
+        "id": "package:.",
+        "kind": "package",
+        "path": ".",
+        "name": "conflicted",
+        "provenance": {
+          "source": "package.json",
+          "line": 2,
+          "column": 3,
+          "endLine": 2,
+          "endColumn": 9,
+          "pointer": "/name"
+        },
+        "ownership": {
+          "status": "unowned",
+          "policy": {
+            "status": "absent",
+            "source": null
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "dependency:package:.->dependency:ajv",
+        "kind": "package-depends-on",
+        "source": "package:.",
+        "target": "dependency:ajv",
+        "declarations": [
+          {
+            "name": "ajv",
+            "dependencyClass": "runtime",
+            "declaredSpecifier": "^8.17.1",
+            "pointer": "/dependencies/ajv",
+            "provenance": {
+              "source": "package.json",
+              "line": 5,
+              "column": 5,
+              "endLine": 5,
+              "endColumn": 10,
+              "pointer": "/dependencies/ajv"
+            }
+          }
+        ],
+        "resolution": {
+          "status": "resolved",
+          "version": "8.17.1",
+          "provenance": {
+            "source": "pnpm-lock.yaml",
+            "line": 9,
+            "column": 18
+          }
+        },
+        "provenance": {
+          "source": "package.json",
+          "line": 5,
+          "column": 5,
+          "endLine": 5,
+          "endColumn": 10,
+          "pointer": "/dependencies/ajv"
+        },
+        "targetMissing": false
+      }
+    ],
+    "sourceUniverse": {
+      "strategy": "bounded-traversal",
+      "tsconfigs": [],
+      "resolutionMode": "Bundler",
+      "extensions": [
+        ".ts",
+        ".mts",
+        ".cts",
+        ".tsx",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".jsx"
+      ],
+      "files": [],
+      "truncated": false
+    },
+    "ownership": {
+      "status": "absent",
+      "source": null,
+      "rules": 0,
+      "unsupportedPatterns": [],
+      "detail": null
+    },
+    "counts": {
+      "nodes": 2,
+      "edges": 1,
+      "packages": 1,
+      "modules": 0,
+      "externalDependencies": 1,
+      "owners": 0,
+      "importEdges": 0,
+      "resolvedImports": 0,
+      "unresolvedImports": 0,
+      "dependencyEdges": 1,
+      "resolvedDependencies": 1,
+      "workspaceDependencies": 0,
+      "ownedSubjects": 0,
+      "unownedSubjects": 1
+    },
+    "complete": true,
+    "truncatedBy": null
+  },
+  "summary": {
+    "facts": 13,
+    "known": 6,
+    "unknown": 7,
+    "conflicts": 0,
+    "complete": true
+  },
+  "diagnostics": [
+    {
+      "code": "DISCOVERY_FACT_INCOMPLETE",
+      "severity": "warning",
+      "summary": "repository.packageManager.root is reported with a value that other repository evidence does not support.",
+      "detail": "The declared value \"pnpm@9.15.9\" is contradicted by \"npm\". Every claim is retained; no source was preferred over another.",
+      "remediation": "Both the declaration and the contradicting artifacts are reported. Decide which is authoritative; Agent-Ready will not choose for you.",
+      "metadata": {
+        "factId": "repository.packageManager.root",
+        "claimedValues": [
+          "pnpm@9.15.9",
+          "package-lock.json",
+          "pnpm-lock.yaml"
+        ],
+        "contradictedBy": [
+          "npm"
+        ]
+      }
+    }
+  ]
+}
