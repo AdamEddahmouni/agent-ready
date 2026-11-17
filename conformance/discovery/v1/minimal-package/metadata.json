@@ -1,0 +1,14 @@
+{
+  "name": "minimal-package",
+  "purpose": "The floor of the format: one package, one agreed package manager, a lockfile that resolves, three commands, one resolved import, one dependency, and no ownership policy at all.",
+  "exercises": [
+    "canonical repository-relative paths",
+    "agreed package-manager fact with corroboration",
+    "resolved dependency version citing the lockfile line",
+    "command inventory with verbatim bodies",
+    "verification role projection over test/build/lint",
+    "ownership surface absent, every subject explicitly unowned"
+  ],
+  "snapshotVersion": 1,
+  "status": "normative"
+}

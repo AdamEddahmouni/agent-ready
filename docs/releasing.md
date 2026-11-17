@@ -7,7 +7,7 @@ interchangeably:
 
 | Identifier                   | Example                      | Purpose                                                                                 |
 | ---------------------------- | ---------------------------- | --------------------------------------------------------------------------------------- |
-| Package version and Git tag  | `0.6.0` / `v0.6.0`           | The immutable, published Agent-Ready release.                                           |
+| Package version and Git tag  | `0.6.1` / `v0.6.1`           | The immutable, published Agent-Ready release.                                           |
 | npm dist-tag                 | `next` or `latest`           | The moving installation channel: prereleases use `next`; stable releases use `latest`.  |
 | Contract schema version      | `version: 1`                 | The compatibility shape of `agent-ready.yaml`; independent of package releases.         |
 | Adapter compatibility corpus | `adapter-output/v1` and `v2` | Independently versioned expected-output fixture formats, archived together per release. |
@@ -35,8 +35,10 @@ Release steps:
    `git push origin v<version>`
 7. Approve the protected `npm-production` environment deployment. The
    `.github/workflows/publish.yml` workflow rejects unsigned/lightweight tags
-   and commits not reachable from `main`, then runs typecheck, tests, build, package smoke test, tag-version verification,
-   and `npm publish --provenance --access public`. Prerelease versions are
+   and commits not reachable from `main`, then runs a production dependency
+   audit (`pnpm audit --prod --audit-level=high`, failing closed on high or
+   critical advisories), typecheck, tests, build, package smoke test,
+   tag-version verification, and `npm publish --provenance --access public`. Prerelease versions are
    published under npm's `next` tag; stable versions use `latest`. It then
    installs the exact published version in a clean directory, checks
    `--version`, and validates the minimal example.

@@ -1,0 +1,12 @@
+{
+  "name": "ownership",
+  "purpose": "A CODEOWNERS file with a catch-all, a nested directory rule with two owners on it, an overlapping rule where last-match-wins decides, and a character-class pattern this version refuses. Owned and unowned subjects must both be present and correct.",
+  "exercises": [
+    "owned subject with more than one owner, one edge per owner token",
+    "last-match-wins on overlapping rules",
+    "explicitly unowned subjects with an evaluated policy",
+    "an unsupported pattern surfaced rather than approximated, with its neighbours still applying"
+  ],
+  "snapshotVersion": 1,
+  "status": "normative"
+}

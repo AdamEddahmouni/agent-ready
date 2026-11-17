@@ -1,0 +1,11 @@
+{
+  "name": "partial-observation",
+  "purpose": "Unreadable inputs. `summary.complete` must be false, the diagnostics must say what could not be read, and the snapshot must still be a usable document rather than an error.",
+  "exercises": [
+    "summary.complete false when nothing could be interpreted",
+    "a fatal failure is a CLI error envelope, not a snapshot",
+    "unknown facts rather than fabricated ones"
+  ],
+  "snapshotVersion": 1,
+  "status": "normative"
+}
