@@ -21,7 +21,7 @@
  * consumer.
  */
 
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import {
@@ -39,6 +39,21 @@ const schema = JSON.parse(
   readFileSync("schemas/discovery/snapshot-v1.schema.json", "utf8"),
 ) as object;
 const validate = ajv.compile(schema);
+
+/**
+ * Read a file that may not exist yet, in one operation. Checking existence and
+ * then reading is a race (and CodeQL flags it): the file can appear or vanish
+ * between the two calls. A missing file is the only condition treated as
+ * "nothing recorded yet"; every other error is real and must surface.
+ */
+function readIfExists(path: string): string | null {
+  try {
+    return readFileSync(path, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+}
 
 const mode = process.argv[2] === "update" ? "update" : "check";
 const root = process.cwd();
@@ -100,7 +115,7 @@ for (const entry of cases) {
   if (mode === "update") {
     const target = join(entry.casePath, "expected.json");
     mkdirSync(dirname(target), { recursive: true });
-    if (!existsSync(target) || readFileSync(target, "utf8") !== actual) {
+    if (readIfExists(target) !== actual) {
       writeFileSync(target, actual, "utf8");
     }
     rows.push({ name, status: entry.metadata.status, schemaValid, matched: true, note: "written" });
