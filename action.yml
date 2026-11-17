@@ -1,15 +1,16 @@
 name: "Agent-Ready"
 description: >-
   Validate, inspect, generate, check, analyze, schema, doctor, explain, init,
-  upgrade, and verify a repository's agent-ready.yaml contract, using this repository's own
-  CLI built from source. See docs/specification/ci-integration.md.
+  upgrade, discover, twin, and verify a repository's agent-ready.yaml contract,
+  using this repository's own CLI built from source. See
+  docs/specification/ci-integration.md.
 author: "Agent-Ready"
 
 inputs:
   command:
     description: >-
       The agent-ready subcommand to run: validate, inspect, generate,
-      check, analyze, schema, doctor, explain, init, upgrade, or verify.
+      check, analyze, schema, doctor, explain, init, upgrade, discover, twin, or verify.
     required: true
   config:
     description: "Explicit path to the contract file (agent-ready.yaml)."
@@ -51,6 +52,24 @@ inputs:
     description: "(verify --execute) Write a JSON evidence file (agent-ready-verify-result.json) to the repository root."
     required: false
     default: "false"
+  twin-command:
+    description: "(twin) Subcommand to run: build or query."
+    required: false
+  output:
+    description: "(twin build) Destination path for the discovery snapshot JSON."
+    required: false
+  snapshot:
+    description: "(twin query) Path to a Discovery Snapshot Format 1 JSON file."
+    required: false
+  query-kind:
+    description: "(twin query) Query kind, e.g. summary, packages, or commands-for-package."
+    required: false
+  query-parameter:
+    description: "(twin query) Parameter for the query kind, e.g. a package or module path."
+    required: false
+  query-limit:
+    description: "(twin query) Maximum list entries before truncation."
+    required: false
   node-version:
     description: "Node.js version to build and run Agent-Ready with."
     required: false
@@ -63,7 +82,7 @@ runs:
       uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
     - name: Setup Node.js
-      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
         node-version: ${{ inputs.node-version }}
         cache: pnpm
@@ -94,33 +113,68 @@ runs:
         INPUT_EXECUTE: ${{ inputs.execute }}
         INPUT_TIMEOUT: ${{ inputs.timeout }}
         INPUT_RECORD: ${{ inputs.record }}
+        INPUT_TWIN_COMMAND: ${{ inputs.twin-command }}
+        INPUT_OUTPUT: ${{ inputs.output }}
+        INPUT_SNAPSHOT: ${{ inputs.snapshot }}
+        INPUT_QUERY_KIND: ${{ inputs.query-kind }}
+        INPUT_QUERY_PARAMETER: ${{ inputs.query-parameter }}
+        INPUT_QUERY_LIMIT: ${{ inputs.query-limit }}
       run: |
         set -euo pipefail
 
         # Bash does not parse `|` from a variable expansion as case-pattern
         # alternation. Keep an explicit regex for validation and a matching
         # display list for errors; update both with the command input prose.
-        readonly accepted_subcommands_regex='^(validate|inspect|generate|check|analyze|schema|doctor|explain|init|upgrade|verify)$'
-        readonly accepted_subcommands_display='validate, inspect, generate, check, analyze, schema, doctor, explain, init, upgrade, verify'
+        readonly accepted_subcommands_regex='^(validate|inspect|generate|check|analyze|schema|doctor|explain|init|upgrade|discover|twin|verify)$'
+        readonly accepted_subcommands_display='validate, inspect, generate, check, analyze, schema, doctor, explain, init, upgrade, discover, twin, verify'
 
         if [[ ! "$INPUT_COMMAND" =~ $accepted_subcommands_regex ]]; then
           echo >&2 "::error::agent-ready: unknown command '$INPUT_COMMAND'. Accepted: $accepted_subcommands_display."
           exit 3
         fi
 
-        args=("$INPUT_COMMAND")
+        # `twin` is the only command with a second positional level, so its
+        # flags are validated here rather than appended from the generic block.
+        if [ "$INPUT_COMMAND" = "twin" ]; then
+          case "${INPUT_TWIN_COMMAND:-}" in
+            build)
+              if [ -z "${INPUT_OUTPUT:-}" ]; then
+                echo >&2 "::error::agent-ready: twin build requires the output input."
+                exit 3
+              fi
+              args=(twin build --output "$INPUT_OUTPUT")
+              if [ "${INPUT_FORCE:-false}" = "true" ]; then args+=(--force); fi
+              ;;
+            query)
+              if [ -z "${INPUT_SNAPSHOT:-}" ] || [ -z "${INPUT_QUERY_KIND:-}" ]; then
+                echo >&2 "::error::agent-ready: twin query requires the snapshot and query-kind inputs."
+                exit 3
+              fi
+              args=(twin query --snapshot "$INPUT_SNAPSHOT" --kind "$INPUT_QUERY_KIND")
+              if [ -n "${INPUT_QUERY_PARAMETER:-}" ]; then args+=(--parameter "$INPUT_QUERY_PARAMETER"); fi
+              if [ -n "${INPUT_QUERY_LIMIT:-}" ]; then args+=(--limit "$INPUT_QUERY_LIMIT"); fi
+              if [ "${INPUT_JSON:-false}" = "true" ]; then args+=(--json); fi
+              ;;
+            *)
+              echo >&2 "::error::agent-ready: command 'twin' requires twin-command to be 'build' or 'query'."
+              exit 3
+              ;;
+          esac
+        else
+          args=("$INPUT_COMMAND")
 
-        if [ -n "${INPUT_CONFIG:-}" ]; then args+=("--config" "$INPUT_CONFIG"); fi
-        if [ -n "${INPUT_CODE:-}" ]; then args+=("--code" "$INPUT_CODE"); fi
-        if [ "${INPUT_JSON:-false}" = "true" ]; then args+=("--json"); fi
-        if [ "${INPUT_WRITE:-false}" = "true" ]; then args+=("--write"); fi
-        if [ "${INPUT_CHECK:-false}" = "true" ]; then args+=("--check"); fi
-        if [ "${INPUT_FORCE:-false}" = "true" ]; then args+=("--force"); fi
-        if [ "${INPUT_STAGED:-false}" = "true" ]; then args+=("--staged"); fi
-        if [ -n "${INPUT_AGAINST:-}" ]; then args+=("--against" "$INPUT_AGAINST"); fi
-        if [ "${INPUT_EXECUTE:-false}" = "true" ]; then args+=("--execute"); fi
-        if [ -n "${INPUT_TIMEOUT:-}" ]; then args+=("--timeout" "$INPUT_TIMEOUT"); fi
-        if [ "${INPUT_RECORD:-false}" = "true" ]; then args+=("--record"); fi
+          if [ -n "${INPUT_CONFIG:-}" ]; then args+=("--config" "$INPUT_CONFIG"); fi
+          if [ -n "${INPUT_CODE:-}" ]; then args+=("--code" "$INPUT_CODE"); fi
+          if [ "${INPUT_JSON:-false}" = "true" ]; then args+=("--json"); fi
+          if [ "${INPUT_WRITE:-false}" = "true" ]; then args+=("--write"); fi
+          if [ "${INPUT_CHECK:-false}" = "true" ]; then args+=("--check"); fi
+          if [ "${INPUT_FORCE:-false}" = "true" ]; then args+=(--force); fi
+          if [ "${INPUT_STAGED:-false}" = "true" ]; then args+=(--staged); fi
+          if [ -n "${INPUT_AGAINST:-}" ]; then args+=("--against" "$INPUT_AGAINST"); fi
+          if [ "${INPUT_EXECUTE:-false}" = "true" ]; then args+=(--execute); fi
+          if [ -n "${INPUT_TIMEOUT:-}" ]; then args+=(--timeout "$INPUT_TIMEOUT"); fi
+          if [ "${INPUT_RECORD:-false}" = "true" ]; then args+=(--record); fi
+        fi
 
         node "$ACTION_PATH/dist/cli/index.js" "${args[@]}"
 

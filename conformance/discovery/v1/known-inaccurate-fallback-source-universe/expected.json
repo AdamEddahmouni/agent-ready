@@ -1,0 +1,512 @@
+{
+  "ok": true,
+  "snapshotVersion": 1,
+  "root": ".",
+  "facts": {
+    "repository.commands": {
+      "id": "repository.commands",
+      "kind": "declared",
+      "value": [
+        {
+          "packagePath": ".",
+          "scriptsStatus": "absent",
+          "commands": [],
+          "unmodelledScripts": [],
+          "unsupportedReason": null
+        }
+      ],
+      "claims": [
+        {
+          "kind": "declared",
+          "value": [
+            {
+              "packagePath": ".",
+              "scriptsStatus": "absent",
+              "commands": [],
+              "unmodelledScripts": [],
+              "unsupportedReason": null
+            }
+          ],
+          "evidence": [
+            {
+              "source": "package.json",
+              "pointer": "/scripts",
+              "detail": "no scripts field"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "declared"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.contract.present": {
+      "id": "repository.contract.present",
+      "kind": "derived",
+      "value": false,
+      "claims": [
+        {
+          "kind": "derived",
+          "value": false,
+          "evidence": [
+            {
+              "source": "agent-ready.yaml",
+              "detail": "not present"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.contract.valid": {
+      "id": "repository.contract.valid",
+      "kind": "unknown",
+      "reason": "not-probed",
+      "evidence": []
+    },
+    "repository.contract.verification": {
+      "id": "repository.contract.verification",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "agent-ready.yaml",
+          "detail": "declares no verification sequence"
+        }
+      ]
+    },
+    "repository.declarationSurface.present": {
+      "id": "repository.declarationSurface.present",
+      "kind": "derived",
+      "value": false,
+      "claims": [
+        {
+          "kind": "derived",
+          "value": false,
+          "evidence": [
+            {
+              "source": "AGENTS.md",
+              "detail": "not present"
+            },
+            {
+              "source": "CLAUDE.md",
+              "detail": "not present"
+            },
+            {
+              "source": ".cursorrules",
+              "detail": "not present"
+            },
+            {
+              "source": ".github/copilot-instructions.md",
+              "detail": "not present"
+            },
+            {
+              "source": ".github/workflows",
+              "detail": "not present"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.packageManager.root": {
+      "id": "repository.packageManager.root",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "agent-ready.yaml",
+          "pointer": "/environment/packageManager",
+          "detail": "not declared"
+        },
+        {
+          "source": "npm-shrinkwrap.json",
+          "detail": "not present"
+        },
+        {
+          "source": "package-lock.json",
+          "detail": "not present"
+        },
+        {
+          "source": "package.json",
+          "pointer": "/packageManager",
+          "detail": "not declared"
+        },
+        {
+          "source": "pnpm-lock.yaml",
+          "detail": "not present"
+        },
+        {
+          "source": "yarn.lock",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.packages": {
+      "id": "repository.packages",
+      "kind": "derived",
+      "value": [
+        {
+          "path": ".",
+          "name": "fallback",
+          "nameStatus": "declared",
+          "private": true,
+          "version": null,
+          "manifestStatus": "read"
+        }
+      ],
+      "claims": [
+        {
+          "kind": "derived",
+          "value": [
+            {
+              "path": ".",
+              "name": "fallback",
+              "nameStatus": "declared",
+              "private": true,
+              "version": null,
+              "manifestStatus": "read"
+            }
+          ],
+          "evidence": [
+            {
+              "source": "package.json",
+              "detail": "package manifest"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.root": {
+      "id": "repository.root",
+      "kind": "derived",
+      "value": ".",
+      "claims": [
+        {
+          "kind": "derived",
+          "value": ".",
+          "evidence": [
+            {
+              "source": ".git",
+              "detail": "nearest ancestor directory containing a .git entry"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.verificationEntrypoints": {
+      "id": "repository.verificationEntrypoints",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "no declared script name matches a recognised verification role"
+        }
+      ]
+    },
+    "repository.workspace.candidates": {
+      "id": "repository.workspace.candidates",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "present, declares no workspace"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.declarations": {
+      "id": "repository.workspace.declarations",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "present, declares no workspace"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.members": {
+      "id": "repository.workspace.members",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "present, declares no workspace"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.root": {
+      "id": "repository.workspace.root",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "present, declares no workspace"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    }
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "module:dist/helper.js",
+        "kind": "module",
+        "path": "dist/helper.js",
+        "packagePath": ".",
+        "provenance": {
+          "source": "dist/helper.js",
+          "line": 1
+        },
+        "ownership": {
+          "status": "unowned",
+          "policy": {
+            "status": "absent",
+            "source": null
+          }
+        }
+      },
+      {
+        "id": "module:dist/index.js",
+        "kind": "module",
+        "path": "dist/index.js",
+        "packagePath": ".",
+        "provenance": {
+          "source": "dist/index.js",
+          "line": 1
+        },
+        "ownership": {
+          "status": "unowned",
+          "policy": {
+            "status": "absent",
+            "source": null
+          }
+        }
+      },
+      {
+        "id": "module:src/helper.js",
+        "kind": "module",
+        "path": "src/helper.js",
+        "packagePath": ".",
+        "provenance": {
+          "source": "src/helper.js",
+          "line": 1
+        },
+        "ownership": {
+          "status": "unowned",
+          "policy": {
+            "status": "absent",
+            "source": null
+          }
+        }
+      },
+      {
+        "id": "module:src/index.js",
+        "kind": "module",
+        "path": "src/index.js",
+        "packagePath": ".",
+        "provenance": {
+          "source": "src/index.js",
+          "line": 1
+        },
+        "ownership": {
+          "status": "unowned",
+          "policy": {
+            "status": "absent",
+            "source": null
+          }
+        }
+      },
+      {
+        "id": "package:.",
+        "kind": "package",
+        "path": ".",
+        "name": "fallback",
+        "provenance": {
+          "source": "package.json",
+          "line": 2,
+          "column": 3,
+          "endLine": 2,
+          "endColumn": 9,
+          "pointer": "/name"
+        },
+        "ownership": {
+          "status": "unowned",
+          "policy": {
+            "status": "absent",
+            "source": null
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "import:module:dist/index.js->unresolved:./helper.js@1:24",
+        "kind": "imports",
+        "source": "module:dist/index.js",
+        "specifier": "./helper.js",
+        "syntax": "require",
+        "typeOnly": false,
+        "resolution": {
+          "status": "unresolved",
+          "reason": "unsupported-syntax"
+        },
+        "provenance": {
+          "source": "dist/index.js",
+          "line": 1,
+          "column": 24,
+          "endLine": 1,
+          "endColumn": 37
+        }
+      },
+      {
+        "id": "import:module:src/index.js->unresolved:./helper.js@1:24",
+        "kind": "imports",
+        "source": "module:src/index.js",
+        "specifier": "./helper.js",
+        "syntax": "require",
+        "typeOnly": false,
+        "resolution": {
+          "status": "unresolved",
+          "reason": "unsupported-syntax"
+        },
+        "provenance": {
+          "source": "src/index.js",
+          "line": 1,
+          "column": 24,
+          "endLine": 1,
+          "endColumn": 37
+        }
+      }
+    ],
+    "sourceUniverse": {
+      "strategy": "bounded-traversal",
+      "tsconfigs": [],
+      "resolutionMode": "Bundler",
+      "extensions": [
+        ".ts",
+        ".mts",
+        ".cts",
+        ".tsx",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".jsx"
+      ],
+      "files": [
+        "dist/helper.js",
+        "dist/index.js",
+        "src/helper.js",
+        "src/index.js"
+      ],
+      "truncated": false
+    },
+    "ownership": {
+      "status": "absent",
+      "source": null,
+      "rules": 0,
+      "unsupportedPatterns": [],
+      "detail": null
+    },
+    "counts": {
+      "nodes": 5,
+      "edges": 2,
+      "packages": 1,
+      "modules": 4,
+      "externalDependencies": 0,
+      "owners": 0,
+      "importEdges": 2,
+      "resolvedImports": 0,
+      "unresolvedImports": 2,
+      "dependencyEdges": 0,
+      "resolvedDependencies": 0,
+      "workspaceDependencies": 0,
+      "ownedSubjects": 0,
+      "unownedSubjects": 5
+    },
+    "complete": true,
+    "truncatedBy": null
+  },
+  "summary": {
+    "facts": 13,
+    "known": 5,
+    "unknown": 8,
+    "conflicts": 0,
+    "complete": true
+  },
+  "diagnostics": [
+    {
+      "code": "DISCOVERY_IMPORT_UNRESOLVED",
+      "severity": "warning",
+      "summary": "2 imports in this repository resolved to no in-repository target.",
+      "detail": "dist/index.js line 1: ./helper.js (unsupported-syntax); src/index.js line 1: ./helper.js (unsupported-syntax). Every one of them is in `graph.edges` with its specifier and reason.",
+      "remediation": "A specifier may name a file this version does not analyse, a package with no installed copy, or a construct outside the supported import syntax. The declarations are reported with their reasons rather than given a guessed target, and the command still exits successfully.",
+      "metadata": {
+        "unresolved": 2,
+        "examples": [
+          {
+            "path": "dist/index.js",
+            "line": 1,
+            "specifier": "./helper.js",
+            "reason": "unsupported-syntax"
+          },
+          {
+            "path": "src/index.js",
+            "line": 1,
+            "specifier": "./helper.js",
+            "reason": "unsupported-syntax"
+          }
+        ]
+      }
+    }
+  ]
+}

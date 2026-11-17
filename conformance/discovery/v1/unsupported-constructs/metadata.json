@@ -1,0 +1,16 @@
+{
+  "name": "unsupported-constructs",
+  "purpose": "Two things this version deliberately declines, side by side: CommonJS `require`, and an npm lockfile in a format it does not model. Both must be reported as declined, with no version guessed and no edge invented.",
+  "exercises": [
+    "require is unsupported-syntax with the specifier and the line retained",
+    "an npm lockfile format this version does not model is named, not approximated",
+    "no resolved version is invented from a lockfile this version cannot read"
+  ],
+  "snapshotVersion": 1,
+  "status": "unsupported",
+  "inspiredBy": {
+    "repository": "https://github.com/lodash/lodash",
+    "commit": "2b5e6f7399a7b48005140b5d5c6bc6c0e62919a8",
+    "originalBehaviour": "package-lock.json at lockfileVersion 1 is reported as \"Lockfile format 1 is not modelled… left uninterpreted rather than approximated\", and all 85 `require` calls in `lib/` are `unsupported-syntax`. express (9a34acf03cb818ff3f8bc40e44176e277a25cbb9) and webpack (e95be18b465117b38d4f260b608d4f084a500bdc) show the same for 402 and 3249 imports respectively."
+  }
+}

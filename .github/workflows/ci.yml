@@ -27,7 +27,7 @@ jobs:
 
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
           cache: pnpm
@@ -50,6 +50,9 @@ jobs:
       - name: Unit and integration tests
         run: pnpm test
 
+      - name: Discovery snapshot conformance
+        run: pnpm conformance:check
+
       - name: Build
         run: pnpm build
 
@@ -71,6 +74,7 @@ jobs:
           node dist/cli/index.js explain --help
           node dist/cli/index.js init --help
           node dist/cli/index.js upgrade --help
+          node dist/cli/index.js discover --help
           node dist/cli/index.js verify --help
 
       - name: CLI smoke test - valid examples pass
@@ -119,6 +123,370 @@ jobs:
           echo "$output"
           echo "$output" | grep -q '"mode": "dry-run"'
           echo "$output" | grep -q '"id": "build"'
+
+      # `discover` is the one command that must succeed on a repository with
+      # no contract, so it is exercised here on a synthetic empty directory
+      # as well as on this repository. The snapshot must stay byte-identical
+      # across runs, and no absolute path may leak into it.
+      - name: CLI smoke test - discover (JSON and human)
+        shell: bash
+        run: |
+          # This workflow runs under `bash -eo pipefail`, and the discover
+          # snapshot is large enough to exceed a pipe buffer. Piping it into
+          # `grep -q` kills the writer with SIGPIPE (exit 141) as soon as grep
+          # matches, so assertions match in the shell instead of through a pipe.
+          set -e
+          contains() {
+            case "$1" in
+              *"$2"*) return 0 ;;
+              *)
+                echo "expected output to contain: $2" >&2
+                return 1
+                ;;
+            esac
+          }
+
+          output="$(node dist/cli/index.js discover --json)"
+          echo "$output"
+          contains "$output" '"ok": true'
+          contains "$output" '"snapshotVersion": 1'
+          contains "$output" '"repository.contract.present"'
+          contains "$output" '"repository.declarationSurface.present"'
+          contains "$output" '"repository.packageManager.root"'
+          contains "$output" '"repository.commands"'
+          contains "$output" '"repository.verificationEntrypoints"'
+          contains "$output" '"repository.contract.verification"'
+          contains "$output" '"complete": true'
+
+          again="$(node dist/cli/index.js discover --json)"
+          if [ "$output" != "$again" ]; then
+            echo "discover --json is not byte-identical across runs" >&2
+            exit 1
+          fi
+
+          if [[ "$output" == *"$PWD"* ]]; then
+            echo "discover --json leaked an absolute path into the snapshot" >&2
+            exit 1
+          fi
+
+          node dist/cli/index.js discover
+
+          empty="$(mktemp -d)"
+          output="$(node dist/cli/index.js discover --root "$empty" --json)"
+          echo "$output"
+          # An empty directory is a valid, complete, empty result - not a
+          # CONTRACT_NOT_FOUND failure.
+          contains "$output" '"DISCOVERY_NO_SIGNALS"'
+          if [[ "$output" == *'"CONTRACT_NOT_FOUND"'* ]]; then
+            echo "discover must never report CONTRACT_NOT_FOUND" >&2
+            exit 1
+          fi
+          contains "$output" '"complete": true'
+
+          # A root that does not exist is the one fatal condition.
+          if node dist/cli/index.js discover --root "$empty/nope" --json; then
+            echo "Expected an unreadable discovery root to fail" >&2
+            exit 1
+          fi
+
+          # Every code discovery can emit must be explainable.
+          for code in DISCOVERY_ROOT_UNREADABLE DISCOVERY_PARTIAL DISCOVERY_FACT_CONFLICT DISCOVERY_FACT_INCOMPLETE DISCOVERY_WORKSPACE_UNSUPPORTED DISCOVERY_LOCKFILE_UNREADABLE DISCOVERY_NO_SIGNALS DISCOVERY_FACT_UNSUPPORTED; do
+            explained="$(node dist/cli/index.js explain --code "$code" --json)"
+            contains "$explained" "\"$code\""
+          done
+
+      # Package and workspace discovery is proved by Vitest against real
+      # repository shapes. What CI adds here is packaging and wiring: that the
+      # built CLI reports a package and workspace model at all, and that
+      # contradictory evidence is described rather than fatal. The fixture is
+      # deliberately messy - two managers' lockfiles, a declaration that
+      # disagrees with one of them, a declared path that is absent, a glob match
+      # that is not a package, and an unmodelled declaration form.
+      - name: CLI smoke test - discover packages and workspaces
+        shell: bash
+        run: |
+          set -e
+          tmp="$(mktemp -d)"
+          cat > "$tmp/package.json" <<'JSON'
+          {
+            "name": "smoke-root",
+            "packageManager": "pnpm@10.0.0",
+            "workspaces": ["packages/*", "apps/site"]
+          }
+          JSON
+          : > "$tmp/pnpm-lock.yaml"
+          : > "$tmp/package-lock.json"
+          mkdir -p "$tmp/packages/a" "$tmp/packages/docs" "$tmp/apps"
+          echo '{"name": "a"}' > "$tmp/packages/a/package.json"
+          echo '# notes, not a package' > "$tmp/packages/docs/README.md"
+          git -C "$tmp" init --quiet
+
+          output="$(node dist/cli/index.js discover --root "$tmp" --json)"
+          echo "$output"
+          echo "$output" | grep -q '"repository.packages"'
+          echo "$output" | grep -q '"repository.workspace.declarations"'
+          echo "$output" | grep -q '"repository.workspace.candidates"'
+          echo "$output" | grep -q '"repository.workspace.members"'
+          # The declared-but-absent path survives as an explicit absence.
+          echo "$output" | grep -q '"apps/site"'
+          # Two managers' artifacts beside a pnpm declaration is contested, not
+          # resolved: the snapshot must carry both codes and no winner.
+          echo "$output" | grep -q 'DISCOVERY_FACT_INCOMPLETE'
+          echo "$output" | grep -q '"contradictedBy"'
+          # `apps/site` was declared and is absent, which is a successful
+          # observation, not a failure.
+          echo "$output" | grep -q '"complete": true'
+          # The path is canonical: repository-relative, never the temp absolute
+          # root the fixture happens to live under.
+          if echo "$output" | grep -q "$tmp"; then
+            echo "discover --json leaked the fixture's absolute path" >&2
+            exit 1
+          fi
+
+          # Human output must describe the same facts without inventing
+          # certainty about the contested one.
+          human="$(node dist/cli/index.js discover --root "$tmp")"
+          echo "$human"
+          echo "$human" | grep -q 'incomplete (pnpm; contradicted by npm)'
+          if echo "$human" | grep -q '\[object Object\]'; then
+            echo "discover rendered a structured value as [object Object]" >&2
+            exit 1
+          fi
+
+          # A workspace declaration that escapes the root is refused, not read.
+          escape="$(mktemp -d)"
+          echo '{"name": "escape", "workspaces": ["../*"]}' > "$escape/package.json"
+          git -C "$escape" init --quiet
+          escaped="$(node dist/cli/index.js discover --root "$escape" --json)"
+          echo "$escaped"
+          echo "$escaped" | grep -q 'DISCOVERY_WORKSPACE_UNSUPPORTED'
+          # The declaration is still reported verbatim - the repository did write
+          # `"../*"` - but nothing was derived from it, and no path above the
+          # root was read. Both collections being empty is the observable form
+          # of "the refusal happened before any read".
+          echo "$escaped" | grep -q '"repository.workspace.candidates": {'
+          echo "$escaped" | grep -q '"repository.workspace.members": {'
+          derived="$(echo "$escaped" | sed -n '/"repository.workspace.candidates"/,/"repository.workspace.declarations"/p')"
+          echo "$derived" | grep -q '"value": \[\]'
+          members="$(echo "$escaped" | sed -n '/"repository.workspace.members"/,/"repository.workspace.root"/p')"
+          echo "$members" | grep -q '"value": \[\]'
+          if echo "$derived$members" | grep -q '\.\.'; then
+            echo "a refused workspace pattern reached outside the repository root" >&2
+            exit 1
+          fi
+
+      # Command and verification discovery is proved by Vitest against the full
+      # ADR-0046 adversarial matrix. What CI adds is the packaging and wiring
+      # claim: that the built CLI answers "how do I verify this?" from a
+      # repository nobody has written a contract for, scopes commands to the
+      # package that declares them, and refuses to invent an executable when the
+      # package manager is contested.
+      - name: CLI smoke test - discover commands and verification
+        shell: bash
+        run: |
+          set -e
+          tmp="$(mktemp -d)"
+          cat > "$tmp/package.json" <<'JSON'
+          {
+            "name": "smoke-root",
+            "packageManager": "pnpm@10.0.0",
+            "workspaces": ["packages/*"],
+            "scripts": {
+              "test": "vitest run",
+              "build": "vite build",
+              "lint": "eslint .",
+              "typecheck": "tsc -p tsconfig.json --noEmit",
+              "pretest": "node scripts/pre.js",
+              "deploy": "vitest run",
+              "check:types": "tsc --noEmit"
+            }
+          }
+          JSON
+          : > "$tmp/pnpm-lock.yaml"
+          mkdir -p "$tmp/packages/api"
+          cat > "$tmp/packages/api/package.json" <<'JSON'
+          {
+            "name": "api",
+            "scripts": { "test:unit": "jest src", "test:integration": "jest e2e" }
+          }
+          JSON
+          git -C "$tmp" init --quiet
+
+          output="$(node dist/cli/index.js discover --root "$tmp" --json)"
+          echo "$output"
+          echo "$output" | grep -q '"repository.commands"'
+          echo "$output" | grep -q '"repository.verificationEntrypoints"'
+          echo "$output" | grep -q '"pointer": "/scripts/test"'
+
+          commands="$(echo "$output" | sed -n '/"repository.commands"/,/"repository.contract.present"/p')"
+          # A script whose body mentions a test runner is still a declared command
+          # with no role: roles come from names, never from what the body looks like.
+          echo "$commands" | grep -q '"name": "deploy"'
+          # A lifecycle hook is a declared script too.
+          echo "$commands" | grep -q '"name": "pretest"'
+          # An alias outside the grammar is reported, not a failure.
+          echo "$commands" | grep -q '"name": "check:types"'
+
+          entrypoints="$(echo "$output" | sed -n '/"repository.verificationEntrypoints"/,/"repository.workspace.candidates"/p')"
+          # Commands are scoped to the package that declares them: the root and the
+          # workspace member both declare tests, and neither is deduplicated.
+          echo "$entrypoints" | grep -q '"packagePath": "packages/api"'
+          echo "$entrypoints" | grep -q '"executable": "pnpm"'
+          # `test:unit` and `test:integration` both carry the test role, and
+          # neither is primary - choosing one would be a guess.
+          echo "$entrypoints" | grep -q '"role": "test"'
+          echo "$entrypoints" | grep -q '"primary": false'
+          # The load-bearing negative: the body says vitest, the name says deploy.
+          if echo "$entrypoints" | grep -q '"script": "deploy"'; then
+            echo "a script body was used to assign a test role to a script named deploy" >&2
+            exit 1
+          fi
+
+          # The agent-ready contract is optional; this fixture has none, and the
+          # repository-derived facts must not depend on it.
+          echo "$output" | grep -q '"repository.contract.present": {'
+
+          # A contested package manager must leave the invocation unresolved with
+          # a named reason, and must never fall back to a default executable.
+          conflict="$(mktemp -d)"
+          echo '{"name": "conflict", "packageManager": "pnpm@10.0.0", "scripts": {"test": "vitest run"}}' > "$conflict/package.json"
+          : > "$conflict/pnpm-lock.yaml"
+          : > "$conflict/package-lock.json"
+          git -C "$conflict" init --quiet
+          contested="$(node dist/cli/index.js discover --root "$conflict" --json)"
+          echo "$contested"
+          echo "$contested" | grep -q '"invocationStatus": "package-manager-incomplete"'
+          if echo "$contested" | grep -q '"executable"'; then
+            echo "a contested package manager produced a canonical executable" >&2
+            exit 1
+          fi
+
+          human="$(node dist/cli/index.js discover --root "$conflict")"
+          echo "$human"
+          if echo "$human" | grep -qE 'npm run test|pnpm run test'; then
+            echo "discover printed an executable it could not derive" >&2
+            exit 1
+          fi
+          if echo "$human" | grep -qiE 'passed|verified|working'; then
+            echo "discover claimed a command was executed" >&2
+            exit 1
+          fi
+          if echo "$human" | grep -q '\[object Object\]'; then
+            echo "discover rendered a structured value as [object Object]" >&2
+            exit 1
+          fi
+
+      # The graph is proved by Vitest against the full ADR-0047 adversarial
+      # matrix. What CI adds here is the packaging and wiring claim: that the
+      # built CLI emits a graph whose nodes and edges each carry a
+      # repository-relative file and a 1-based line, that a declared version and
+      # a resolved version are separately reported, that an unresolved import and
+      # an unowned subject are both explicit rather than absent, and that no
+      # citation escapes the repository root. The fixture is deliberately
+      # incomplete: one dependency resolves from a lockfile, one does not, one
+      # import does not resolve, and no CODEOWNERS file exists.
+      - name: CLI smoke test - discover repository graph
+        shell: bash
+        run: |
+          set -e
+          tmp="$(mktemp -d)"
+          cat > "$tmp/package.json" <<'JSON'
+          {
+            "name": "graph-smoke",
+            "dependencies": { "left": "^1.0.0" },
+            "devDependencies": { "right": "^2.0.0" }
+          }
+          JSON
+          cat > "$tmp/pnpm-lock.yaml" <<'YAML'
+          lockfileVersion: '9.0'
+          importers:
+            .:
+              dependencies:
+                left:
+                  specifier: ^1.0.0
+                  version: 1.4.2
+          YAML
+          mkdir -p "$tmp/src"
+          cat > "$tmp/src/index.ts" <<'TS'
+          import { thing } from "./thing.js";
+          import left from "left";
+          import "./missing.js";
+          export const x = [thing, left];
+          TS
+          echo 'export const thing = 1;' > "$tmp/src/thing.ts"
+          git -C "$tmp" init --quiet
+
+          output="$(node dist/cli/index.js discover --root "$tmp" --json)"
+          echo "$output"
+          echo "$output" | grep -q '"graph": {'
+
+          # Every node and every edge carries a repository-relative file and a
+          # 1-based line. The line is never zero, which is the off-by-one that
+          # would point a reader at a real line saying something else.
+          if echo "$output" | grep -q '"line": 0'; then
+            echo "the graph emitted a 0-based line" >&2
+            exit 1
+          fi
+          echo "$output" | grep -q '"id": "module:src/thing.ts"'
+          echo "$output" | grep -q '"id": "dependency:left"'
+          echo "$output" | grep -q '"id": "import:'
+
+          # A resolved internal import cites the line the declaration is on.
+          imports="$(echo "$output" | sed -n '/"kind": "imports"/,/"source": "package.json"/p')"
+          echo "$imports" | grep -q '"specifier": "./thing.js"'
+          echo "$imports" | grep -q '"targetPath": "src/thing.ts"'
+
+          # The declared version and the resolved version are two different
+          # facts, cited to two different files. Collapsing them would make
+          # "what was asked for" and "what was installed" indistinguishable.
+          echo "$output" | grep -q '"declaredSpecifier": "\^1.0.0"'
+          echo "$output" | grep -q '"pointer": "/dependencies/left"'
+          echo "$output" | grep -q '"version": "1.4.2"'
+          echo "$output" | grep -q '"source": "pnpm-lock.yaml"'
+          # `right` is declared and absent from the lockfile: that is a distinct
+          # state from "no lockfile", and it keeps its declaration.
+          echo "$output" | grep -q '"pointer": "/devDependencies/right"'
+          echo "$output" | grep -q '"status": "unresolved"'
+
+          # An import that resolves to nothing is surfaced, not swallowed: the
+          # edge survives with its specifier, a reason, and a citation.
+          echo "$output" | grep -q 'DISCOVERY_IMPORT_UNRESOLVED'
+          echo "$output" | grep -q '"specifier": "./missing.js"'
+          echo "$output" | grep -q '"reason": "target-not-found"'
+
+          # No CODEOWNERS file is a complete, successful answer: every subject
+          # is explicitly unowned and no owner is invented for it.
+          echo "$output" | grep -q '"status": "absent"'
+          echo "$output" | grep -q '"policy"'
+          echo "$output" | grep -q '"unownedSubjects":'
+          if echo "$output" | grep -q '"kind": "owner"'; then
+            echo "an owner node was invented for a repository with no CODEOWNERS" >&2
+            exit 1
+          fi
+
+          # Every path in the graph is repository-relative. A single absolute
+          # path would make the snapshot's bytes depend on where the
+          # repository is checked out.
+          if echo "$output" | grep -q "$tmp"; then
+            echo "the graph leaked the fixture's absolute path" >&2
+            exit 1
+          fi
+
+          # The human rendering reports the same graph, and never a value it
+          # could not derive.
+          human="$(node dist/cli/index.js discover --root "$tmp")"
+          echo "$human"
+          echo "$human" | grep -q '^Graph$'
+          echo "$human" | grep -qE '^  Nodes +[0-9]+ '
+          echo "$human" | grep -q 'no CODEOWNERS file found'
+          if echo "$human" | grep -qE 'npm run|pnpm run'; then
+            echo "the graph rendering printed an executable it could not derive" >&2
+            exit 1
+          fi
+          if echo "$human" | grep -q '\[object Object\]'; then
+            echo "the graph rendered a structured value as [object Object]" >&2
+            exit 1
+          fi
 
       - name: CLI smoke test - verify --execute (synthetic contract, real process spawning)
         shell: bash
@@ -195,13 +563,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: ["20", "22"]
+        node-version: ["20", "22", "24", "26"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
@@ -225,7 +593,19 @@ jobs:
       fail-fast: false
       matrix:
         command:
-          [validate, inspect, generate, check, analyze, schema, doctor, explain, upgrade, verify]
+          [
+            validate,
+            inspect,
+            generate,
+            check,
+            analyze,
+            schema,
+            doctor,
+            explain,
+            upgrade,
+            discover,
+            verify,
+          ]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -233,7 +613,7 @@ jobs:
         uses: ./
         with:
           command: ${{ matrix.command }}
-          config: ${{ matrix.command != 'schema' && 'examples/complete-phase-1/agent-ready.yaml' || '' }}
+          config: ${{ matrix.command != 'schema' && matrix.command != 'discover' && 'examples/complete-phase-1/agent-ready.yaml' || '' }}
           code: ${{ matrix.command == 'explain' && 'CONTRACT_NOT_FOUND' || '' }}
           json: "true"
 
@@ -245,7 +625,7 @@ jobs:
 
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
           cache: pnpm
