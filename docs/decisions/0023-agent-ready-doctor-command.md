@@ -474,7 +474,7 @@ error[PACKAGE_MANAGER_UNAVAILABLE]: Declared package manager pnpm is not on PATH
   `git-repository` checks should optionally surface those, but only
   via a follow-up ADR.
 - If the contract gains new environment fields (per
-  [`docs/specification/config-evolution-draft.md`](specification/config-evolution-draft.md)'s
+  [`docs/specification/config-evolution-draft.md`](../specification/config-evolution-draft.md)'s
   draft `quality_gates:` etc.), doctor may need to revisit which
   fields it consumes and what counts as "failed fitness."
 - If a `BinaryChecker` plugin interface becomes useful — i.e. a

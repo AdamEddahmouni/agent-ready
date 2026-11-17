@@ -1,0 +1,18 @@
+{
+  "name": "unresolved-import",
+  "purpose": "Five import shapes at once: one that resolves to a declaration file outside the module universe, one to a JSON module this version does not resolve, one to a Node built-in, one to an external package no manifest declares, and one to a file that is not there. Every one must keep its specifier, its line, and an honest resolution.",
+  "exercises": [
+    "resolved edge to an out-of-universe declaration file, with a real cited line",
+    "platform resolution with no target node",
+    "dependency node minted by an import the manifest never declared",
+    "unresolved edge with a specifier, a line, and a reason",
+    "a JSON module this version does not resolve stays unresolved rather than gaining a target"
+  ],
+  "snapshotVersion": 1,
+  "status": "normative",
+  "inspiredBy": {
+    "repository": "https://github.com/sindresorhus/type-fest",
+    "commit": "e9f614f191aa039e4aefa2d41d62c2a3fd070cfd",
+    "originalBehaviour": "An import resolving to a `.d.ts` minted a module node citing line 1 of a file the run had never read. That was a `provenance-file-was-read` violation, which is error severity, which suppressed the entire graph for this repository and six others. The corpus study found it; the target is now read before it is cited."
+  }
+}

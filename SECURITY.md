@@ -1,5 +1,13 @@
 # Security Policy
 
+## Supported versions
+
+Only the **latest stable release** on npm's `latest` tag is supported.
+Pre-release versions (`next` tag) and older stable versions are not
+supported for security fixes — upgrade to the current stable release
+before reporting. The project is pre-1.0, so security fixes may also
+ship in a minor version rather than a patch.
+
 ## Scope
 
 Agent-Ready parses, validates, normalizes, inspects, and generates files from
@@ -37,7 +45,15 @@ Please include:
 In scope:
 
 - Path traversal or absolute-path escapes not caught by the validator
-  (see [docs/specification/paths-and-globs.md](docs/specification/paths-and-globs.md)).
+  (see [docs/specification/paths-and-globs.md](docs/specification/paths-and-globs.md)),
+  including generated-file write targets escaping the repository root.
+- Corruption or injection through **generated instructions**: contract
+  free text that breaks out of generated Markdown structure, escapes the
+  managed-file marker, or otherwise causes `generate --write` to produce
+  misleading or malicious output.
+- **Package integrity**: tampering with the published npm tarball, the
+  bundled JSON Schema, or the adapter compatibility corpus shipped in the
+  package (release assets are built with provenance attestation).
 - Any way for parsing, validating, or otherwise processing an
   `agent-ready.yaml` contract to cause unexpected command execution;
   arbitrary file read/write outside the intended repository boundary; or a

@@ -545,4 +545,99 @@ export const EXPLANATION_REGISTRY: ReadonlyMap<DiagnosticCode, Explanation> = ne
       related: ["GIT_UNAVAILABLE"],
     },
   ],
+
+  // ── discover ─────────────────────────────────────────────────────────
+  //
+  // Discovery diagnostics describe the discovery operation, not the
+  // repository. A DISCOVERY_* code says something about what Agent-Ready was
+  // able to establish; the accompanying fact says what is known. See
+  // docs/decisions/0044-repository-discovery-model.md.
+  [
+    "DISCOVERY_ROOT_UNREADABLE",
+    {
+      what: "`agent-ready discover` could not read the directory it was asked to inspect. This is the only condition that prevents discovery from producing a snapshot.",
+      why: "Everything discovery reports is repository-relative to a root. Without a readable root there is nothing to be relative to, so no snapshot can be constructed at all.",
+      fix: "1. Point --root at a directory that exists and is readable:\n     agent-ready discover --root /path/to/repo\n2. If the path is correct, check its permissions:\n     ls -ld /path/to/repo",
+    },
+  ],
+  [
+    "DISCOVERY_PARTIAL",
+    {
+      what: "A discovery probe could not complete, usually because a path was unreadable. The fact it was investigating is reported as `unknown` with reason `probe-failed`.",
+      why: "A probe that failed has established nothing, which is different from a probe that completed and found nothing. Reporting a failure as absence would be a false claim, so the affected fact stays unknown and the snapshot is marked incomplete.",
+      fix: "1. Check read permissions on the path named in the diagnostic's `sourcePath`.\n2. Re-run `agent-ready discover --json` and look at the affected fact: it should become known once the path is readable.\n3. The command still exits successfully — partial knowledge is a valid result.",
+      related: ["DISCOVERY_NO_SIGNALS"],
+    },
+  ],
+  [
+    "DISCOVERY_FACT_CONFLICT",
+    {
+      what: "Two or more sources disagree about the same repository fact. Every claim is retained with its evidence, and the fact is reported with no value at all.",
+      why: "Agent-Ready does not rank lockfiles, declarations, and contract claims against each other. A snapshot that silently picked a winner would be indistinguishable from a correct one, and a confidently wrong model is worse than an honest gap.",
+      fix: "1. Inspect the retained claims and their evidence with `agent-ready discover --json`.\n2. Decide which source is authoritative, then make the repository agree with itself: usually by removing the stale lockfile or correcting the declaration.\n3. If the disagreement is intentional, document it so the next reader does not treat it as a defect.",
+      related: ["DISCOVERY_PARTIAL"],
+    },
+  ],
+  [
+    "DISCOVERY_FACT_INCOMPLETE",
+    {
+      what: "A declared value is reported alongside evidence that contradicts it. The declaration is carried forward, the contradicting values are published in the fact's `contradictedBy`, and every claim is retained.",
+      why: 'A `packageManager` field is an assertion about which tool the repository uses; a lockfile is an observation that a tool-specific artifact exists. Those are not peers, so neither "they conflict, so the answer is unknown" nor "the lockfile wins" is honest. The first denies the repository said anything, which is false; the second is the confidently-wrong answer ADR-0044 exists to prevent. The disagreement is therefore published rather than resolved.',
+      fix: "1. Read the fact in `agent-ready discover --json` and look at `contradictedBy` — that is the list of managers the evidence does not support.\n2. Decide which is authoritative. Usually the stale artifact is the thing to remove or regenerate.\n3. Note that the value is the *declaration*; it is not a conclusion that the repository uses that tool.",
+      related: ["DISCOVERY_FACT_CONFLICT", "DISCOVERY_PARTIAL"],
+    },
+  ],
+  [
+    "DISCOVERY_WORKSPACE_UNSUPPORTED",
+    {
+      what: "A workspace declaration exists in a form this version does not model, or a declared pattern was refused as unsafe. Nothing was interpreted, and no workspace membership was derived from it.",
+      why: "Coercing an unrecognised layout into the nearest shape that happens to fit would report a workspace that is confidently not the one the repository declared. A pattern that is absolute or escapes the repository root is refused before any read, so an author-controlled declaration can never become arbitrary filesystem access.",
+      fix: "1. Supported forms are an array of strings, or an object with a `packages` array, plus `packages:` in pnpm-workspace.yaml.\n2. An unsupported *form* is reported, not repaired: check the file with `agent-ready discover --json` and read the fact's `unsupportedReason`.\n3. An unsupported *pattern* is a safety refusal. Rewrite it as a repository-relative pattern.",
+      related: ["DISCOVERY_FACT_UNSUPPORTED", "DISCOVERY_PARTIAL"],
+    },
+  ],
+  [
+    "DISCOVERY_LOCKFILE_UNREADABLE",
+    {
+      what: "A package-manager lockfile exists but could not be read, so its existence is not reported as evidence for that manager.",
+      why: "A lockfile is the only static signal that some tools have for the package manager in use. Treating an unreadable one as absent would let an I/O error silently erase the evidence for one manager while another manager's evidence stood unchallenged — producing a snapshot that looks coherent and is not.",
+      fix: "1. Check read permissions on the path named in the diagnostic.\n2. Re-run `agent-ready discover --json`. The fact becomes either agreed or conflicted once the file is readable.",
+      related: ["DISCOVERY_PARTIAL", "DISCOVERY_FACT_CONFLICT"],
+    },
+  ],
+  [
+    "DISCOVERY_NO_SIGNALS",
+    {
+      what: "Every discovery probe completed successfully and none of them found any evidence. This is a valid, complete result — not a failure.",
+      why: "A repository that contains none of the probed signals is a legitimate repository. The diagnostic exists so that an empty result is never mistaken for a command that silently did nothing.",
+      fix: "1. Confirm --root points at the repository you meant to inspect:\n     agent-ready discover --root /path/to/repo\n2. If the repository does have a package.json or a contract, check the fact for it with `agent-ready discover --json` — it will be `unknown` with reason `no-evidence` rather than a value.",
+    },
+  ],
+  [
+    "DISCOVERY_FACT_UNSUPPORTED",
+    {
+      what: "A discovery probe read something it deliberately does not interpret — for example a `packageManager` field that is not a `<name>@<version>` string. The fact is reported as `unknown` with reason `not-probed` rather than approximated.",
+      why: "This is a statement about this version's coverage, not about the repository's health. ADR-0044 reserved the code for a fact kind outside the four it defines; ADR-0045 made it reachable for a fact *shape* outside what the implementation models. Splitting a malformed declaration at its first `@` would produce a plausible-looking manager name that the repository never wrote, which is the exact failure the four kinds exist to prevent.",
+      fix: "1. Nothing needs fixing in the repository. Agent-Ready declined to guess.\n2. To see what was found, read the diagnostic's `detail` — it names the file and the raw value.\n3. Evidence from other sources for the same fact is still reported and may still establish it.",
+      related: ["DISCOVERY_WORKSPACE_UNSUPPORTED"],
+    },
+  ],
+  [
+    "DISCOVERY_IMPORT_UNRESOLVED",
+    {
+      what: "An import declaration in a source file was read, but it resolved to no target the graph can name. The edge is still in `snapshot.graph.edges`, carrying the specifier, the reason it did not resolve, and the file and line of the declaration itself.",
+      why: "An import that resolves to nothing is information about the repository, not a failure of the run: a bare specifier for a package that is not installed, a path into a directory this version does not model, a CommonJS `require` this version does not resolve, or a file outside the source universe. Dropping the edge would make the graph look complete, and the whole point of the graph is that its edges can be audited — so an unresolved import has to be visible as an unresolved import rather than as an absence.",
+      fix: "1. Read the edge in `agent-ready discover --json`: it names the specifier and a structured `reason` such as `unresolvable` or `unsupported-syntax`.\n2. `unresolvable` usually means the dependency is not installed in the working tree — run your package manager's install step, or ignore it if the import is genuinely optional.\n3. `unsupported-syntax` means this version does not resolve that form (for example CommonJS `require`); the declaration is still cited, only its target is absent.\n4. The command still exits successfully. An unresolved import is a truthful result, not a defect.",
+      related: ["DISCOVERY_GRAPH_PROVENANCE_INVALID"],
+    },
+  ],
+  [
+    "DISCOVERY_GRAPH_PROVENANCE_INVALID",
+    {
+      what: "The graph Agent-Ready just built failed its own invariants: a node or edge cites a line outside its file, an edge names a target that does not exist, an ownership state disagrees with its edges, or a collection is out of order. This is a bug in Agent-Ready, not in the repository.",
+      why: "The graph's entire value is that every node and every edge cites a repository-relative file and a 1-based line a reader can open and check. A graph that cannot be audited is worse than no graph, because it looks authoritative. This is the one place in `discover` where an error is the correct severity, and the command fails loudly rather than emitting an artifact it cannot stand behind. The contrast with `DISCOVERY_IMPORT_UNRESOLVED` is deliberate: an unresolved import is true of the repository, an invalid citation is true of us.",
+      fix: "1. This is not a repository defect — do not edit your source files in response to it.\n2. Read the diagnostic's `detail`, which names each violated invariant and the offending node or edge id.\n3. Please report it with the repository you ran it against and the Agent-Ready version. The `detail` is the bug report: it names exactly which citation is wrong.",
+      related: ["DISCOVERY_IMPORT_UNRESOLVED"],
+    },
+  ],
 ]);
