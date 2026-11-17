@@ -184,10 +184,11 @@ It is important to distinguish:
   place to express agent constraints, and agent vendors gain a
   structured contract to consume. This potential is real but
   **unproven**: no external adoption exists yet.
-- **Future goals** — reaching v1.0 with real external adopters (see
-  [ROADMAP-TO-1.0.md](../ROADMAP-TO-1.0.md)), framework-specific example
-  repositories, and ecosystem tooling. These are goals, not current
-  facts.
+- **Future goals** — reaching v1.0 with real external adopters (the
+  release sequence planned in
+  [archive/roadmap-v1.md](archive/roadmap-v1.md)), framework-specific
+  example repositories, and ecosystem tooling. These are goals, not
+  current facts.
 
 Agent-Ready does **not** claim that the ecosystem already depends on it.
 

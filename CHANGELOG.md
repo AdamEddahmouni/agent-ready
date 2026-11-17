@@ -3,6 +3,40 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
+## Unreleased
+
+Documentation only. No behavioral, CLI, schema, or dependency change ships with
+this entry; the v1 contract and the eleven commands are unchanged.
+
+### Changed
+
+- Select a vNext direction: Agent-Ready becomes an open control plane for
+  constitutionally governed autonomous software evolution, documented rather than
+  implemented. See [VISION.md](VISION.md) and
+  [RFC-0001](docs/vnext/RFC-0001-autonomous-software-evolution.md).
+- Reposition the project from "the missing contract between repositories and
+  coding agents" to "open infrastructure for constitutionally governed autonomous
+  software evolution", with an explicit statement that no control-plane capability
+  exists in code today.
+- Archive the v0.7-to-v1.0 release plan as
+  [docs/archive/roadmap-v1.md](docs/archive/roadmap-v1.md). Its planned
+  ADR-0037 through ADR-0039 will not be written.
+- Amend the no-network, no-LLM posture: the ban is permanent for the deterministic
+  core, and networked integrations are quarantined behind individual design ADRs.
+
+### Added
+
+- ADR-0041 (vNext direction), ADR-0042 (v1 freeze and parallel vNext surface), and
+  ADR-0043 (deterministic core and quarantined integrations).
+- [LANDSCAPE.md](docs/vnext/LANDSCAPE.md), positioning the direction against
+  AGENTS.md, MCP, SLSA/in-toto, OpenTelemetry, Git, isolation substrates, and
+  agent orchestrators, including what Agent-Ready would decline to rebuild.
+- [docs/security/threat-model-vnext.md](docs/security/threat-model-vnext.md),
+  enumerating fourteen threat classes created by the vNext direction, the proposed
+  trusted computing boundary, and the trust strata. None are mitigated today.
+- [docs/vnext/PHASE-1-ISSUES.md](docs/vnext/PHASE-1-ISSUES.md), draft issue text
+  for the repository-intelligence phase. Drafts only; nothing is filed.
+
 ## 0.6.1 - 2026-07-12
 
 ### Security

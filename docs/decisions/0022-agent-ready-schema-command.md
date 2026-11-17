@@ -13,7 +13,7 @@ output shapes, error model, and the seam between the bundled schema and
 package-internal path resolution — before any implementation lands.
 
 `agent-ready.yaml` is validated against
-[`schemas/v1/agent-ready.schema.json`](../schemas/v1/agent-ready.schema.json),
+[`schemas/v1/agent-ready.schema.json`](../../schemas/v1/agent-ready.schema.json),
 which the package already exposes in two equivalent ways:
 
 - as the on-disk file `<pkgroot>/schemas/v1/agent-ready.schema.json`

@@ -37,7 +37,7 @@ TypeScript package, not just a specification document:
   embedding the validation pipeline in another tool — see
   [docs/specification/api-stability.md](specification/api-stability.md).
 - Unit and integration tests, a CI pipeline
-  (`.github/workflows/ci.yml`), 37 Architecture Decision Records
+  (`.github/workflows/ci.yml`), 40 Architecture Decision Records
   (`docs/decisions/`), a threat model, and a stated pre-1.0
   compatibility policy.
 
@@ -93,8 +93,40 @@ complete: `schema`, `doctor`, `explain`, and `init` all ship. The v0.5 source
 tree also includes safe contract upgrades, bounded YAML/source analysis, and
 release automation. The remaining problem is proving the distribution and
 onboarding path in public repositories: publish the preview package and
-validate installation and CI use outside this repository. See
-[ROADMAP-TO-1.0.md](../ROADMAP-TO-1.0.md) for the release sequence.
+validate installation and CI use outside this repository. The release
+sequence it planned is preserved as history in
+[archive/roadmap-v1.md](archive/roadmap-v1.md), which is superseded
+for planning by [VISION.md](../VISION.md).
+
+## What the project is doing next
+
+In September 2026 the project selected a **vNext design phase** and froze the
+shipped line. The distinction is the single most important thing on this page,
+because everything above describes what exists and the vNext documents describe
+what does not.
+
+- The v1 contract, the eleven shipped commands, and the adapter-output corpus are
+  **frozen and still releasing** as v0.6.x, per
+  [ADR-0042](decisions/0042-v1-freeze-and-parallel-vnext-surface.md).
+- The vNext direction — a control plane for constitutionally governed autonomous
+  software evolution — is documented in [VISION.md](../VISION.md) and
+  [RFC-0001](vnext/RFC-0001-autonomous-software-evolution.md), and
+  **implemented in no part**. No `discover`, no Twin, no Evolution, no
+  transaction, no capability model.
+- vNext is written to be falsifiable. The conditions under which it should be
+  abandoned are stated in advance, and the first phase is gated on a research
+  question rather than a feature list.
+- The trust posture is amended, not abandoned: the deterministic core keeps a
+  permanent no-network, no-LLM, no-credentials rule, and networked integrations
+  are quarantined behind per-capability design ADRs
+  ([ADR-0043](decisions/0043-core-posture-and-integration-quarantine.md)).
+- The threat surface this direction creates is enumerated in
+  [threat-model-vnext.md](security/threat-model-vnext.md), where **none of it is
+  mitigated today**, because none of the capabilities exist.
+
+The archived v0.7-to-v1.0 release plan is preserved at
+[archive/roadmap-v1.md](archive/roadmap-v1.md). Its planned ADR-0037 through
+ADR-0039 were never written and will not be.
 
 ## How the project should evolve responsibly
 
