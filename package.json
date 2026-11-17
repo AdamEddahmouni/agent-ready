@@ -64,6 +64,7 @@
     "conformance:check": "tsx scripts/conformance.ts check",
     "conformance:update": "tsx scripts/conformance.ts update",
     "research:benchmark-validate-protocol": "node research/phase1-benchmark/validate-protocol.mjs",
+    "research:benchmark-reproduce": "tsx research/phase1-benchmark/reproduce.ts",
     "research:benchmark-test": "vitest run tests/research",
     "test:package": "pnpm build && node scripts/package-smoke.mjs",
     "test:watch": "vitest",
