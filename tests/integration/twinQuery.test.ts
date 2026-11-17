@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { runTwinQuery } from "../../src/cli/commands/twinQuery.js";
 import { InMemoryFileSystem } from "../../src/filesystem/inMemoryFileSystem.js";

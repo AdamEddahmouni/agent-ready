@@ -7,8 +7,8 @@ All notable changes to Agent-Ready are documented here. The project follows
 
 ### Added
 
-- **Discovery Snapshot Format 1** (`snapshotVersion: 1`) for `agent-ready
-  discover --json`, with a hand-authored schema at
+- **Discovery Snapshot Format 1** (`snapshotVersion: 1`) for
+  `agent-ready discover --json`, with a hand-authored schema at
   `schemas/discovery/snapshot-v1.schema.json`, field-level stability contract
   in `docs/vnext/SNAPSHOT-STABILITY.md`, and a local eight-case conformance
   corpus under `conformance/discovery/v1/` enforced by `pnpm conformance:check`

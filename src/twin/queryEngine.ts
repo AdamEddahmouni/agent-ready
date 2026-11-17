@@ -44,11 +44,27 @@ export function isTwinQueryKind(value: string): value is TwinQueryKind {
   return (TWIN_QUERY_KINDS as readonly string[]).includes(value);
 }
 
-function packagesFromFacts(facts: Record<string, unknown>): unknown[] {
+function packagesFromFacts(facts: Record<string, unknown>): JsonValue[] {
   const packages = facts["repository.packages"];
   if (typeof packages !== "object" || packages === null) return [];
   const value = (packages as Record<string, unknown>)["value"];
-  return Array.isArray(value) ? value : [];
+  // The snapshot was parsed from JSON, so every entry is already a JsonValue;
+  // the cast only recovers the type that `Record<string, unknown>` erased.
+  return Array.isArray(value) ? (value as JsonValue[]) : [];
+}
+
+function entryPath(entry: JsonValue): string {
+  if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return "";
+  const path = (entry as Record<string, JsonValue>)["path"];
+  return typeof path === "string" ? path : "";
+}
+
+function objectEntries(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (entry): entry is Record<string, unknown> =>
+      typeof entry === "object" && entry !== null && !Array.isArray(entry),
+  );
 }
 
 function factValue(facts: Record<string, unknown>, id: string): unknown {
@@ -100,75 +116,102 @@ export function executeTwinQuery(
         kind,
         parameter: null,
         truncated: false,
-        result: document["summary"] ?? null,
+        result: (document["summary"] ?? null) as JsonValue,
       };
     }
     case "packages": {
       const list = packagesFromFacts(facts).sort((a, b) =>
-        compareCodeUnits(String((a as Record<string, unknown>)["path"] ?? ""), String((b as Record<string, unknown>)["path"] ?? "")),
+        compareCodeUnits(entryPath(a), entryPath(b)),
       );
       const { items, truncated } = truncate(list, limit);
       return { queryVersion: 1, kind, parameter: null, truncated, result: items };
     }
     case "package": {
       if (parameter === null) {
-        return { code: "TWIN_QUERY_MISSING_PARAMETER", detail: "package requires a package path (e.g. . or packages/api)" };
+        return {
+          code: "TWIN_QUERY_MISSING_PARAMETER",
+          detail: "package requires a package path (e.g. . or packages/api)",
+        };
       }
       const path = parameter;
       const list = packagesFromFacts(facts);
       const found = list.find((entry) => (entry as Record<string, unknown>)["path"] === path);
       if (found === undefined) {
-        return { code: "TWIN_QUERY_NOT_FOUND", detail: `no package at path ${JSON.stringify(path)}` };
+        return {
+          code: "TWIN_QUERY_NOT_FOUND",
+          detail: `no package at path ${JSON.stringify(path)}`,
+        };
       }
-      return { queryVersion: 1, kind, parameter: path, truncated: false, result: found as JsonValue };
+      return { queryVersion: 1, kind, parameter: path, truncated: false, result: found };
     }
     case "commands-for-package": {
       if (parameter === null) {
-        return { code: "TWIN_QUERY_MISSING_PARAMETER", detail: "commands-for-package requires a package path" };
+        return {
+          code: "TWIN_QUERY_MISSING_PARAMETER",
+          detail: "commands-for-package requires a package path",
+        };
       }
       const commands = factValue(facts, "repository.commands");
       if (!Array.isArray(commands)) {
         return { code: "TWIN_QUERY_NOT_FOUND", detail: "snapshot has no command inventory" };
       }
-      const entry = commands.find(
-        (item) => (item as Record<string, unknown>)["packagePath"] === parameter,
-      );
+      const entry = objectEntries(commands).find((item) => item["packagePath"] === parameter);
       if (entry === undefined) {
-        return { code: "TWIN_QUERY_NOT_FOUND", detail: `no commands entry for ${JSON.stringify(parameter)}` };
+        return {
+          code: "TWIN_QUERY_NOT_FOUND",
+          detail: `no commands entry for ${JSON.stringify(parameter)}`,
+        };
       }
       return { queryVersion: 1, kind, parameter, truncated: false, result: entry as JsonValue };
     }
     case "verification-for-package": {
       if (parameter === null) {
-        return { code: "TWIN_QUERY_MISSING_PARAMETER", detail: "verification-for-package requires a package path" };
+        return {
+          code: "TWIN_QUERY_MISSING_PARAMETER",
+          detail: "verification-for-package requires a package path",
+        };
       }
       const entrypoints = factValue(facts, "repository.verificationEntrypoints");
       if (!Array.isArray(entrypoints)) {
         return { code: "TWIN_QUERY_NOT_FOUND", detail: "snapshot has no verification entrypoints" };
       }
       const { items, truncated } = truncate(
-        entrypoints.filter((item) => (item as Record<string, unknown>)["packagePath"] === parameter),
+        entrypoints.filter(
+          (item) => (item as Record<string, unknown>)["packagePath"] === parameter,
+        ),
         limit,
       );
       if (items.length === 0) {
-        return { code: "TWIN_QUERY_NOT_FOUND", detail: `no verification entrypoints for ${JSON.stringify(parameter)}` };
+        return {
+          code: "TWIN_QUERY_NOT_FOUND",
+          detail: `no verification entrypoints for ${JSON.stringify(parameter)}`,
+        };
       }
       return { queryVersion: 1, kind, parameter, truncated, result: items as JsonValue };
     }
     case "module": {
       if (parameter === null) {
-        return { code: "TWIN_QUERY_MISSING_PARAMETER", detail: "module requires a module path (e.g. src/index.ts)" };
+        return {
+          code: "TWIN_QUERY_MISSING_PARAMETER",
+          detail: "module requires a module path (e.g. src/index.ts)",
+        };
       }
       const id = moduleId(parameter);
       const node = graphNodes(document).find((entry) => entry["id"] === id);
       if (node === undefined) {
-        return { code: "TWIN_QUERY_NOT_FOUND", detail: `no module ${JSON.stringify(id)} in snapshot graph` };
+        return {
+          code: "TWIN_QUERY_NOT_FOUND",
+          detail: `no module ${JSON.stringify(id)} in snapshot graph`,
+        };
       }
       return { queryVersion: 1, kind, parameter, truncated: false, result: node as JsonValue };
     }
     case "imports-of-module": {
       if (parameter === null) {
-        return { code: "TWIN_QUERY_MISSING_PARAMETER", detail: "imports-of-module requires a module path" };
+        return {
+          code: "TWIN_QUERY_MISSING_PARAMETER",
+          detail: "imports-of-module requires a module path",
+        };
       }
       const sourceId = moduleId(parameter);
       const edges = graphEdges(document).filter(
@@ -179,7 +222,10 @@ export function executeTwinQuery(
     }
     case "importers-of-module": {
       if (parameter === null) {
-        return { code: "TWIN_QUERY_MISSING_PARAMETER", detail: "importers-of-module requires a module path" };
+        return {
+          code: "TWIN_QUERY_MISSING_PARAMETER",
+          detail: "importers-of-module requires a module path",
+        };
       }
       const targetId = moduleId(parameter);
       const edges = graphEdges(document).filter((edge) => {
@@ -191,7 +237,10 @@ export function executeTwinQuery(
     }
     case "dependencies-of-package": {
       if (parameter === null) {
-        return { code: "TWIN_QUERY_MISSING_PARAMETER", detail: "dependencies-of-package requires a package path" };
+        return {
+          code: "TWIN_QUERY_MISSING_PARAMETER",
+          detail: "dependencies-of-package requires a package path",
+        };
       }
       const sourceId = packagePathId(parameter);
       const edges = graphEdges(document).filter(
@@ -207,7 +256,10 @@ export function executeTwinQuery(
       const id = moduleId(parameter);
       const node = graphNodes(document).find((entry) => entry["id"] === id);
       if (node === undefined) {
-        return { code: "TWIN_QUERY_NOT_FOUND", detail: `no module ${JSON.stringify(id)} in snapshot graph` };
+        return {
+          code: "TWIN_QUERY_NOT_FOUND",
+          detail: `no module ${JSON.stringify(id)} in snapshot graph`,
+        };
       }
       const ownership = node["ownership"] as Record<string, unknown> | undefined;
       return {
@@ -239,7 +291,10 @@ export function executeTwinQuery(
       return { queryVersion: 1, kind, parameter: null, truncated, result: items as JsonValue };
     }
     default: {
-      return { code: "TWIN_QUERY_UNSUPPORTED", detail: `unsupported query kind ${JSON.stringify(kind)}` };
+      return {
+        code: "TWIN_QUERY_UNSUPPORTED",
+        detail: `unsupported query kind ${JSON.stringify(kind)}`,
+      };
     }
   }
 }

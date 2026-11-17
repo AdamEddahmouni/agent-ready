@@ -39,7 +39,7 @@
  *    `v2/` sibling directory possible.
  */
 
-import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { runDiscover } from "../cli/commands/discover.js";
 import { compareCodeUnits } from "../discover/ordering.js";
@@ -361,7 +361,8 @@ function jsonPathAt(lines: readonly string[], target: number): string {
     }
     const key = /"([^"]+)":/.exec(line.trimStart());
     if (key?.[1] !== undefined) path.push(`.${key[1]}`);
-    else if (/^[\d]+,?$/.test(line.trimStart().replace(/,$/, ""))) path.push(`[${line.trim().replace(/,$/, "")}]`);
+    else if (/^[\d]+,?$/.test(line.trimStart().replace(/,$/, "")))
+      path.push(`[${line.trim().replace(/,$/, "")}]`);
   }
   return path.join("") === "" ? "(document root)" : path.join("");
 }
@@ -461,10 +462,12 @@ function projectFact(fact: unknown): unknown {
   };
   if (value["reason"] !== undefined) projected["reason"] = value["reason"];
   if (value["contradictedBy"] !== undefined) projected["contradictedBy"] = value["contradictedBy"];
-  projected["claims"] = (value["claims"] as Record<string, unknown>[] | undefined)?.map((claim) => ({
-    kind: claim["kind"],
-    evidence: claim["evidence"],
-  }));
+  projected["claims"] = (value["claims"] as Record<string, unknown>[] | undefined)?.map(
+    (claim) => ({
+      kind: claim["kind"],
+      evidence: claim["evidence"],
+    }),
+  );
   projected["corroboration"] = value["corroboration"];
   if (value["value"] !== undefined) projected["value"] = value["value"];
   return projected;
@@ -480,8 +483,8 @@ function projectNode(node: unknown): unknown {
     // line. The column range and the pointer beside them are provisional and
     // are left out.
     provenance: {
-      source: provenance?.["source"],
-      line: provenance?.["line"],
+      source: provenance["source"],
+      line: provenance["line"],
     },
   };
   if (value["path"] !== undefined) projected["path"] = value["path"];
@@ -489,7 +492,7 @@ function projectNode(node: unknown): unknown {
   // not a file a CODEOWNERS rule can match, so it carries no ownership state;
   // projecting a status for it would invent one.
   const ownership = value["ownership"] as Record<string, unknown> | undefined;
-  if (ownership !== undefined && ownership !== null) {
+  if (ownership !== undefined) {
     projected["ownership"] = ownership["status"];
   }
   return projected;

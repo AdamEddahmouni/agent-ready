@@ -131,18 +131,32 @@ jobs:
       - name: CLI smoke test - discover (JSON and human)
         shell: bash
         run: |
+          # This workflow runs under `bash -eo pipefail`, and the discover
+          # snapshot is large enough to exceed a pipe buffer. Piping it into
+          # `grep -q` kills the writer with SIGPIPE (exit 141) as soon as grep
+          # matches, so assertions match in the shell instead of through a pipe.
           set -e
+          contains() {
+            case "$1" in
+              *"$2"*) return 0 ;;
+              *)
+                echo "expected output to contain: $2" >&2
+                return 1
+                ;;
+            esac
+          }
+
           output="$(node dist/cli/index.js discover --json)"
           echo "$output"
-          echo "$output" | grep -q '"ok": true'
-          echo "$output" | grep -q '"snapshotVersion": 1'
-          echo "$output" | grep -q '"repository.contract.present"'
-          echo "$output" | grep -q '"repository.declarationSurface.present"'
-          echo "$output" | grep -q '"repository.packageManager.root"'
-          echo "$output" | grep -q '"repository.commands"'
-          echo "$output" | grep -q '"repository.verificationEntrypoints"'
-          echo "$output" | grep -q '"repository.contract.verification"'
-          echo "$output" | grep -q '"complete": true'
+          contains "$output" '"ok": true'
+          contains "$output" '"snapshotVersion": 1'
+          contains "$output" '"repository.contract.present"'
+          contains "$output" '"repository.declarationSurface.present"'
+          contains "$output" '"repository.packageManager.root"'
+          contains "$output" '"repository.commands"'
+          contains "$output" '"repository.verificationEntrypoints"'
+          contains "$output" '"repository.contract.verification"'
+          contains "$output" '"complete": true'
 
           again="$(node dist/cli/index.js discover --json)"
           if [ "$output" != "$again" ]; then
@@ -150,7 +164,7 @@ jobs:
             exit 1
           fi
 
-          if echo "$output" | grep -q "$PWD"; then
+          if [[ "$output" == *"$PWD"* ]]; then
             echo "discover --json leaked an absolute path into the snapshot" >&2
             exit 1
           fi
@@ -162,12 +176,12 @@ jobs:
           echo "$output"
           # An empty directory is a valid, complete, empty result - not a
           # CONTRACT_NOT_FOUND failure.
-          echo "$output" | grep -q '"DISCOVERY_NO_SIGNALS"'
-          if echo "$output" | grep -q '"CONTRACT_NOT_FOUND"'; then
+          contains "$output" '"DISCOVERY_NO_SIGNALS"'
+          if [[ "$output" == *'"CONTRACT_NOT_FOUND"'* ]]; then
             echo "discover must never report CONTRACT_NOT_FOUND" >&2
             exit 1
           fi
-          echo "$output" | grep -q '"complete": true'
+          contains "$output" '"complete": true'
 
           # A root that does not exist is the one fatal condition.
           if node dist/cli/index.js discover --root "$empty/nope" --json; then
@@ -177,7 +191,8 @@ jobs:
 
           # Every code discovery can emit must be explainable.
           for code in DISCOVERY_ROOT_UNREADABLE DISCOVERY_PARTIAL DISCOVERY_FACT_CONFLICT DISCOVERY_FACT_INCOMPLETE DISCOVERY_WORKSPACE_UNSUPPORTED DISCOVERY_LOCKFILE_UNREADABLE DISCOVERY_NO_SIGNALS DISCOVERY_FACT_UNSUPPORTED; do
-            node dist/cli/index.js explain --code "$code" --json | grep -q "\"$code\""
+            explained="$(node dist/cli/index.js explain --code "$code" --json)"
+            contains "$explained" "\"$code\""
           done
 
       # Package and workspace discovery is proved by Vitest against real

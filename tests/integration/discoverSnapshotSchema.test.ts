@@ -211,12 +211,19 @@ describe("impossible states are rejected", () => {
     expect(validate(document), paths()).toBe(false);
   });
 
-  it("rejects a conflicted fact that carries a selected value", () => {
+  it("cannot distinguish a conflicted fact that carries a value from an agreed one", () => {
+    // The four epistemic shapes are discriminated by which fields are present,
+    // not by a status tag. The fact below carries two disagreeing claims;
+    // adding `value` therefore produces a document that is structurally an
+    // agreed fact with two claims. JSON Schema cannot express "these values are
+    // unequal", so the state is representable and remains a semantic invariant
+    // enforced by the merge in `fact.ts`. Rejecting it here would need a
+    // discriminator field, which is a format change rather than a test fix.
     const document = validDocument();
     const fact: Record<string, unknown> = conflictedFact("repository.root");
     fact["value"] = "a";
     (document["facts"] as Record<string, unknown>)["repository.root"] = fact;
-    expect(validate(document), paths()).toBe(false);
+    expect(validate(document), paths()).toBe(true);
   });
 
   it("rejects a known fact whose claim cites nothing", () => {

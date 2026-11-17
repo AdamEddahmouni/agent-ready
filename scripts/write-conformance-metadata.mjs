@@ -61,7 +61,7 @@ const metadata = {
       repository: "https://github.com/less/less.js",
       commit: "713331655e437401dfea6cd233893a69762734e1",
       originalBehaviour:
-        "less ships pnpm-lock.json and package-lock.json while declaring `packageManager: pnpm@9.15.9`, and the snapshot reports an incomplete fact with contradictedBy: [\"npm\"] and a DISCOVERY_FACT_INCOMPLETE diagnostic.",
+        'less ships pnpm-lock.json and package-lock.json while declaring `packageManager: pnpm@9.15.9`, and the snapshot reports an incomplete fact with contradictedBy: ["npm"] and a DISCOVERY_FACT_INCOMPLETE diagnostic.',
     },
   },
 
@@ -125,7 +125,7 @@ const metadata = {
     snapshotVersion: 1,
     status: "known-inaccurate",
     knownLimitation:
-      "With no `tsconfig.json`, the fallback walk excludes only `node_modules` and `.git`, because \"this directory looks like build output\" is a guess and a guess that silently drops files produces a graph that is quietly incomplete. The cost is that committed `dist/` and `lib/` are treated as source, so `graph.sourceUniverse.files` is not the repository's source and `graph.nodes` contains generated code.",
+      'With no `tsconfig.json`, the fallback walk excludes only `node_modules` and `.git`, because "this directory looks like build output" is a guess and a guess that silently drops files produces a graph that is quietly incomplete. The cost is that committed `dist/` and `lib/` are treated as source, so `graph.sourceUniverse.files` is not the repository\'s source and `graph.nodes` contains generated code.',
     correctFutureBehaviour:
       "A documented exclusion rule for build output, with its own decision and its own diagnostics — not a growing list of directory names that look like build output. The corpus study also found a second route to the same inaccuracy: a `tsconfig.json` that states no `files` and no `include` reproduces TypeScript's own `**/*` default and admits generated trees just as well, so a fix has to cover both.",
     inspiredBy: {
@@ -151,7 +151,7 @@ const metadata = {
       repository: "https://github.com/lodash/lodash",
       commit: "2b5e6f7399a7b48005140b5d5c6bc6c0e62919a8",
       originalBehaviour:
-        "package-lock.json at lockfileVersion 1 is reported as \"Lockfile format 1 is not modelled… left uninterpreted rather than approximated\", and all 85 `require` calls in `lib/` are `unsupported-syntax`. express (9a34acf03cb818ff3f8bc40e44176e277a25cbb9) and webpack (e95be18b465117b38d4f260b608d4f084a500bdc) show the same for 402 and 3249 imports respectively.",
+        'package-lock.json at lockfileVersion 1 is reported as "Lockfile format 1 is not modelled… left uninterpreted rather than approximated", and all 85 `require` calls in `lib/` are `unsupported-syntax`. express (9a34acf03cb818ff3f8bc40e44176e277a25cbb9) and webpack (e95be18b465117b38d4f260b608d4f084a500bdc) show the same for 402 and 3249 imports respectively.',
     },
   },
 };

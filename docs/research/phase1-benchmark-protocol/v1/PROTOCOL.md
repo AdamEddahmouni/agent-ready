@@ -9,9 +9,9 @@
 
 Compare two conditions on identical tasks, models, and pinned repositories:
 
-| Condition | Access |
-| --------- | ------ |
-| `raw` | Checkout + shell/file tools only |
+| Condition     | Access                                                                                       |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| `raw`         | Checkout + shell/file tools only                                                             |
 | `agent-ready` | Same, plus Discovery Snapshot Format 1 and bounded `twin query` (no extra edit/build powers) |
 
 The only intended difference is repository model access.
@@ -38,16 +38,16 @@ Ten fixed tasks in [`tasks.json`](tasks.json). Prompts are committed verbatim; a
 
 ## Metrics (operational)
 
-| Metric | Definition |
-| ------ | ---------- |
-| **taskSuccess** | Binary per run: success oracle in task manifest satisfied (automated check or blinded human rubric `manual-rubric`). |
-| **unnecessaryFileReads** | Count of file read tool calls whose path was not in the minimal necessary set defined in the task's `verificationSurface` plus one hop (adjudicated post-hoc from logs; disagreements resolved by second reviewer). |
-| **toolCalls** | All non-read tools (write, search, shell, etc.) counted per run. |
-| **tokens** | Input, output, cached, reasoning — as reported by the evaluation environment; if unavailable, record `null` and treat as limitation. |
-| **invalidAssumptions** | Count of factual claims about repo structure contradicted by pinned tree (claim/evidence/adjudication stored separately). |
-| **incorrectDependencyReasoning** | Count of errors classifying dependency scope, internal vs external, or lockfile vs manifest (predeclared error classes in runbook). |
-| **verificationSelection** | 1 if agent ran a command matching task `verificationSurface` expectation, 0 otherwise. |
-| **timeToFirstCorrectModification** | Seconds from task start to first patch passing partial oracle; `null` if no correct modification. |
+| Metric                             | Definition                                                                                                                                                                                                          |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **taskSuccess**                    | Binary per run: success oracle in task manifest satisfied (automated check or blinded human rubric `manual-rubric`).                                                                                                |
+| **unnecessaryFileReads**           | Count of file read tool calls whose path was not in the minimal necessary set defined in the task's `verificationSurface` plus one hop (adjudicated post-hoc from logs; disagreements resolved by second reviewer). |
+| **toolCalls**                      | All non-read tools (write, search, shell, etc.) counted per run.                                                                                                                                                    |
+| **tokens**                         | Input, output, cached, reasoning — as reported by the evaluation environment; if unavailable, record `null` and treat as limitation.                                                                                |
+| **invalidAssumptions**             | Count of factual claims about repo structure contradicted by pinned tree (claim/evidence/adjudication stored separately).                                                                                           |
+| **incorrectDependencyReasoning**   | Count of errors classifying dependency scope, internal vs external, or lockfile vs manifest (predeclared error classes in runbook).                                                                                 |
+| **verificationSelection**          | 1 if agent ran a command matching task `verificationSurface` expectation, 0 otherwise.                                                                                                                              |
+| **timeToFirstCorrectModification** | Seconds from task start to first patch passing partial oracle; `null` if no correct modification.                                                                                                                   |
 
 Secondary (exploratory only): total wall time, files modified, verification attempts, failed tool calls.
 

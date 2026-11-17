@@ -14,7 +14,11 @@
       "id": "axios-02-add-devdep",
       "repositoryId": "axios",
       "prompt": "Add `semver` as a runtime dependency at version ^7.6.0 in the root package.json only (do not run install). Ensure the dependency entry is under \"dependencies\", not devDependencies.",
-      "successOracle": { "type": "file-contains", "path": "package.json", "substring": "\"semver\": \"^7.6.0\"" },
+      "successOracle": {
+        "type": "file-contains",
+        "path": "package.json",
+        "substring": "\"semver\": \"^7.6.0\""
+      },
       "forbidden": ["changing unrelated dependencies", "modifying lockfile"],
       "verificationSurface": ["package.json"],
       "timeoutMinutes": 20

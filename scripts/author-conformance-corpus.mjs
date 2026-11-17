@@ -11,8 +11,7 @@ import { join, dirname } from "node:path";
  */
 const ROOT = "conformance/discovery/v1";
 
-const manifest = (fields) =>
-  JSON.stringify({ name: fields.name, ...fields }, null, 2) + "\n";
+const manifest = (fields) => JSON.stringify({ name: fields.name, ...fields }, null, 2) + "\n";
 
 const cases = {
   "minimal-package": {
@@ -102,9 +101,11 @@ const cases = {
       "  .: {}",
       "",
     ].join("\n"),
-    "packages/api/src/index.ts": ['import { core } from "@scope/core";', "export const api = core;", ""].join(
-      "\n",
-    ),
+    "packages/api/src/index.ts": [
+      'import { core } from "@scope/core";',
+      "export const api = core;",
+      "",
+    ].join("\n"),
     "packages/core/src/index.ts": ["export const core = 1;", ""].join("\n"),
   },
 
@@ -130,11 +131,12 @@ const cases = {
       "        version: 8.17.1",
       "",
     ].join("\n"),
-    "package-lock.json": JSON.stringify(
-      { name: "conflicted", lockfileVersion: 3, packages: { "": { name: "conflicted" } } },
-      null,
-      2,
-    ) + "\n",
+    "package-lock.json":
+      JSON.stringify(
+        { name: "conflicted", lockfileVersion: 3, packages: { "": { name: "conflicted" } } },
+        null,
+        2,
+      ) + "\n",
   },
 
   "partial-observation": {
@@ -144,7 +146,8 @@ const cases = {
 
   "unresolved-import": {
     "package.json": manifest({ name: "unresolved", private: true }),
-    "tsconfig.json": JSON.stringify({ compilerOptions: { moduleResolution: "nodenext" } }, null, 2) + "\n",
+    "tsconfig.json":
+      JSON.stringify({ compilerOptions: { moduleResolution: "nodenext" } }, null, 2) + "\n",
     "src/index.ts": [
       'import { gone } from "./gone.js";',
       'import { types } from "./types.js";',
@@ -205,15 +208,16 @@ const cases = {
       private: true,
       dependencies: { ajv: "^8.17.1" },
     }),
-    "package-lock.json": JSON.stringify(
-      {
-        name: "unsupported",
-        lockfileVersion: 1,
-        dependencies: { ajv: { version: "8.17.1" } },
-      },
-      null,
-      2,
-    ) + "\n",
+    "package-lock.json":
+      JSON.stringify(
+        {
+          name: "unsupported",
+          lockfileVersion: 1,
+          dependencies: { ajv: { version: "8.17.1" } },
+        },
+        null,
+        2,
+      ) + "\n",
     "lib/index.js": [
       'const helper = require("./helper.js");',
       'const pkg = require("./package.json");',
