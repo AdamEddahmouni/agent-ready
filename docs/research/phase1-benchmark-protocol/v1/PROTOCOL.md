@@ -1,9 +1,11 @@
 # Phase 1 benchmark protocol v1
 
-**Status:** draft, revised before freeze (2026-11-17) — must be merged and frozen before any evaluation run.
+**Status:** frozen 2026-11-17. Any change to this directory requires a sibling `v2/`; v1 and its results remain.
 
 **Protocol version:** `1`  
-**Artifacts:** [`manifest.json`](manifest.json), [`repositories.json`](repositories.json), [`tasks.json`](tasks.json), [`decision-rule.json`](decision-rule.json)
+**Artifacts:** [`manifest.json`](manifest.json), [`repositories.json`](repositories.json), [`tasks.json`](tasks.json), [`decision-rule.json`](decision-rule.json), [`run-manifest.template.json`](run-manifest.template.json)
+
+**Run-manifest schema:** [`phase1-benchmark-run-manifest-v1.schema.json`](../../../../schemas/research/phase1-benchmark-run-manifest-v1.schema.json)
 
 ## Purpose
 
@@ -18,10 +20,11 @@ The only intended difference is repository model access.
 
 ## Immutability
 
-After the first evaluation run using this protocol:
+Protocol v1 was frozen on **2026-11-17**. From this freeze:
 
 - Do **not** edit files in `v1/`.
-- Any change creates **`v2/`** as a sibling; v1 tasks, manifests, and raw results remain.
+- Any change creates **`v2/`** as a sibling; v1 artifacts, schemas, and raw results remain.
+- [`FROZEN.sha256`](FROZEN.sha256) records the SHA-256 of every listed v1 artifact and schema. The protocol validator and tests fail if a listed byte changes.
 
 ## Repository set
 
@@ -119,7 +122,9 @@ Each run produces one JSON document validating against [`schemas/research/phase1
 
 ## Run manifest (before first run)
 
-Before evaluation, commit a **run manifest** with: protocol version, model id, agent client version, configuration, OS, Node version, Agent-Ready SHA, repository SHAs, run count, budgets, randomization seed, and date. Do not mutate after the first trial starts.
+Before evaluation, commit a **run manifest** conforming to [`phase1-benchmark-run-manifest-v1.schema.json`](../../../../schemas/research/phase1-benchmark-run-manifest-v1.schema.json). Start from [`run-manifest.template.json`](run-manifest.template.json) and replace every placeholder.
+
+The manifest records the protocol version, model id and configuration, agent client version, OS and Node version, Agent-Ready commit, the five repository commits, the 3 × 13 = 39-per-condition / 78-total run arithmetic, budgets, randomization seed, and date. Its `id` is the `runManifestId` cited by every raw run record. Do not mutate it after the first trial starts; the actual manifest is #57.
 
 ## Publication
 
