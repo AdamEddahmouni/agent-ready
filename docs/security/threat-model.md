@@ -145,3 +145,17 @@ Additional v0.6.0 controls:
 Anything requiring a network service, authentication, or multi-tenant
 isolation does not apply — there is no such surface in this phase (see
 [../../ROADMAP.md](../../ROADMAP.md)'s strict non-goals list).
+
+## vNext threat classes
+
+This model covers the shipped v0.6.x product only. The vNext direction — a
+control plane for governing, verifying, and observing autonomous software changes —
+creates a substantially larger threat surface, including agents that modify their
+own verifiers, falsify evidence, exceed delegated authority, or poison persistent
+memory.
+
+Those threat classes are enumerated in
+[threat-model-vnext.md](threat-model-vnext.md), together with the proposed trusted
+computing boundary and trust strata. **None of them are mitigated today**, because
+none of the corresponding capabilities exist. This document remains authoritative
+for what the repository currently does.

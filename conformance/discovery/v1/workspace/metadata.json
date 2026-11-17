@@ -1,0 +1,14 @@
+{
+  "name": "workspace",
+  "purpose": "A root package plus two workspace members, one of which depends on the other through the `workspace:` protocol. Exercises workspace declaration and expansion, package identity by path rather than by name, a SECOND scoped package-manager fact from a member's own lockfile, and commands nested per declaring package.",
+  "exercises": [
+    "workspace declaration and candidate expansion",
+    "package identity by path rather than by name",
+    "two scoped package-manager facts, one per manifest that states one",
+    "workspace dependency edge resolved to the member's package node, with targetMissing false",
+    "a member dependency carries no resolved version, because only the root importer is read",
+    "commands nested per declaring package"
+  ],
+  "snapshotVersion": 1,
+  "status": "normative"
+}

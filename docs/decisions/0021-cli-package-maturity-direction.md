@@ -14,15 +14,15 @@ candidates by selecting Phase 10 itself but did not commit the project
 to it for the _next_ phase.
 
 A separate candidate has been on the table since
-[docs/project-standing.md](project-standing.md) and
-[docs/implementation-scope-cli-package.md](implementation-scope-cli-package.md)
+[docs/project-standing.md](../project-standing.md) and
+[docs/implementation-scope-cli-package.md](../implementation-scope-cli-package.md)
 were written: a "CLI/package maturity" increment adding four
 adoption-focused commands (`agent-ready init`, `doctor`, `explain`,
 `schema`) without changing what the contract means. ROADMAP.md lists this
 as "candidate next increment," not decided scope.
 
 Adoption friction is the project's stated "natural next problem"
-([docs/project-standing.md](project-standing.md)) — handing a maintainer
+([docs/project-standing.md](../project-standing.md)) — handing a maintainer
 an empty file and a 1 MB schema is the section of the funnel the existing
 six commands do not address. Path A is the smallest concrete
 counter-measure: each new command is read-only (except `init`, which is
@@ -35,8 +35,8 @@ reservation, and the write path follows the same pattern
 - **Pick one of ADR-0019's three Phase 11 candidates instead** —
   architecture-dependency analysis (extends `analyze` beyond Markdown
   links), task/context packets (a richer "handoff" data model sketched
-  in [docs/specification/evidence.md](specification/evidence.md) and
-  [config-evolution-draft.md](specification/config-evolution-draft.md)),
+  in [docs/specification/evidence.md](../specification/evidence.md) and
+  [config-evolution-draft.md](../specification/config-evolution-draft.md)),
   or framework-specific examples. Each is a valid direction; none is the
   right next step now. Framework examples are useful adoption work but
   do not strengthen Agent-Ready's central "deterministic evidence"
@@ -52,13 +52,13 @@ reservation, and the write path follows the same pattern
   on the table behind no concrete next deliverable.
 - **Build all four CLI/package commands at once** as a single phase.
   Rejected — sequencing matters for the only command that writes
-  (`init`): per [docs/implementation-scope-cli-package.md](implementation-scope-cli-package.md)
+  (`init`): per [docs/implementation-scope-cli-package.md](../implementation-scope-cli-package.md)
   it should ship last, behind the second-proven safe writer pattern.
   Bundling skips that discipline.
 - **Path A; ship `agent-ready schema` first.** Selected. `schema` is
   the lowest-risk of the four — read-only, no environment inspection,
   no validation logic, just printing an already-bundled file
-  ([schemas/v1/agent-ready.schema.json](../schemas/v1/agent-ready.schema.json))
+  ([schemas/v1/agent-ready.schema.json](../../schemas/v1/agent-ready.schema.json))
   the package already exposes via its `./schema` export. The remaining
   three are sequenced as the proposal already specifies.
 
@@ -77,7 +77,7 @@ exits.
 
 Subsequent commands ship in this order, each behind its own ADR
 following the per-command format
-[docs/specification/cli-reference.md](specification/cli-reference.md)
+[docs/specification/cli-reference.md](../specification/cli-reference.md)
 already establishes for every existing command:
 
 1. `agent-ready doctor` — read-only environment inspection
@@ -136,7 +136,7 @@ Revisit this decision if:
   limitations") needs to occur before adding CLI surface is sensible.
 - The proposed `agents:` / `quality_gates:` / `architecture:` /
   `handoff:` schema evolution in
-  [config-evolution-draft.md](specification/config-evolution-draft.md)
+  [config-evolution-draft.md](../specification/config-evolution-draft.md)
   becomes a more binding blocker for adoption than CLI/package
   maturity — i.e. the missing key is _what the contract can say_, not
   _how to author what it can already say_.

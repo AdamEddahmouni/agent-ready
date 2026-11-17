@@ -1,5 +1,8 @@
 node_modules/
 dist/
+# This conformance fixture deliberately commits generated output: the case pins
+# the fallback source-universe limitation, where `dist/` is admitted as source.
+!conformance/discovery/v1/known-inaccurate-fallback-source-universe/repo/dist/
 coverage/
 *.log
 .DS_Store
@@ -8,3 +11,4 @@ Thumbs.db
 *.tsbuildinfo
 agent-ready-verify-result.json
 .claude/
+artifacts/
