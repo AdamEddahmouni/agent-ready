@@ -10,17 +10,22 @@ below); `agent-ready init --write`, which writes a starter
 `agent-ready upgrade --write`, which applies a validated set of safe,
 additive changes to an existing contract after showing a dry-run diff (see
 [`agent-ready upgrade`](#agent-ready-upgrade) and
-[ADR-0028](../decisions/0028-agent-ready-upgrade-command.md)); and
+[ADR-0028](../decisions/0028-agent-ready-upgrade-command.md));
 `agent-ready verify --execute --record`, which writes a single
 JSON evidence file to the repository root (see
 [`agent-ready verify`](#agent-ready-verify) below and
-[ADR-0015](../decisions/0015-verification-evidence-recording.md)) — and
+[ADR-0015](../decisions/0015-verification-evidence-recording.md)); and
+`agent-ready twin build`, which writes only the explicit `--output` file and
+refuses to overwrite it without `--force` (see
+[`agent-ready twin`](#agent-ready-twin) below and
+[ADR-0049](../decisions/0049-snapshot-build-and-bounded-query.md)) — and
 never executes a command declared in a contract, except `agent-ready
 verify --execute`, which runs exactly the commands declared in
 `verification.required` (see [`agent-ready verify`](#agent-ready-verify)
 below and [ADR-0014](../decisions/0014-verification-execution.md)).
 
-This reference covers the twelve commands that exist today. Path A is
+This reference covers the twelve top-level commands that exist today, plus the
+experimental `twin` command family. Path A is
 complete: `agent-ready schema` ([ADR-0022](../decisions/0022-agent-ready-schema-command.md)),
 `agent-ready doctor` ([ADR-0023](../decisions/0023-agent-ready-doctor-command.md)),
 `agent-ready explain` ([ADR-0024](../decisions/0024-agent-ready-explain-command.md)),
@@ -1256,28 +1261,31 @@ applied silently: source depth `12`, directory entries `2000`, source files
 file `500`, graph nodes `5000`, graph edges `20000`, lockfile bytes `8 MB`. When
 one fires, `graph.truncatedBy` names it and `graph.complete` is `false`.
 
-#### Nothing is persisted
+#### No graph database; snapshots are explicit files
 
-The graph exists in memory for one run and is serialised into the snapshot. No
-graph database, no `.agent-ready/` directory, no `graph.json`, no cache file, no
-MCP resource, no HTTP endpoint, and no query language. A user who wants a file
-writes the JSON themselves. There is no `agent-ready graph` command either:
-Phase 1 is one repository-discovery surface, and a second command returning a
-subset of the first would give a consumer two interfaces to reconcile.
+The graph exists in memory for one `discover` run and is serialised into the
+snapshot. `discover` writes nothing. `twin build` is the explicit persistence
+path: it writes only the `--output` file, and `twin query` reads only that file.
+There is no graph database, no `.agent-ready/` directory created implicitly, no
+cache file, no MCP resource, no HTTP endpoint, and no query service. There is no
+`agent-ready graph` command either: Phase 1 is one repository-discovery surface,
+and a second command returning a subset of the first would give a consumer two
+interfaces to reconcile.
 
 ### JSON output
 
 `--json` is a projection of the same snapshot with nothing added, dropped, or
 re-derived, so the two renderings cannot disagree. It carries its own
-`snapshotVersion` (currently `0`, meaning unstable and not covered by the
-pre-1.0 stability promise — independent of both the contract `version` and the
-package version). Every path in it is repository-relative, so byte-identical
-output does not depend on where the repository is checked out.
+`snapshotVersion` (`1`, stable under
+[ADR-0048](../decisions/0048-discovery-snapshot-stability-and-conformance.md);
+independent of both the contract `version` and the package version). Every path
+in it is repository-relative, so byte-identical output does not depend on where
+the repository is checked out.
 
 ```json
 {
   "ok": true,
-  "snapshotVersion": 0,
+  "snapshotVersion": 1,
   "root": ".",
   "facts": {
     "repository.contract.present": {
@@ -1411,6 +1419,89 @@ consumer can mistake a withheld graph for an empty one. A missing
 `agent-ready.yaml` is never `CONTRACT_NOT_FOUND` for this command. See
 [Exit codes](#exit-codes) and
 [diagnostics.md](diagnostics.md#exit-code-mapping).
+
+## `agent-ready twin`
+
+Experimental snapshot build and bounded query over a saved Discovery Snapshot
+Format 1 document ([ADR-0049](../decisions/0049-snapshot-build-and-bounded-query.md)).
+`twin` is a command family, not a thirteenth top-level command.
+
+### `agent-ready twin build`
+
+Runs the same pipeline as `discover --json`, validates the result against
+[`schemas/discovery/snapshot-v1.schema.json`](../../schemas/discovery/snapshot-v1.schema.json),
+and writes it to exactly the `--output` path. Parent directories are created,
+and the destination is replaced atomically. An existing destination is refused
+unless `--force` is passed. This is the only `twin` subcommand that writes.
+
+```bash
+agent-ready twin build --output .agent-ready/snapshot.json
+agent-ready twin build --output snapshot.json --root path/to/repo --force
+```
+
+| Option            | Description                                                         |
+| ----------------- | ------------------------------------------------------------------- |
+| `--output <path>` | Required destination file for the snapshot JSON.                    |
+| `--root <path>`   | Repository directory to inspect. Defaults to the working directory. |
+| `--force`         | Overwrite an existing destination file.                             |
+
+Exit codes: `0` on success; `2` when discovery cannot read the repository root;
+`1` for discovery's provenance defect, an existing destination without
+`--force`, a non-file destination, a schema-validation failure, or a write
+failure. No model, network, Git, or repository command is invoked.
+
+### `agent-ready twin query`
+
+Reads only the file given by `--snapshot`, validates its `snapshotVersion` and
+schema, and answers from that document. It does not read the repository tree,
+run Git, call the network, or re-run discovery.
+
+```bash
+agent-ready twin query --snapshot snapshot.json --kind summary
+agent-ready twin query --snapshot snapshot.json --kind package --parameter .
+agent-ready twin query --snapshot snapshot.json --kind imports-of-module \
+  --parameter src/index.ts --limit 20 --json
+```
+
+| Option                | Description                                                  |
+| --------------------- | ------------------------------------------------------------ |
+| `--snapshot <path>`   | Required Snapshot Format 1 JSON file.                        |
+| `--kind <kind>`       | Required query kind.                                         |
+| `--parameter <value>` | Package path or module path, where the kind requires one.    |
+| `--limit <n>`         | Maximum list entries, clamped to 1–500 (default 100).        |
+| `--json`              | Emit the query result object instead of the human rendering. |
+
+| Kind                       | Parameter    | Answer                                                 |
+| -------------------------- | ------------ | ------------------------------------------------------ |
+| `summary`                  | none         | The snapshot's `summary` object.                       |
+| `packages`                 | none         | Package entries, sorted by repository-relative path.   |
+| `package`                  | package path | One package entry with that exact path.                |
+| `commands-for-package`     | package path | The declared command inventory for that package.       |
+| `verification-for-package` | package path | The verification entrypoints for that package.         |
+| `module`                   | module path  | The graph node for that module.                        |
+| `imports-of-module`        | module path  | Import edges whose source is that module.              |
+| `importers-of-module`      | module path  | Import edges whose target is that module.              |
+| `dependencies-of-package`  | package path | Package-dependency edges whose source is that package. |
+| `owner-of`                 | module path  | The module's ownership state, or `unknown`.            |
+| `unowned`                  | none         | Graph nodes whose ownership state is `unowned`.        |
+| `unresolved-imports`       | none         | Import edges whose resolution status is `unresolved`.  |
+
+`--json` emits a query-result object (`queryVersion: 1`), not a snapshot:
+
+```json
+{
+  "queryVersion": 1,
+  "kind": "package",
+  "parameter": ".",
+  "truncated": false,
+  "result": { "path": "." }
+}
+```
+
+The human rendering prints the same result as JSON with a `Query: <kind>`
+header and a `(truncated)` marker when `--limit` clipped a list. Exit codes:
+`0` on success; `1` for an unreadable snapshot, an unsupported snapshot version
+or schema, an unknown kind, a missing required parameter, or no matching entry.
 
 ## `agent-ready verify`
 

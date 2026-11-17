@@ -223,7 +223,14 @@ has described: it reports what it can prove, cites the file for every claim,
 and marks anything it could not determine as `unknown` rather than guessing.
 See [ADR-0044](docs/decisions/0044-repository-discovery-model.md).
 
-Every command supports `--json` for CI and tooling. See the
+`twin build` and `twin query` are experimental subcommands on the same track:
+`twin build` writes a validated snapshot to an explicit path, and `twin query`
+answers bounded structural questions from that file alone. They are on `main`
+and are not part of the `0.6.1` npm package; v0.7.0 is the release that will
+carry the discovery and twin surface.
+
+Every top-level command supports `--json` for CI and tooling; `twin query`
+does too, while `twin build` writes the snapshot to its `--output` path. See the
 [CLI reference](docs/specification/cli-reference.md) for flags, exit codes,
 and output shapes.
 
@@ -351,7 +358,8 @@ funnel: `schema` →
 today, including the v0.4 `upgrade` command, the v0.5 architecture and
 agent-guidance blocks, and the v0.6 structured handoff evidence and
 per-command timeouts. `discover` has since been added as a twelfth command on
-the parallel vNext track.
+the parallel vNext track, alongside the experimental `twin build` and `twin
+query` subcommands; none of the three is in the `0.6.1` npm package.
 
 **Direction.** In September 2026 the project selected a vNext design phase — see
 [Direction: vNext](#direction-vnext). The v1 contract, the eleven shipped
