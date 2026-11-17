@@ -51,3 +51,14 @@ not need one — see `GOVERNANCE.md` for the full criteria.
 | [0041](0041-vnext-autonomous-software-evolution.md)           | vNext direction: autonomous software evolution control plane    |
 | [0042](0042-v1-freeze-and-parallel-vnext-surface.md)          | Freeze the v1 contract and CLI; add vNext as a parallel surface |
 | [0043](0043-core-posture-and-integration-quarantine.md)       | Deterministic-core posture and quarantined integrations         |
+| [0044](0044-repository-discovery-model.md)                    | Repository discovery model and its fact boundary                |
+| [0045](0045-package-and-workspace-discovery-semantics.md)     | Package and workspace discovery semantics                       |
+| [0046](0046-command-and-verification-discovery-semantics.md)  | Command and verification discovery semantics                    |
+| [0047](0047-provenance-carrying-repository-graph.md)          | Provenance-carrying repository graph semantics                  |
+| [0048](0048-discovery-snapshot-stability-and-conformance.md)  | Discovery snapshot stability and conformance                    |
+| [0049](0049-snapshot-build-and-bounded-query.md)              | Snapshot build and bounded twin query                           |
+| [0050](0050-supersede-v07-analysis-roadmap.md)                | Retire the unmerged v0.7 analysis roadmap (ADR-0037-0039)       |
+
+ADR-0037, ADR-0038 and ADR-0039 were accepted only on an unmerged branch and
+are retired; they are superseded or deferred by [ADR-0050](0050-supersede-v07-analysis-roadmap.md)
+and are intentionally absent from this directory.

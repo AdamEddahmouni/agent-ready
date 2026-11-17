@@ -1,0 +1,13 @@
+lockfileVersion: '9.0'
+
+importers:
+
+  .: {}
+
+  packages/api:
+    dependencies:
+      '@scope/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/core: {}

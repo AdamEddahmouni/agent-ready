@@ -1,0 +1,17 @@
+{
+  "name": "package-manager-conflict",
+  "purpose": "Two lockfiles beside one declaration. The snapshot must carry the DECLARED manager forward, publish the contradicting one in `contradictedBy`, retain every claim, and name no winner.",
+  "exercises": [
+    "the incomplete epistemic shape",
+    "contradictedBy is non-empty and is the discriminator",
+    "no value is chosen between disagreeing sources",
+    "corroboration across a declaration and an artifact"
+  ],
+  "snapshotVersion": 1,
+  "status": "normative",
+  "inspiredBy": {
+    "repository": "https://github.com/less/less.js",
+    "commit": "713331655e437401dfea6cd233893a69762734e1",
+    "originalBehaviour": "less ships pnpm-lock.json and package-lock.json while declaring `packageManager: pnpm@9.15.9`, and the snapshot reports an incomplete fact with contradictedBy: [\"npm\"] and a DISCOVERY_FACT_INCOMPLETE diagnostic."
+  }
+}
