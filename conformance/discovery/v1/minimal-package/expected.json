@@ -1,0 +1,650 @@
+{
+  "ok": true,
+  "snapshotVersion": 1,
+  "root": ".",
+  "facts": {
+    "repository.commands": {
+      "id": "repository.commands",
+      "kind": "declared",
+      "value": [
+        {
+          "packagePath": ".",
+          "scriptsStatus": "declared",
+          "commands": [
+            {
+              "name": "build",
+              "body": "tsc -b",
+              "source": "package.json",
+              "pointer": "/scripts/build"
+            },
+            {
+              "name": "lint",
+              "body": "eslint .",
+              "source": "package.json",
+              "pointer": "/scripts/lint"
+            },
+            {
+              "name": "test",
+              "body": "vitest run",
+              "source": "package.json",
+              "pointer": "/scripts/test"
+            }
+          ],
+          "unmodelledScripts": [],
+          "unsupportedReason": null
+        }
+      ],
+      "claims": [
+        {
+          "kind": "declared",
+          "value": [
+            {
+              "packagePath": ".",
+              "scriptsStatus": "declared",
+              "commands": [
+                {
+                  "name": "build",
+                  "body": "tsc -b",
+                  "source": "package.json",
+                  "pointer": "/scripts/build"
+                },
+                {
+                  "name": "lint",
+                  "body": "eslint .",
+                  "source": "package.json",
+                  "pointer": "/scripts/lint"
+                },
+                {
+                  "name": "test",
+                  "body": "vitest run",
+                  "source": "package.json",
+                  "pointer": "/scripts/test"
+                }
+              ],
+              "unmodelledScripts": [],
+              "unsupportedReason": null
+            }
+          ],
+          "evidence": [
+            {
+              "source": "package.json",
+              "pointer": "/scripts",
+              "detail": "3 declared script(s)"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "declared"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.contract.present": {
+      "id": "repository.contract.present",
+      "kind": "derived",
+      "value": false,
+      "claims": [
+        {
+          "kind": "derived",
+          "value": false,
+          "evidence": [
+            {
+              "source": "agent-ready.yaml",
+              "detail": "not present"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.contract.valid": {
+      "id": "repository.contract.valid",
+      "kind": "unknown",
+      "reason": "not-probed",
+      "evidence": []
+    },
+    "repository.contract.verification": {
+      "id": "repository.contract.verification",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "agent-ready.yaml",
+          "detail": "declares no verification sequence"
+        }
+      ]
+    },
+    "repository.declarationSurface.present": {
+      "id": "repository.declarationSurface.present",
+      "kind": "derived",
+      "value": false,
+      "claims": [
+        {
+          "kind": "derived",
+          "value": false,
+          "evidence": [
+            {
+              "source": "AGENTS.md",
+              "detail": "not present"
+            },
+            {
+              "source": "CLAUDE.md",
+              "detail": "not present"
+            },
+            {
+              "source": ".cursorrules",
+              "detail": "not present"
+            },
+            {
+              "source": ".github/copilot-instructions.md",
+              "detail": "not present"
+            },
+            {
+              "source": ".github/workflows",
+              "detail": "not present"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.packageManager.root": {
+      "id": "repository.packageManager.root",
+      "kind": "declared",
+      "value": "pnpm@10.0.0",
+      "claims": [
+        {
+          "kind": "declared",
+          "value": "pnpm@10.0.0",
+          "evidence": [
+            {
+              "source": "package.json",
+              "pointer": "/packageManager",
+              "detail": "declared package manager"
+            }
+          ]
+        },
+        {
+          "kind": "derived",
+          "value": "pnpm-lock.yaml",
+          "evidence": [
+            {
+              "source": "pnpm-lock.yaml",
+              "detail": "a pnpm lockfile exists"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "declared",
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": true
+      }
+    },
+    "repository.packages": {
+      "id": "repository.packages",
+      "kind": "derived",
+      "value": [
+        {
+          "path": ".",
+          "name": "minimal-package",
+          "nameStatus": "declared",
+          "private": true,
+          "version": "1.0.0",
+          "manifestStatus": "read"
+        }
+      ],
+      "claims": [
+        {
+          "kind": "derived",
+          "value": [
+            {
+              "path": ".",
+              "name": "minimal-package",
+              "nameStatus": "declared",
+              "private": true,
+              "version": "1.0.0",
+              "manifestStatus": "read"
+            }
+          ],
+          "evidence": [
+            {
+              "source": "package.json",
+              "detail": "package manifest"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.root": {
+      "id": "repository.root",
+      "kind": "derived",
+      "value": ".",
+      "claims": [
+        {
+          "kind": "derived",
+          "value": ".",
+          "evidence": [
+            {
+              "source": ".git",
+              "detail": "nearest ancestor directory containing a .git entry"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.verificationEntrypoints": {
+      "id": "repository.verificationEntrypoints",
+      "kind": "derived",
+      "value": [
+        {
+          "packagePath": ".",
+          "script": "build",
+          "role": "build",
+          "body": "tsc -b",
+          "primary": true,
+          "invocation": {
+            "cwd": ".",
+            "executable": "pnpm",
+            "args": [
+              "run",
+              "build"
+            ]
+          },
+          "invocationStatus": "resolved",
+          "source": "package.json",
+          "pointer": "/scripts/build"
+        },
+        {
+          "packagePath": ".",
+          "script": "lint",
+          "role": "lint",
+          "body": "eslint .",
+          "primary": true,
+          "invocation": {
+            "cwd": ".",
+            "executable": "pnpm",
+            "args": [
+              "run",
+              "lint"
+            ]
+          },
+          "invocationStatus": "resolved",
+          "source": "package.json",
+          "pointer": "/scripts/lint"
+        },
+        {
+          "packagePath": ".",
+          "script": "test",
+          "role": "test",
+          "body": "vitest run",
+          "primary": true,
+          "invocation": {
+            "cwd": ".",
+            "executable": "pnpm",
+            "args": [
+              "run",
+              "test"
+            ]
+          },
+          "invocationStatus": "resolved",
+          "source": "package.json",
+          "pointer": "/scripts/test"
+        }
+      ],
+      "claims": [
+        {
+          "kind": "derived",
+          "value": [
+            {
+              "packagePath": ".",
+              "script": "build",
+              "role": "build",
+              "body": "tsc -b",
+              "primary": true,
+              "invocation": {
+                "cwd": ".",
+                "executable": "pnpm",
+                "args": [
+                  "run",
+                  "build"
+                ]
+              },
+              "invocationStatus": "resolved",
+              "source": "package.json",
+              "pointer": "/scripts/build"
+            },
+            {
+              "packagePath": ".",
+              "script": "lint",
+              "role": "lint",
+              "body": "eslint .",
+              "primary": true,
+              "invocation": {
+                "cwd": ".",
+                "executable": "pnpm",
+                "args": [
+                  "run",
+                  "lint"
+                ]
+              },
+              "invocationStatus": "resolved",
+              "source": "package.json",
+              "pointer": "/scripts/lint"
+            },
+            {
+              "packagePath": ".",
+              "script": "test",
+              "role": "test",
+              "body": "vitest run",
+              "primary": true,
+              "invocation": {
+                "cwd": ".",
+                "executable": "pnpm",
+                "args": [
+                  "run",
+                  "test"
+                ]
+              },
+              "invocationStatus": "resolved",
+              "source": "package.json",
+              "pointer": "/scripts/test"
+            }
+          ],
+          "evidence": [
+            {
+              "source": "package.json",
+              "pointer": "/scripts",
+              "detail": "declared script names matched the role grammar"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.workspace.candidates": {
+      "id": "repository.workspace.candidates",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "present, declares no workspace"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.declarations": {
+      "id": "repository.workspace.declarations",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "present, declares no workspace"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.members": {
+      "id": "repository.workspace.members",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "present, declares no workspace"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.root": {
+      "id": "repository.workspace.root",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "present, declares no workspace"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    }
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "dependency:ajv",
+        "kind": "external-dependency",
+        "name": "ajv",
+        "provenance": {
+          "source": "package.json",
+          "line": 12,
+          "pointer": "/dependencies/ajv"
+        }
+      },
+      {
+        "id": "module:src/helper.ts",
+        "kind": "module",
+        "path": "src/helper.ts",
+        "packagePath": ".",
+        "provenance": {
+          "source": "src/helper.ts",
+          "line": 1
+        },
+        "ownership": {
+          "status": "unowned",
+          "policy": {
+            "status": "absent",
+            "source": null
+          }
+        }
+      },
+      {
+        "id": "module:src/index.ts",
+        "kind": "module",
+        "path": "src/index.ts",
+        "packagePath": ".",
+        "provenance": {
+          "source": "src/index.ts",
+          "line": 1
+        },
+        "ownership": {
+          "status": "unowned",
+          "policy": {
+            "status": "absent",
+            "source": null
+          }
+        }
+      },
+      {
+        "id": "package:.",
+        "kind": "package",
+        "path": ".",
+        "name": "minimal-package",
+        "provenance": {
+          "source": "package.json",
+          "line": 2,
+          "column": 3,
+          "endLine": 2,
+          "endColumn": 9,
+          "pointer": "/name"
+        },
+        "ownership": {
+          "status": "unowned",
+          "policy": {
+            "status": "absent",
+            "source": null
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "dependency:package:.->dependency:ajv",
+        "kind": "package-depends-on",
+        "source": "package:.",
+        "target": "dependency:ajv",
+        "declarations": [
+          {
+            "name": "ajv",
+            "dependencyClass": "runtime",
+            "declaredSpecifier": "^8.17.1",
+            "pointer": "/dependencies/ajv",
+            "provenance": {
+              "source": "package.json",
+              "line": 12,
+              "column": 5,
+              "endLine": 12,
+              "endColumn": 10,
+              "pointer": "/dependencies/ajv"
+            }
+          }
+        ],
+        "resolution": {
+          "status": "resolved",
+          "version": "8.17.1",
+          "provenance": {
+            "source": "pnpm-lock.yaml",
+            "line": 12,
+            "column": 18
+          }
+        },
+        "provenance": {
+          "source": "package.json",
+          "line": 12,
+          "column": 5,
+          "endLine": 12,
+          "endColumn": 10,
+          "pointer": "/dependencies/ajv"
+        },
+        "targetMissing": false
+      },
+      {
+        "id": "import:module:src/index.ts->module:src/helper.ts@1:24",
+        "kind": "imports",
+        "source": "module:src/index.ts",
+        "specifier": "./helper.js",
+        "syntax": "import",
+        "typeOnly": false,
+        "resolution": {
+          "status": "module",
+          "target": "module:src/helper.ts",
+          "targetPath": "src/helper.ts"
+        },
+        "provenance": {
+          "source": "src/index.ts",
+          "line": 1,
+          "column": 24,
+          "endLine": 1,
+          "endColumn": 37
+        }
+      }
+    ],
+    "sourceUniverse": {
+      "strategy": "tsconfig",
+      "tsconfigs": [
+        "tsconfig.json"
+      ],
+      "resolutionMode": "NodeNext",
+      "extensions": [
+        ".ts",
+        ".mts",
+        ".cts",
+        ".tsx",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".jsx"
+      ],
+      "files": [
+        "src/helper.ts",
+        "src/index.ts"
+      ],
+      "truncated": false
+    },
+    "ownership": {
+      "status": "absent",
+      "source": null,
+      "rules": 0,
+      "unsupportedPatterns": [],
+      "detail": null
+    },
+    "counts": {
+      "nodes": 4,
+      "edges": 2,
+      "packages": 1,
+      "modules": 2,
+      "externalDependencies": 1,
+      "owners": 0,
+      "importEdges": 1,
+      "resolvedImports": 1,
+      "unresolvedImports": 0,
+      "dependencyEdges": 1,
+      "resolvedDependencies": 1,
+      "workspaceDependencies": 0,
+      "ownedSubjects": 0,
+      "unownedSubjects": 3
+    },
+    "complete": true,
+    "truncatedBy": null
+  },
+  "summary": {
+    "facts": 13,
+    "known": 7,
+    "unknown": 6,
+    "conflicts": 0,
+    "complete": true
+  },
+  "diagnostics": []
+}

@@ -18,6 +18,31 @@ scope right now.
   with an existing ADR, the PR description should say so explicitly and
   propose a new ADR superseding it.
 
+## Repository layout
+
+- `src/` — TypeScript source. `src/contract/` is the parsing/validation/
+  normalization pipeline; `src/cli/commands/` are the per-command
+  implementations; `src/generate/` are the adapter renderers; `src/git/`,
+  `src/binary/`, `src/verify/` are the external-invocation boundaries.
+- `schemas/v1/agent-ready.schema.json` — the public contract JSON Schema.
+- `tests/unit/` and `tests/integration/` — Vitest suites (see below).
+- `examples/` — validated example contracts, including `invalid/`
+  adversarial fixtures used by CI.
+- `compatibility/adapter-output/` — the versioned, byte-exact expected
+  output corpus; bundled with the npm package. **Do not hand-edit golden
+  outputs**; regenerate or update them in the same PR that changes
+  rendering.
+- `docs/` — specification, architecture, decisions (ADRs), and security
+  docs. `docs/decisions/README.md` is the ADR index.
+
+**Generated vs. hand-maintained files.** `AGENTS.md`, `CLAUDE.md`,
+`.cursorrules`, `GEMINI.md`, and `.github/copilot-instructions.md` in
+this repository (and any adopter's repository) are **generated** by
+`agent-ready generate --write` and carry a managed-file marker — do not
+hand-edit them; change the contract and re-generate. `CHANGELOG.md`,
+`agent-ready.yaml`, README/docs, and all `src/`/`tests/` code are
+hand-maintained.
+
 ## Development setup
 
 ```bash

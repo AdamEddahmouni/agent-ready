@@ -13,6 +13,12 @@ Closes #
 - [ ] Documentation
 - [ ] Refactor / chore
 
+## Compatibility and breaking-change assessment
+
+- [ ] No public surface change (CLI flags, `--json` output, diagnostic codes, schema, exports) — or the change is additive-only per [ADR-0009](/docs/decisions/0009-pre-1.0-stability-policy.md)
+- [ ] Breaking or behavior-changing for existing contracts/users — explained below in the PR description, with an ADR if required by [GOVERNANCE.md](/GOVERNANCE.md)
+- [ ] Generated-file impact assessed: adapter output, golden fixtures, or the compatibility corpus (`compatibility/adapter-output/`) updated if generated output changes
+
 ## Quality gate
 
 All of the following pass locally:
@@ -22,6 +28,10 @@ All of the following pass locally:
 - [ ] `pnpm typecheck`
 - [ ] `pnpm test`
 - [ ] `pnpm build`
+
+## Verification performed
+
+<!-- List the commands you actually ran and their results, and paste relevant output or screenshots for UI/CLI changes. -->
 
 ## Checklist
 
