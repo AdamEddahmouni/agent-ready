@@ -57,9 +57,79 @@ export const DIAGNOSTIC_CODES = [
   "UPGRADE_NO_CHANGES_NEEDED",
   "UPGRADE_MANUAL_REVIEW_REQUIRED",
   "UPGRADE_WRITE_FAILED",
+  // Repository discovery (ADR-0044, extended by ADR-0045). Reserved namespace
+  // for `discover` and the discovery core.
+  //
+  // DISCOVERY_FACT_UNSUPPORTED was reserved in ADR-0044 and became reachable in
+  // ADR-0045: it now reports a fact whose *shape* this implementation does not
+  // model (a `packageManager` field that is not `<name>@<version>`), rather than
+  // a kind outside the four defined kinds. The four epistemic kinds are
+  // unchanged; no fifth kind exists.
+  "DISCOVERY_ROOT_UNREADABLE",
+  "DISCOVERY_PARTIAL",
+  "DISCOVERY_FACT_CONFLICT",
+  "DISCOVERY_FACT_INCOMPLETE",
+  "DISCOVERY_WORKSPACE_UNSUPPORTED",
+  "DISCOVERY_LOCKFILE_UNREADABLE",
+  "DISCOVERY_NO_SIGNALS",
+  "DISCOVERY_FACT_UNSUPPORTED",
+  // Repository graph (ADR-0047).
+  //
+  // DISCOVERY_IMPORT_UNRESOLVED is repository information: an import
+  // declaration was read and resolved to no in-repository target. It is a
+  // warning, because an unresolved import is a true statement about a
+  // repository rather than a failure of this run.
+  //
+  // DISCOVERY_GRAPH_PROVENANCE_INVALID is the opposite. A graph that cites a
+  // line which is not in the file, or an edge whose target does not exist, is a
+  // defect in Agent-Ready: the graph's entire value is that its edges can be
+  // audited, and an unauditable one is not shipped. It is therefore the only
+  // non-warning this command family adds, and `resolveExitCode` keys on error
+  // severity alone, so the command fails loudly rather than emitting an
+  // artifact it cannot stand behind.
+  "DISCOVERY_IMPORT_UNRESOLVED",
+  "DISCOVERY_GRAPH_PROVENANCE_INVALID",
 ] as const;
 
 export type DiagnosticCode = (typeof DIAGNOSTIC_CODES)[number];
+
+/**
+ * The codes emitted as `severity: "warning"` rather than `"error"`.
+ *
+ * Warning diagnostics describe a real condition that must not fail the
+ * command: an enabled-but-unimplemented adapter, a contract with nothing to
+ * verify, a runtime doctor does not probe yet, an upgrade that is a no-op, and
+ * the discovery conditions that leave a snapshot usable but incomplete or
+ * empty. Every other code is an error.
+ *
+ * This is a single source of truth on purpose. The list used to be restated
+ * inside `agent-ready explain`, which meant a newly registered informational
+ * code was reported by `explain` with the wrong severity until someone
+ * remembered to edit a second list. `explain` now derives from here, and a
+ * unit test asserts the two never diverge.
+ */
+export const WARNING_DIAGNOSTIC_CODES = [
+  "ADAPTER_NOT_YET_IMPLEMENTED",
+  "VERIFICATION_NOT_DECLARED",
+  "RUN_DECLARED_BUT_DOCTOR_UNSUPPORTED",
+  "UPGRADE_NO_CHANGES_NEEDED",
+  "UPGRADE_MANUAL_REVIEW_REQUIRED",
+  "DISCOVERY_PARTIAL",
+  "DISCOVERY_FACT_CONFLICT",
+  "DISCOVERY_FACT_INCOMPLETE",
+  "DISCOVERY_WORKSPACE_UNSUPPORTED",
+  "DISCOVERY_LOCKFILE_UNREADABLE",
+  "DISCOVERY_NO_SIGNALS",
+  "DISCOVERY_FACT_UNSUPPORTED",
+  "DISCOVERY_IMPORT_UNRESOLVED",
+] as const satisfies readonly DiagnosticCode[];
+
+export type WarningDiagnosticCode = (typeof WARNING_DIAGNOSTIC_CODES)[number];
+
+/** True when the code is documented as informational rather than fatal. */
+export function isWarningDiagnosticCode(code: DiagnosticCode): boolean {
+  return (WARNING_DIAGNOSTIC_CODES as readonly string[]).includes(code);
+}
 
 export function isDiagnosticCode(value: string): value is DiagnosticCode {
   return (DIAGNOSTIC_CODES as readonly string[]).includes(value);

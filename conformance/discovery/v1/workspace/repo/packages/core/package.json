@@ -1,0 +1,7 @@
+{
+  "name": "@scope/core",
+  "version": "0.1.0",
+  "scripts": {
+    "lint": "eslint ."
+  }
+}

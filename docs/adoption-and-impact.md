@@ -153,10 +153,10 @@ Adam Eddahmouni is currently the sole maintainer and is responsible for:
 - **Specification design** — the `agent-ready.yaml` contract shape and
   evolution policy.
 - **Schema maintenance** — `schemas/v1/agent-ready.schema.json`.
-- **CLI development** — all eleven commands and the public API.
+- **CLI development** — all twelve commands and the public API.
 - **Adapter development** — the five agent-instruction renderers.
 - **Documentation** — specification docs, ADRs, roadmap, threat model.
-- **Testing** — 557 passing unit/integration tests across 41 files (plus 2 skipped).
+- **Testing** — 668 passing unit/integration tests across 45 files (plus 2 skipped).
 - **Release management** — npm publication, GitHub Releases, changelog.
 - **Issue triage** — currently minimal by volume; no external issue
   traffic yet.
@@ -184,10 +184,11 @@ It is important to distinguish:
   place to express agent constraints, and agent vendors gain a
   structured contract to consume. This potential is real but
   **unproven**: no external adoption exists yet.
-- **Future goals** — reaching v1.0 with real external adopters (see
-  [ROADMAP-TO-1.0.md](../ROADMAP-TO-1.0.md)), framework-specific example
-  repositories, and ecosystem tooling. These are goals, not current
-  facts.
+- **Future goals** — reaching v1.0 with real external adopters (the
+  release sequence planned in
+  [archive/roadmap-v1.md](archive/roadmap-v1.md)), framework-specific
+  example repositories, and ecosystem tooling. These are goals, not
+  current facts.
 
 Agent-Ready does **not** claim that the ecosystem already depends on it.
 

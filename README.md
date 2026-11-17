@@ -16,7 +16,7 @@
 
 # <img src="assets/brand/agent-ready-icon.png" alt="" width="32" height="32" align="middle"> Agent-Ready
 
-**The missing contract between repositories and coding agents.**
+**Open infrastructure for constitutionally governed autonomous software evolution.**
 
 Agent-Ready is an open, vendor-neutral specification and deterministic CLI
 for describing how AI coding agents should work inside a software repository.
@@ -31,6 +31,32 @@ No API keys. No LLM calls. No network access. Zero cost per run.
 <p align="center">
   <img src="assets/cards/private-local-card.png" alt="Agent-Ready runs entirely locally — no API keys, no network, no LLM calls." width="100%">
 </p>
+
+## Direction: vNext
+
+The project is in a **design phase**. Everything below this point describes what
+ships today: the v0.6.x repository-contract CLI, which keeps releasing unchanged
+with its v1 contract, eleven commands, and pre-1.0 compatibility policy frozen.
+
+The next chapter is one level deeper than instruction files. Agent-Ready aims to
+become a control plane for autonomous software evolution — software that
+commissions agents under explicit, time-bounded authority; verifies their work
+independently of whoever produced it; deploys reversibly; observes what actually
+happened; and retains the causal knowledge afterwards.
+
+**None of that is built yet.** The direction is written down, reviewed, and
+deliberately falsifiable, including the conditions under which it should be
+abandoned:
+
+- [VISION.md](VISION.md) — the design thesis
+- [RFC-0001](docs/vnext/RFC-0001-autonomous-software-evolution.md) — the formal
+  proposal: concepts, phases, research questions, success criteria
+- [LANDSCAPE.md](docs/vnext/LANDSCAPE.md) — what Agent-Ready would own, and which
+  adjacent standards it refuses to rebuild
+- [Threat model: vNext](docs/security/threat-model-vnext.md) — the threat classes
+  this direction creates, **none of them mitigated today**
+- [Archived roadmap to 1.0](docs/archive/roadmap-v1.md) — the superseded forward
+  plan, kept as history
 
 ## Why Agent-Ready Exists
 
@@ -175,7 +201,7 @@ network access. The same contract produces the same result every time.
   <img src="assets/cards/cli-validation-card.png" alt="Agent-Ready validate output showing schema valid and status ready." width="100%">
 </p>
 
-The CLI ships **eleven real commands** — not documentation placeholders:
+The CLI ships **twelve real commands** — not documentation placeholders:
 
 | Command    | What it does                                                                       |
 | ---------- | ---------------------------------------------------------------------------------- |
@@ -189,7 +215,13 @@ The CLI ships **eleven real commands** — not documentation placeholders:
 | `explain`  | Print extended plain-language explanations of diagnostic codes                     |
 | `init`     | Scaffold a starter `agent-ready.yaml` from repository inspection                   |
 | `upgrade`  | Propose or apply safe, additive modernizations to an existing contract             |
+| `discover` | Build an evidence-bearing model of a repository, with or without a contract        |
 | `verify`   | Execute the contract's verification pipeline and record evidence                   |
+
+`discover` is the twelfth and the only one that works on a repository nobody
+has described: it reports what it can prove, cites the file for every claim,
+and marks anything it could not determine as `unknown` rather than guessing.
+See [ADR-0044](docs/decisions/0044-repository-discovery-model.md).
 
 Every command supports `--json` for CI and tooling. See the
 [CLI reference](docs/specification/cli-reference.md) for flags, exit codes,
@@ -315,12 +347,20 @@ Agent-Ready is **pre-1.0**. The current stable release is `0.6.1` (npm
 `latest`, tag `v0.6.1`, a GitHub-verified signed tag). The core contract schema and
 CLI are stable enough for evaluation and daily use. Path A (the adoption
 funnel: `schema` →
-`doctor` → `explain` → `init`) is complete. All eleven commands ship and run
+`doctor` → `explain` → `init`) is complete. The eleven v1 commands ship and run
 today, including the v0.4 `upgrade` command, the v0.5 architecture and
 agent-guidance blocks, and the v0.6 structured handoff evidence and
-per-command timeouts.
+per-command timeouts. `discover` has since been added as a twelfth command on
+the parallel vNext track.
 
-CI runs 557 automated tests across 41 test files, exercising the full pipeline
+**Direction.** In September 2026 the project selected a vNext design phase — see
+[Direction: vNext](#direction-vnext). The v1 contract, the eleven shipped
+commands, and the adapter-output compatibility corpus are **frozen and still
+releasing** ([ADR-0042](docs/decisions/0042-v1-freeze-and-parallel-vnext-surface.md)).
+vNext work lands beside them as additive, independently versioned surface. No
+control-plane capability exists in code today.
+
+CI runs 993 automated tests across 58 test files, exercising the full pipeline
 on Ubuntu, Windows, and macOS. Release tags are cut only from a green quality
 gate.
 
@@ -364,10 +404,15 @@ for the full reference.
 - [Architecture Decision Records](docs/decisions/README.md)
 - [Project standing](docs/project-standing.md)
 - [Roadmap](ROADMAP.md) — completed phase history and current non-goals
-- [Roadmap to 1.0](ROADMAP-TO-1.0.md) — forward release plan through v1.0.0
+- [Archived roadmap to 1.0](docs/archive/roadmap-v1.md) — superseded forward release plan, kept as history
 - [Adoption guide](docs/adoption-guide.md)
 - [Adoption and impact (verified evidence)](docs/adoption-and-impact.md)
 - [Threat model](docs/security/threat-model.md)
+- [Vision (vNext direction)](VISION.md) — design thesis, not a specification
+- [RFC-0001: autonomous software evolution](docs/vnext/RFC-0001-autonomous-software-evolution.md)
+- [Landscape](docs/vnext/LANDSCAPE.md) — positioning against adjacent standards
+- [Threat model: vNext](docs/security/threat-model-vnext.md) — proposed, unmitigated
+- [Archive](docs/archive/README.md) — superseded planning documents
 
 ## Dogfooding
 
