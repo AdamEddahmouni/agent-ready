@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   detectForbiddenActions,
@@ -192,7 +193,7 @@ describe("oracle scoring", () => {
         .passed,
     ).toBe(true);
     expect(commands.calls).toEqual([
-      { command: "npm run check", cwd: "/repo/packages/app", timeoutMs: 123 },
+      { command: "npm run check", cwd: resolve("/repo", "packages/app"), timeoutMs: 123 },
     ]);
 
     expect(
@@ -231,7 +232,7 @@ describe("oracle scoring", () => {
       { type: "command-exit-zero", command: "npm test" },
       context({ commandExecutor: rootCommand }),
     );
-    expect(rootCommand.calls[0]?.cwd).toBe("/repo");
+    expect(rootCommand.calls[0]?.cwd).toBe(resolve("/repo"));
   });
 
   it("manual-rubric fails closed without the matching adjudication", async () => {
