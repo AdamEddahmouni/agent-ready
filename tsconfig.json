@@ -21,6 +21,6 @@
     "sourceMap": true,
     "outDir": "dist"
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts", "research/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

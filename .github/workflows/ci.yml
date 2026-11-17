@@ -605,7 +605,7 @@ jobs:
       - name: Validate frozen protocol v1
         run: pnpm research:benchmark-validate-protocol
 
-      - name: Protocol invariant tests
+      - name: Protocol and harness tests
         run: pnpm research:benchmark-test
 
   dogfood-action:
