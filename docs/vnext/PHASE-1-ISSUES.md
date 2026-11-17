@@ -250,8 +250,11 @@ required by #7.
 
 ### Issue #7 — Phase 1 benchmark protocol
 
-**Status**: protocol v1 is a draft; it has not been frozen and no evaluation
-run has occurred. Freeze is tracked by #54; execution by #61.
+**Status**: protocol v1 is frozen (2026-11-17). Its exact counts, task fields,
+oracle coverage, decision-rule semantics, run-manifest template, and freeze
+record are enforced by `pnpm research:benchmark-validate-protocol` and the
+protocol tests in CI. No evaluation run has occurred; execution is tracked by
+#61.
 
 **Depends on:** nothing, and must be agreed **before** #6 runs. **Blocks**: #6.
 
