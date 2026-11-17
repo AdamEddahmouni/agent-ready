@@ -1,0 +1,7 @@
+# Two owners on one rule produce two edges.
+packages/api/  @org/api @alice
+# Two rules match packages/core; the later one wins.
+packages/core/  @org/default
+packages/core/  @org/core-late
+# A character class is outside the supported subset.
+docs/[drafts]/*  @org/docs

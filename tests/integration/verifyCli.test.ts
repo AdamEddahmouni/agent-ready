@@ -126,7 +126,14 @@ describe("agent-ready verify (CLI composition, real process spawning)", () => {
     if (parsed.commands[0]?.status === "termination-failed") {
       await new Promise<void>((resolve) => setTimeout(resolve, 2_500));
     }
-  }, 10_000);
+    // Raised from the project-wide 10s default. This test spawns a real Node
+    // process, makes it hang, waits out a one-second command timeout, and then
+    // waits again for a failed termination — so its floor is several seconds of
+    // wall clock before any contention. At 10s it passed on an idle machine and
+    // failed intermittently once the suite grew enough suites to run in
+    // parallel, which is a property of the test's budget rather than of the
+    // behaviour it checks.
+  }, 30_000);
 
   it.skipIf(process.platform === "win32")(
     "escalates from SIGTERM when a command ignores graceful termination",

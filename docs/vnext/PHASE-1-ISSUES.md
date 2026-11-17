@@ -79,6 +79,9 @@ leaves the next one unblocked.
 
 ### Issue #1 — Repository discovery model
 
+**Status**: implemented. Recorded in
+[ADR-0044](../decisions/0044-repository-discovery-model.md).
+
 **Depends on:** nothing. **Blocks**: #2.
 
 The first wedge. It must produce value on an arbitrary repository before anyone is
@@ -118,6 +121,9 @@ or absence of a declaration surface. No guessing beyond what is directly readabl
 
 ### Issue #2 — Package and workspace discovery
 
+**Status**: implemented. Recorded in
+[ADR-0045](../decisions/0045-package-and-workspace-discovery-semantics.md).
+
 **Depends on:** #1. **Blocks**: #3, #4.
 
 **Deliverable.** Package boundaries, workspace roots, and the package manager,
@@ -136,6 +142,9 @@ derived from the workspace configuration and the manifests themselves.
 ---
 
 ### Issue #3 — Commands and verification discovery
+
+**Status**: implemented. Recorded in
+[ADR-0046](../decisions/0046-command-and-verification-discovery-semantics.md).
 
 **Depends on:** #2. **Blocks**: #4, #6.
 
@@ -174,9 +183,28 @@ graph. Missing ownership must be representable and reported as missing.
   either fixed or documented as a known limitation.
 - Import resolution failures are surfaced, not swallowed.
 
+**Status.** Shipped as GitHub
+[#39](https://github.com/AdamEddahmouni/agent-ready/issues/39), decided in
+[ADR-0047](../decisions/0047-provenance-carrying-repository-graph.md). The graph
+is a top-level `graph` field on the `discover` snapshot rather than a fact, so
+`FACT_IDS` is unchanged. Dogfooding on this repository found three implementation
+defects (the root path `"."` never resolving to the root, a three-character
+declaration extension being sliced wrong, and a trailing newline counting as an
+extra line against the validator's range check), all fixed, plus one repository
+condition published rather than repaired: ten declared `devDependencies` that no
+module imports. Unresolved imports and unowned subjects are each represented
+explicitly, and the graph is not persisted and has no command of its own.
+
 ---
 
 ### Issue #5 — Stable JSON snapshot and schema
+
+**Status**: implemented on branch `feat/vnext-snapshot-conformance` (GitHub
+[#40](https://github.com/AdamEddahmouni/agent-ready/issues/40)). Recorded in
+[ADR-0048](../decisions/0048-discovery-snapshot-stability-and-conformance.md);
+consumer stability in
+[SNAPSHOT-STABILITY.md](SNAPSHOT-STABILITY.md); conformance in
+[`conformance/discovery/v1/`](../../conformance/discovery/v1/).
 
 **Depends on:** #4. **Blocks**: #6.
 

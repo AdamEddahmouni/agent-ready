@@ -1,0 +1,1002 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.agent-ready.dev/discovery/snapshot-v1.schema.json",
+  "title": "Agent-Ready Discovery Snapshot (Format 1)",
+  "description": "Public JSON Schema for the document written to stdout by `agent-ready discover --json`. This is Discovery Snapshot Format 1, the first version that carries a compatibility promise, and it is independent of the `agent-ready.yaml` contract version and of the npm package version (ADR-0040, ADR-0048). Which fields are promises and which are provisional is decided by docs/vnext/SNAPSHOT-STABILITY.md, NOT by this file: this schema describes the whole document, including the provisional parts, because a schema that omitted them would validate documents this implementation never produces. It is bundled locally with the Agent-Ready CLI and package and is never fetched over the network at runtime. The human-readable `discover` output is NOT this format. A fatal discovery failure emits a CLI error envelope `{ ok: false, diagnostics: [...] }`, which is a different interface and is deliberately not described here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ok", "snapshotVersion", "root", "facts", "graph", "summary", "diagnostics"],
+  "properties": {
+    "ok": {
+      "description": "Always `true` in a snapshot. A value of `false` belongs to the CLI error envelope, not to this format.",
+      "type": "boolean",
+      "const": true
+    },
+    "snapshotVersion": {
+      "description": "The discovery snapshot format version. This schema describes version 1 only; a document declaring any other value is rejected rather than guessed at.",
+      "type": "integer",
+      "const": 1
+    },
+    "root": {
+      "description": "Repository-relative anchor for every path in this document. Always `.`. Absolute paths are excluded so that identical repository content yields identical bytes on any machine.",
+      "type": "string",
+      "const": "."
+    },
+    "facts": { "$ref": "#/$defs/factMap" },
+    "graph": {
+      "description": "The repository graph. `null` only when the graph could not be built at all, which a diagnostic then explains. A missing graph is never presented as an empty one.",
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/repositoryGraph" }]
+    },
+    "summary": { "$ref": "#/$defs/summary" },
+    "diagnostics": {
+      "description": "Diagnostics describing the discovery operation, as opposed to facts describing the repository. The `code` vocabulary is a compatibility surface; the prose in `summary`, `detail` and `remediation` is not, and neither is the number of entries.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/diagnostic" }
+    }
+  },
+  "$defs": {
+    "repositoryRelativePath": {
+      "description": "A repository-relative path: `/`-separated, never absolute, never containing a `.` or `..` segment. This is the shape every path in this document has, and the property that makes the output checkout-independent.",
+      "type": "string",
+      "minLength": 1,
+      "not": { "pattern": "^/|^[A-Za-z]:[\\\\/]|^\\\\\\\\|(^|/)\\.\\.?(/|$)" }
+    },
+    "packagePath": {
+      "description": "A repository-relative package directory, or `.` for the repository root. This is a package's identity: never the package name, and never inferred from directory naming.",
+      "oneOf": [
+        { "type": "string", "const": "." },
+        {
+          "type": "string",
+          "minLength": 1,
+          "not": { "pattern": "^/|^[A-Za-z]:[\\\\/]|/$|(^|/)\\.\\.?(/|$)" }
+        }
+      ]
+    },
+    "citationPath": {
+      "description": "A repository-relative path naming something that was looked at. Unlike a provenance citation this may be `.` (the repository root) or a file that is not present, because citing a file that is ABSENT is how `no-evidence` is made checkable. It is still never absolute and never escapes the root.",
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "pattern": "^/|^[A-Za-z]:[\\\\/]|^\\\\\\\\|/$|(^|/)\\.\\.(/|$)"
+      }
+    },
+    "lineNumber": {
+      "description": "A 1-based line number. Line 1 is the first line of the file, because that is what an editor, a review, and a person at a terminal mean.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "jsonValue": {
+      "description": "Any JSON value. Used where a fact's value is repository-supplied content whose shape is Agent-Ready's to describe per fact id, not globally.",
+      "anyOf": [
+        { "type": "null" },
+        { "type": "boolean" },
+        { "type": "number" },
+        { "type": "string" },
+        { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        { "type": "object", "additionalProperties": { "$ref": "#/$defs/jsonValue" } }
+      ]
+    },
+    "factId": {
+      "description": "A fact identity. Either one of the fixed conceptual identities of the fact vocabulary, or a scoped package-manager identity whose suffix is a repository-relative package path. Scoped identities are a closed template, not an open key space: a repository cannot invent a fact identity, and a scope that escapes the repository, globs, or collapses to `.` is not a scope.",
+      "type": "string",
+      "pattern": "^repository\\.(root|contract\\.(present|valid|verification)|declarationSurface\\.present|packages|workspace\\.(root|declarations|candidates|members)|commands|verificationEntrypoints|packageManager\\.(?!\\.{1,2}(?:[/\\\\]|$))(?!(?:[^/\\\\]*[/\\\\])*\\.\\.(?:[/\\\\]|[^/\\\\]|$))[^/\\\\*?\\[\\]{}](?:[^/\\\\*?\\[\\]{}]|[^/\\\\]/(?![/\\\\]))*)$"
+    },
+    "knownFactKind": {
+      "description": "What kind of claim a fact is. `declared` is asserted by a repository file, `derived` is computed by a fixed rule from repository content, `author-declared` is a human claim in agent-ready.yaml. CLOSED: adding a value is a breaking change.",
+      "type": "string",
+      "enum": ["declared", "derived", "author-declared"]
+    },
+    "unknownReason": {
+      "description": "Why a fact is unknown. `no-evidence` means the probe completed and found nothing; `probe-failed` means it could not complete; `not-probed` means the fact was out of scope. A failed attempt to inspect something is never evidence that it does not exist. CLOSED.",
+      "type": "string",
+      "enum": ["no-evidence", "probe-failed", "not-probed"]
+    },
+    "evidence": {
+      "description": "Where a claim came from, precise enough for a consumer to re-derive it. `source` is repository-relative; `pointer` locates a position inside that document.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source"],
+      "properties": {
+        "source": { "$ref": "#/$defs/citationPath" },
+        "pointer": { "type": "string" },
+        "detail": { "type": "string" }
+      }
+    },
+    "claim": {
+      "description": "One source's assertion about a fact. Claims are never merged and never dropped, so a conflict stays inspectable after the fact is published.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value", "evidence"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/knownFactKind" },
+        "value": { "$ref": "#/$defs/jsonValue" },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/evidence" }
+        }
+      }
+    },
+    "corroboration": {
+      "description": "How much independent support a fact has. `corroborated` means at least two claims support the value; one source, however confident, is not corroboration.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kinds", "authorDeclared", "corroborated"],
+      "properties": {
+        "kinds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/knownFactKind" }
+        },
+        "authorDeclared": { "type": "boolean" },
+        "corroborated": { "type": "boolean" }
+      }
+    },
+    "unknownFact": {
+      "description": "A fact discovery could not determine. It carries no value at all: a defaulted value here would be fabricated certainty, and `value` is therefore forbidden rather than nullable.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "reason", "evidence"],
+      "properties": {
+        "id": { "$ref": "#/$defs/factId" },
+        "kind": { "type": "string", "const": "unknown" },
+        "reason": { "$ref": "#/$defs/unknownReason" },
+        "evidence": {
+          "description": "Where the probe looked. May be empty only for `not-probed`.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence" }
+        }
+      }
+    },
+    "agreedFact": {
+      "description": "Sources that agree. `contradictedBy` is absent, which is what distinguishes an agreed fact from an incomplete one structurally rather than by convention.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "value", "claims", "corroboration"],
+      "properties": {
+        "id": { "$ref": "#/$defs/factId" },
+        "kind": { "$ref": "#/$defs/knownFactKind" },
+        "value": { "$ref": "#/$defs/jsonValue" },
+        "claims": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/claim" }
+        },
+        "corroboration": { "$ref": "#/$defs/corroboration" }
+      }
+    },
+    "incompleteFact": {
+      "description": "Evidence sufficient to assert something and insufficient to assert it fully: an identity claim contradicted by an artifact. The declared value is carried forward and every contradicting name is published, so a consumer that wants certainty has to read `contradictedBy`. `contradictedBy` is never empty here, which makes 'this is incomplete' checkable from the shape alone.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "value", "claims", "contradictedBy", "corroboration"],
+      "properties": {
+        "id": { "$ref": "#/$defs/factId" },
+        "kind": { "$ref": "#/$defs/knownFactKind" },
+        "value": { "$ref": "#/$defs/jsonValue" },
+        "claims": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/claim" }
+        },
+        "contradictedBy": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/jsonValue" }
+        },
+        "corroboration": { "$ref": "#/$defs/corroboration" }
+      }
+    },
+    "conflictedFact": {
+      "description": "Sources that disagree. There is deliberately no `value`: every claim is retained and no source is preferred, so resolving the conflict is a consumer's decision and never a winner-selection heuristic.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "claims", "corroboration"],
+      "properties": {
+        "id": { "$ref": "#/$defs/factId" },
+        "kind": { "$ref": "#/$defs/knownFactKind" },
+        "claims": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/claim" }
+        },
+        "corroboration": { "$ref": "#/$defs/corroboration" }
+      }
+    },
+    "fact": {
+      "description": "One record of what is known about one conceptual property of the repository. The four epistemic shapes are structurally distinct, so an impossible combination cannot be represented: an unknown fact carries no value, a conflicted fact carries no value, and an incomplete fact carries both a value and the names it disagrees with.",
+      "oneOf": [
+        { "$ref": "#/$defs/unknownFact" },
+        { "$ref": "#/$defs/agreedFact" },
+        { "$ref": "#/$defs/incompleteFact" },
+        { "$ref": "#/$defs/conflictedFact" }
+      ]
+    },
+    "packageEntry": {
+      "description": "One discovered package. A package IS a readable manifest; workspace membership is a separate fact with a separate id, and the two are never merged. PROVISIONAL: the value shape, not the `path` identity, which is stable.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "name", "nameStatus", "private", "version", "manifestStatus"],
+      "properties": {
+        "path": { "$ref": "#/$defs/packagePath" },
+        "name": {
+          "description": "The declared package name, or null unless `nameStatus` is `declared`. Never inferred from the directory name.",
+          "type": ["string", "null"]
+        },
+        "nameStatus": {
+          "description": "Whether a manifest declares a usable name. `absent` and `invalid` are separate because a readable manifest with no name and a manifest whose name is a number are two real states. CLOSED.",
+          "type": "string",
+          "enum": ["declared", "absent", "invalid"]
+        },
+        "private": { "type": ["boolean", "null"] },
+        "version": { "type": ["string", "null"] },
+        "manifestStatus": {
+          "description": "How far reading one manifest got. Never conflated with 'no such package'. CLOSED.",
+          "type": "string",
+          "enum": ["read", "malformed", "unreadable"]
+        }
+      }
+    },
+    "workspaceDeclarationEntry": {
+      "description": "One workspace declaration exactly as the repository wrote it, in declaration order. Order is declared information: a `!` exclusion only means something relative to the patterns around it, so this array is never sorted.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "form", "patterns", "unsupportedReason"],
+      "properties": {
+        "source": { "$ref": "#/$defs/repositoryRelativePath" },
+        "form": {
+          "type": "string",
+          "enum": ["array", "object", "unsupported"]
+        },
+        "patterns": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "unsupportedReason": { "type": ["string", "null"] }
+      }
+    },
+    "workspaceCandidateEntry": {
+      "description": "One repository-relative path a declared workspace pattern refers to, and whether a directory is actually there. `present` is three-valued: `false` is absence, `null` is that it could not be inspected, and the two are never conflated.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "source", "pattern", "present"],
+      "properties": {
+        "path": { "$ref": "#/$defs/packagePath" },
+        "source": { "$ref": "#/$defs/repositoryRelativePath" },
+        "pattern": { "type": "string" },
+        "present": { "type": ["boolean", "null"] }
+      }
+    },
+    "commandEntry": {
+      "description": "One declared package script. `body` is the repository's string verbatim: no trimming, no shell-operator splitting, no executable canonicalization. An empty string is a valid body, because a declared no-op is still a declaration.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "body", "source", "pointer"],
+      "properties": {
+        "name": { "type": "string" },
+        "body": { "type": "string" },
+        "source": { "$ref": "#/$defs/repositoryRelativePath" },
+        "pointer": { "type": "string" }
+      }
+    },
+    "unmodelledScriptEntry": {
+      "description": "A `scripts` entry that exists but whose value is not a string. Retained rather than dropped, with the raw value, so that dropping it is a visible decision rather than a silent coercion.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "value", "reason", "pointer"],
+      "properties": {
+        "name": { "type": "string" },
+        "value": { "$ref": "#/$defs/jsonValue" },
+        "reason": { "type": "string" },
+        "pointer": { "type": "string" }
+      }
+    },
+    "packageCommandsEntry": {
+      "description": "Every command one package declares, plus what became of its `scripts` field. Nested by package rather than flattened into composite keys, so that 'this package's inventory could not be observed' stays expressible. `scriptsStatus` distinguishes KNOWN EMPTY (`absent`) from NEVER OBSERVED (`unobservable`), and the two are never collapsed.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "packagePath",
+        "scriptsStatus",
+        "commands",
+        "unmodelledScripts",
+        "unsupportedReason"
+      ],
+      "properties": {
+        "packagePath": { "$ref": "#/$defs/packagePath" },
+        "scriptsStatus": {
+          "description": "`declared` (parsed, and `scripts` is an object), `absent` (parsed, and there is no `scripts` key — known empty), `unsupported` (present in a shape this version does not model), `unobservable` (the manifest was malformed or unreadable, so `scripts` was never inspected). CLOSED.",
+          "type": "string",
+          "enum": ["declared", "absent", "unsupported", "unobservable"]
+        },
+        "commands": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/commandEntry" }
+        },
+        "unmodelledScripts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/unmodelledScriptEntry" }
+        },
+        "unsupportedReason": { "type": ["string", "null"] }
+      }
+    },
+    "commandInvocation": {
+      "description": "A shell-independent description of how a command could be run. `discover` never runs it and never validates it by running it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cwd", "executable", "args"],
+      "properties": {
+        "cwd": { "$ref": "#/$defs/packagePath" },
+        "executable": { "type": "string" },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "verificationEntrypointEntry": {
+      "description": "One recognised verification entrypoint. `script` and `body` are the declaration, verbatim; `role` is a projection computed over the name that never replaces it, and is PROVISIONAL — the four-role grammar is measured, not validated, and a future version may add roles. `primary` means exactly one thing: the name equals the role root. It is not a safety claim and not a ranking.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "packagePath",
+        "script",
+        "role",
+        "body",
+        "primary",
+        "invocation",
+        "invocationStatus",
+        "source",
+        "pointer"
+      ],
+      "properties": {
+        "packagePath": { "$ref": "#/$defs/packagePath" },
+        "script": { "type": "string" },
+        "role": { "type": "string", "enum": ["test", "build", "lint", "typecheck"] },
+        "body": { "type": "string" },
+        "primary": { "type": "boolean" },
+        "invocation": {
+          "description": "Present exactly when `invocationStatus` is `resolved`; null otherwise.",
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/commandInvocation" }]
+        },
+        "invocationStatus": {
+          "type": "string",
+          "enum": [
+            "resolved",
+            "package-manager-unknown",
+            "package-manager-conflict",
+            "package-manager-incomplete"
+          ]
+        },
+        "source": { "$ref": "#/$defs/repositoryRelativePath" },
+        "pointer": { "type": "string" }
+      }
+    },
+    "factMap": {
+      "description": "Facts, keyed by fact identity. Each key equals the `id` inside its value. Every fact id in the vocabulary is present on every run, so a consumer can read a fact without first asking whether it exists.",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/factId" },
+      "additionalProperties": { "$ref": "#/$defs/fact" },
+      "allOf": [
+        {
+          "description": "`repository.packages` carries a list of PackageEntry. Refining the value per fact id is what lets a consumer depend on the package identity without depending on the whole fact model.",
+          "type": "object",
+          "properties": {
+            "repository.packages": {
+              "allOf": [
+                { "$ref": "#/$defs/fact" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": { "$ref": "#/$defs/packageEntry" }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "repository.workspace.declarations": {
+              "allOf": [
+                { "$ref": "#/$defs/fact" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": { "$ref": "#/$defs/workspaceDeclarationEntry" }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "repository.workspace.candidates": {
+              "allOf": [
+                { "$ref": "#/$defs/fact" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": { "$ref": "#/$defs/workspaceCandidateEntry" }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "`repository.commands` is the command INVENTORY and is stable: every declared script, verbatim, for every package. Only the verification ROLE PROJECTION beside it is provisional.",
+          "type": "object",
+          "properties": {
+            "repository.commands": {
+              "allOf": [
+                { "$ref": "#/$defs/fact" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": { "$ref": "#/$defs/packageCommandsEntry" }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "repository.verificationEntrypoints": {
+              "allOf": [
+                { "$ref": "#/$defs/fact" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": { "$ref": "#/$defs/verificationEntrypointEntry" }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "sourceLocation": {
+      "description": "Where a graph fact was declared. `source` is always repository-relative and `line` is always 1-based and always within the cited file: a citation into a file nobody read is a defect, not a style question, and the graph is withheld when one appears.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "line"],
+      "properties": {
+        "source": { "$ref": "#/$defs/repositoryRelativePath" },
+        "line": { "$ref": "#/$defs/lineNumber" },
+        "column": { "type": "integer", "minimum": 1 },
+        "endLine": { "type": "integer", "minimum": 1 },
+        "endColumn": { "type": "integer", "minimum": 1 },
+        "pointer": { "type": "string" }
+      }
+    },
+    "ownershipPolicy": {
+      "description": "Which ownership surface was searched, and whether there was one. A fact about the ABSENCE of a matching rule has no line to cite, so it does not invent one: it names the document that was searched instead. Strictness lives on the branches, not here: an `additionalProperties` beside a `oneOf` sees only the outer schema's own properties, so putting it here would reject `source` while each branch already closes its own shape.",
+      "type": "object",
+      "required": ["status"],
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "status": { "type": "string", "const": "evaluated" },
+            "source": { "$ref": "#/$defs/repositoryRelativePath" }
+          },
+          "required": ["status", "source"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "status": { "type": "string", "const": "absent" },
+            "source": { "type": "null" }
+          },
+          "required": ["status", "source"]
+        }
+      ]
+    },
+    "ownershipState": {
+      "description": "What the ownership search found for a subject. `owned` and `unowned` are different shapes rather than one shape with an optional array, so an unowned subject carrying owners cannot be represented. There is no sentinel owner: a repository with no CODEOWNERS file has an ownership surface of zero rules, and every subject is explicitly unowned, which is a complete answer rather than a failure.",
+      "type": "object",
+      "required": ["status"],
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "required": ["status", "ownerIds"],
+          "properties": {
+            "status": { "type": "string", "const": "owned" },
+            "ownerIds": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string" }
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["status", "policy"],
+          "properties": {
+            "status": { "type": "string", "const": "unowned" },
+            "policy": { "$ref": "#/$defs/ownershipPolicy" }
+          }
+        }
+      ]
+    },
+    "packageNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "path", "name", "provenance", "ownership"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "const": "package" },
+        "path": { "$ref": "#/$defs/packagePath" },
+        "name": { "type": ["string", "null"] },
+        "provenance": { "$ref": "#/$defs/sourceLocation" },
+        "ownership": { "$ref": "#/$defs/ownershipState" }
+      }
+    },
+    "moduleNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "path", "packagePath", "provenance", "ownership"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "const": "module" },
+        "path": { "$ref": "#/$defs/repositoryRelativePath" },
+        "packagePath": { "$ref": "#/$defs/packagePath" },
+        "provenance": { "$ref": "#/$defs/sourceLocation" },
+        "ownership": { "$ref": "#/$defs/ownershipState" }
+      }
+    },
+    "externalDependencyNode": {
+      "description": "One package name this repository mentions, by declaring it or by importing it. Not the npm universe: the transitive closure of a lockfile is out of scope, so a name only enters the graph when this repository itself writes it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "name", "provenance"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "const": "external-dependency" },
+        "name": { "type": "string", "minLength": 1 },
+        "provenance": { "$ref": "#/$defs/sourceLocation" }
+      }
+    },
+    "ownerNode": {
+      "description": "One owner token written in a CODEOWNERS rule, preserved exactly as written and never validated against a registry.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "identity", "provenance"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "const": "owner" },
+        "identity": { "type": "string", "minLength": 1 },
+        "provenance": { "$ref": "#/$defs/sourceLocation" }
+      }
+    },
+    "graphNode": {
+      "description": "A node in the repository graph. OPEN: later phases may add node kinds, so a consumer must not exhaustively switch on `kind`. The PROPERTIES of an id are stable even though its spelling is provisional: ids are deterministic, contain no UUID, counter, hash, or absolute path, and are derivable by hand from one repository fact.",
+      "oneOf": [
+        { "$ref": "#/$defs/packageNode" },
+        { "$ref": "#/$defs/moduleNode" },
+        { "$ref": "#/$defs/externalDependencyNode" },
+        { "$ref": "#/$defs/ownerNode" }
+      ]
+    },
+    "importResolution": {
+      "description": "Where an import declaration's target ended up. The load-bearing constraint is structural: a resolved edge CANNOT omit its target, and an unresolved edge CANNOT carry one. `platform` is a resolved answer with no node, because a Node built-in is provided by the runtime rather than declared by any file in this repository. PROVISIONAL: this vocabulary is young, and `target-not-readable` was added in Format 1. Consumers must not exhaustively switch on it.",
+      "type": "object",
+      "required": ["status"],
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "required": ["status", "target", "targetPath"],
+          "properties": {
+            "status": { "type": "string", "const": "module" },
+            "target": { "type": "string", "minLength": 1 },
+            "targetPath": { "$ref": "#/$defs/repositoryRelativePath" }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["status", "target", "subpath"],
+          "properties": {
+            "status": { "type": "string", "const": "package" },
+            "target": { "type": "string", "minLength": 1 },
+            "subpath": { "type": ["string", "null"] }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["status", "target"],
+          "properties": {
+            "status": { "type": "string", "const": "dependency" },
+            "target": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["status"],
+          "properties": {
+            "status": { "type": "string", "const": "platform" }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["status", "reason"],
+          "properties": {
+            "status": { "type": "string", "const": "unresolved" },
+            "reason": {
+              "description": "Why an import produced no in-repository target. `target-not-found` means the resolver ran and nothing matched; `target-not-readable` means a file was found that this run could not read closely enough to cite. OPEN.",
+              "type": "string",
+              "enum": [
+                "target-not-found",
+                "unsupported-specifier",
+                "unsupported-syntax",
+                "outside-repository",
+                "unsupported-package-subpath",
+                "target-not-readable"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "importEdge": {
+      "description": "One import declaration in one source file. One edge per DECLARATION SITE rather than per relationship, because two imports of the same module can differ in `typeOnly` and in `syntax`, and collapsing them would make type-only coupling unanswerable from the edge.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "source",
+        "specifier",
+        "syntax",
+        "typeOnly",
+        "resolution",
+        "provenance"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "const": "imports" },
+        "source": { "type": "string", "minLength": 1 },
+        "specifier": {
+          "description": "The module specifier, verbatim.",
+          "type": "string"
+        },
+        "syntax": {
+          "description": "How the import was written. `import-equals` and `require` are listed even though they never produce a resolved edge: a thing the graph looked at and declined to model is still a thing a reader deserves to see. CLOSED for Format 1.",
+          "type": "string",
+          "enum": ["import", "re-export", "dynamic-import", "import-equals", "require"]
+        },
+        "typeOnly": { "type": "boolean" },
+        "resolution": { "$ref": "#/$defs/importResolution" },
+        "provenance": { "$ref": "#/$defs/sourceLocation" }
+      }
+    },
+    "dependencyDeclaration": {
+      "description": "One manifest field that declares a dependency. `declaredSpecifier` is exactly as written; a `devDependency` never becomes a runtime dependency because runtime code imports it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "dependencyClass", "declaredSpecifier", "provenance", "pointer"],
+      "properties": {
+        "name": {
+          "description": "The dependency's name, exactly as the manifest wrote it.",
+          "type": "string",
+          "minLength": 1
+        },
+        "dependencyClass": {
+          "type": "string",
+          "enum": ["runtime", "dev", "peer", "optional"]
+        },
+        "declaredSpecifier": { "type": "string" },
+        "provenance": { "$ref": "#/$defs/sourceLocation" },
+        "pointer": { "type": "string" }
+      }
+    },
+    "dependencyResolution": {
+      "description": "What lockfile evidence established about a dependency's version. Four states rather than one nullable field, because 'there is no lockfile', 'the format is not modelled', 'it could not be read', and 'it has no entry for this' are four different claims. PROVISIONAL in its per-adapter availability: a consumer must branch on the status and never assume a version exists.",
+      "type": "object",
+      "required": ["status"],
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "required": ["status", "version", "provenance"],
+          "properties": {
+            "status": { "type": "string", "const": "resolved" },
+            "version": { "type": "string" },
+            "provenance": {
+              "description": "The lockfile line, never the manifest line: the declaration and its resolution are different questions.",
+              "$ref": "#/$defs/sourceLocation"
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["status"],
+          "properties": { "status": { "type": "string", "const": "no-evidence" } }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["status", "source", "detail"],
+          "properties": {
+            "status": { "type": "string", "const": "unsupported" },
+            "source": { "$ref": "#/$defs/repositoryRelativePath" },
+            "detail": { "type": "string" }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["status"],
+          "properties": { "status": { "type": "string", "const": "unresolved" } }
+        }
+      ]
+    },
+    "dependencyEdge": {
+      "description": "A package's declared dependency on another package. Minted only from a manifest declaration: an import never creates one, and a naming convention never does either, which is why `imports` and `package-depends-on` are never merged and their disagreement stays visible.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "source",
+        "target",
+        "declarations",
+        "resolution",
+        "provenance",
+        "targetMissing"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "const": "package-depends-on" },
+        "source": { "type": "string", "minLength": 1 },
+        "target": { "type": "string", "minLength": 1 },
+        "declarations": {
+          "description": "One or more, never zero: an edge with no declaration is inexpressible.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/dependencyDeclaration" }
+        },
+        "resolution": { "$ref": "#/$defs/dependencyResolution" },
+        "provenance": { "$ref": "#/$defs/sourceLocation" },
+        "targetMissing": {
+          "description": "True when a `workspace:` declaration named a package no declaration reached. The edge survives and the target is the name the manifest wrote; the fact that it is missing is published rather than repaired.",
+          "type": "boolean"
+        }
+      }
+    },
+    "ownershipEdge": {
+      "description": "One owner of one subject, cited to the CODEOWNERS rule that established it. One edge per owner token: a rule naming two owners produces two edges, never one with a chosen owner and never a 'primary' owner.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "source", "target", "provenance", "rule"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "const": "owned-by" },
+        "source": { "type": "string", "minLength": 1 },
+        "target": { "type": "string", "minLength": 1 },
+        "provenance": { "$ref": "#/$defs/sourceLocation" },
+        "rule": { "type": "string" }
+      }
+    },
+    "graphEdge": {
+      "description": "A directed relationship some repository declaration asserts. OPEN: later phases may add edge kinds, so a consumer must not exhaustively switch on `kind`. Every edge carries the line of the declaration that established it.",
+      "oneOf": [
+        { "$ref": "#/$defs/importEdge" },
+        { "$ref": "#/$defs/dependencyEdge" },
+        { "$ref": "#/$defs/ownershipEdge" }
+      ]
+    },
+    "sourceUniverse": {
+      "description": "How the source universe for the module graph was determined. PROVISIONAL IN ITS CONTENTS: the selection admits committed build output, and a repository with no `tsconfig.json` gets a deliberately blind traversal. Treat `files` as a LOWER BOUND on the repository's source, not as a statement about it. The container, and the fact that this publishes how the universe was chosen, are stable.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy", "tsconfigs", "resolutionMode", "extensions", "files", "truncated"],
+      "properties": {
+        "strategy": {
+          "description": "`tsconfig` when a package declared one and TypeScript's own parser determined the file list; `bounded-traversal` for a package with none; `mixed` when a repository has both.",
+          "type": "string",
+          "enum": ["tsconfig", "bounded-traversal", "mixed"]
+        },
+        "tsconfigs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/repositoryRelativePath" }
+        },
+        "resolutionMode": {
+          "description": "The module-resolution mode in force, from config or the documented default; a repository with several packages lists its distinct modes. The empty string means no package stated one, which is the case for a repository with no package at all.",
+          "type": "string"
+        },
+        "extensions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/repositoryRelativePath" }
+        },
+        "truncated": {
+          "description": "True when a safety bound stopped selection. Truncation is deterministic: the files that survive are the same on every run.",
+          "type": "boolean"
+        }
+      }
+    },
+    "unsupportedPattern": {
+      "description": "A CODEOWNERS rule whose pattern is outside the supported subset. The rule is skipped, never approximated, and rules around it keep applying. PROVISIONAL: the breadth of the supported subset is not validated by the conformance corpus.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "line", "pattern", "reason"],
+      "properties": {
+        "source": { "$ref": "#/$defs/repositoryRelativePath" },
+        "line": { "$ref": "#/$defs/lineNumber" },
+        "pattern": { "type": "string" },
+        "reason": { "type": "string" }
+      }
+    },
+    "ownershipSurface": {
+      "description": "Whether a supported CODEOWNERS file was found, and what became of it. `absent` is a successful, complete answer, not a failure: a repository with no CODEOWNERS has zero rules and every subject is explicitly unowned. Publishing the surface separately from the per-node states is what makes 'no ownership policy exists' readable without walking every node.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "source", "rules", "unsupportedPatterns", "detail"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["present", "absent", "unreadable", "unsupported"]
+        },
+        "source": {
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/repositoryRelativePath" }]
+        },
+        "rules": { "type": "integer", "minimum": 0 },
+        "unsupportedPatterns": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/unsupportedPattern" }
+        },
+        "detail": { "type": ["string", "null"] }
+      }
+    },
+    "graphCounts": {
+      "description": "Coarse counts, for a reader who wants the shape without the whole graph. PROVISIONAL: every one of these is derivable from the arrays, so freezing them buys a consumer nothing and costs a change per count.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes",
+        "edges",
+        "packages",
+        "modules",
+        "externalDependencies",
+        "owners",
+        "importEdges",
+        "resolvedImports",
+        "unresolvedImports",
+        "dependencyEdges",
+        "resolvedDependencies",
+        "workspaceDependencies",
+        "ownedSubjects",
+        "unownedSubjects"
+      ],
+      "properties": {
+        "nodes": { "type": "integer", "minimum": 0 },
+        "edges": { "type": "integer", "minimum": 0 },
+        "packages": { "type": "integer", "minimum": 0 },
+        "modules": { "type": "integer", "minimum": 0 },
+        "externalDependencies": { "type": "integer", "minimum": 0 },
+        "owners": { "type": "integer", "minimum": 0 },
+        "importEdges": { "type": "integer", "minimum": 0 },
+        "resolvedImports": { "type": "integer", "minimum": 0 },
+        "unresolvedImports": { "type": "integer", "minimum": 0 },
+        "dependencyEdges": { "type": "integer", "minimum": 0 },
+        "resolvedDependencies": { "type": "integer", "minimum": 0 },
+        "workspaceDependencies": { "type": "integer", "minimum": 0 },
+        "ownedSubjects": { "type": "integer", "minimum": 0 },
+        "unownedSubjects": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "repositoryGraph": {
+      "description": "The repository graph: nodes, edges, and every item's source line. A sibling of `facts`, not a fact, because a graph's evidence is one entry per node and per edge and cannot be compressed into a bounded corroboratable claim without losing per-item provenance.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes",
+        "edges",
+        "sourceUniverse",
+        "ownership",
+        "counts",
+        "complete",
+        "truncatedBy"
+      ],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/graphNode" }
+        },
+        "edges": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/graphEdge" }
+        },
+        "sourceUniverse": { "$ref": "#/$defs/sourceUniverse" },
+        "ownership": { "$ref": "#/$defs/ownershipSurface" },
+        "counts": { "$ref": "#/$defs/graphCounts" },
+        "complete": {
+          "description": "False when a safety bound was reached or a required file could not be read. A truncated graph that says it is truncated is more useful than no graph.",
+          "type": "boolean"
+        },
+        "truncatedBy": {
+          "description": "Which bound stopped collection, or null.",
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "summary": {
+      "description": "Coarse shape of the discovery run. The counts are PROVISIONAL and derivable; `complete` is stable and is the field to read first, because a consumer that trusts it would otherwise believe it had the whole picture while part of it was unknown.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["facts", "known", "unknown", "conflicts", "complete"],
+      "properties": {
+        "facts": { "type": "integer", "minimum": 0 },
+        "known": { "type": "integer", "minimum": 0 },
+        "unknown": { "type": "integer", "minimum": 0 },
+        "conflicts": { "type": "integer", "minimum": 0 },
+        "complete": {
+          "description": "False when at least one probe could not complete, or a discovered manifest exists but could not be interpreted. It is a statement about coverage, never a quality judgement.",
+          "type": "boolean"
+        }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "summary"],
+      "properties": {
+        "code": {
+          "description": "A DISCOVERY_* code. The code vocabulary is a compatibility surface and codes are not renamed or renumbered; OPEN, so a consumer must tolerate a code it has not seen.",
+          "type": "string",
+          "pattern": "^DISCOVERY_"
+        },
+        "severity": {
+          "description": "`error` is used for an Agent-Ready defect only, and makes the command exit non-zero. Every repository or model condition is a warning.",
+          "type": "string",
+          "enum": ["error", "warning", "info"]
+        },
+        "summary": { "type": "string" },
+        "detail": { "type": "string" },
+        "field": { "type": "string" },
+        "sourcePath": { "$ref": "#/$defs/citationPath" },
+        "location": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["line", "column"],
+          "properties": {
+            "line": { "$ref": "#/$defs/lineNumber" },
+            "column": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "remediation": { "type": "string" },
+        "related": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/diagnostic" }
+        },
+        "metadata": {
+          "description": "Structured detail about one diagnostic. OPEN by design: its keys are specific to the code, and a new code brings new keys.",
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+        }
+      }
+    }
+  }
+}
