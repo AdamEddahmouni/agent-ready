@@ -374,6 +374,7 @@ describe("forbidden-action detection", () => {
   it("flags package-manager install commands but not script invocations", () => {
     for (const command of [
       "npm install semver",
+      "npm --prefix packages/app install",
       "npm ci",
       "npm i",
       "pnpm add lodash",

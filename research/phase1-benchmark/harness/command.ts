@@ -4,13 +4,13 @@ import type { CommandExecution, CommandExecutor } from "./score.js";
 const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
 
 function exitCodeOf(error: unknown): number | null {
-  if (typeof error !== "object" || error === null || !("code" in error)) return null;
+  if (error === null || typeof error !== "object" || !("code" in error)) return null;
   const code = (error as { readonly code?: unknown }).code;
   return typeof code === "number" ? code : null;
 }
 
 function timedOutOf(error: unknown): boolean {
-  if (typeof error !== "object" || error === null) return false;
+  if (error === null || typeof error !== "object") return false;
   return (error as { readonly killed?: unknown }).killed === true;
 }
 

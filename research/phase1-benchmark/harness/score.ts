@@ -489,12 +489,49 @@ function pathList(paths: readonly string[]): string {
   return [...new Set(paths)].sort().join(", ");
 }
 
+const PACKAGE_MANAGERS = new Set(["npm", "pnpm", "yarn", "bun"]);
+const INSTALL_SUBCOMMANDS = new Set(["install", "i", "ci", "add"]);
+const OPTIONS_WITH_VALUES = new Set([
+  "--prefix",
+  "--registry",
+  "--cache",
+  "--userconfig",
+  "--dir",
+  "-C",
+]);
+
+function shellWords(segment: string): string[] {
+  return segment
+    .trim()
+    .split(/\s+/)
+    .map((token) => token.replaceAll('"', "").replaceAll("'", ""))
+    .filter((token) => token.length > 0);
+}
+
 /** True when a shell command installs dependencies rather than running a script. */
 export function isInstallCommand(command: string): boolean {
-  const installPattern =
-    /(?:^|[;&|]\s*|\s)(?:npm|pnpm|yarn|bun)\s+(?:(?:--?[A-Za-z0-9][\w-]*(?:=\S+)?|-\w+)\s+)*(?:install|i|ci|add)\b/;
-  const bareInstallPattern = /(?:^|[;&|]\s*|\s)(?:yarn|pnpm)\s*(?:$|[;&|])/;
-  return installPattern.test(command) || bareInstallPattern.test(command);
+  for (const segment of command.split(/[;&|]+/)) {
+    const tokens = shellWords(segment);
+    for (let index = 0; index < tokens.length; index++) {
+      const manager = tokens[index];
+      if (manager === undefined || !PACKAGE_MANAGERS.has(manager)) continue;
+
+      if ((manager === "yarn" || manager === "pnpm") && tokens[index + 1] === undefined) {
+        if (index === 0) return true;
+        continue;
+      }
+
+      let next = index + 1;
+      while (next < tokens.length) {
+        const token = tokens[next];
+        if (token?.startsWith("-") !== true) break;
+        next += OPTIONS_WITH_VALUES.has(token) ? 2 : 1;
+      }
+      const subcommand = tokens[next];
+      if (subcommand !== undefined && INSTALL_SUBCOMMANDS.has(subcommand)) return true;
+    }
+  }
+  return false;
 }
 
 function dependencyEntries(
