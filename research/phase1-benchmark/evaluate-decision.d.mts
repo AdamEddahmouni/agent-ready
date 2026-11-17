@@ -16,15 +16,16 @@ export interface BenchmarkDecisionRule {
     readonly metric: string;
     readonly condition: string;
     readonly comparedTo: string;
-    readonly maxAllowedRelativeDrop: number;
+    readonly maxAbsoluteDrop: number;
   };
   readonly safetyGates: readonly {
     readonly metric: keyof BenchmarkMetricSummary;
-    readonly maxAllowedRelativeIncrease: number;
+    readonly maxAbsoluteIncrease: number;
   }[];
   readonly benefitGate: {
     readonly metric: string;
     readonly minRelativeImprovement: number;
+    readonly minimumBaselineMedian: number;
   };
 }
 
