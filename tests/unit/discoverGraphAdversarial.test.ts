@@ -115,7 +115,7 @@ type FenceMember = "fileExists" | "directoryExists" | "readFile" | "getCurrentDi
  * fence that is absent must fail, not look like a fence that holds.
  */
 function fence(host: ResolutionHost, member: FenceMember, path?: string): unknown {
-  const fn = host[member] as ((argument?: string) => unknown) | undefined;
+  const fn = host[member]?.bind(host) as ((argument?: string) => unknown) | undefined;
   if (fn === undefined) {
     throw new Error(`the resolution host does not provide ${member}, so its fence is untested`);
   }
