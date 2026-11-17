@@ -16,6 +16,9 @@ import { runDoctor } from "./commands/doctor.js";
 import { runExplain } from "./commands/explain.js";
 import { runInit } from "./commands/init.js";
 import { runUpgrade } from "./commands/upgrade.js";
+import { runDiscover } from "./commands/discover.js";
+import { runTwinBuild } from "./commands/twinBuild.js";
+import { runTwinQuery } from "./commands/twinQuery.js";
 
 interface PackageJson {
   readonly version: string;
@@ -31,8 +34,8 @@ program
   .name("agent-ready")
   .description(
     "Validate, inspect, generate, check, analyze, schema, doctor, explain,\n" +
-      "init, upgrade, verify, and inspect the bundled contract JSON Schema. This CLI never modifies the repository\n" +
-      "unless `generate --write`, `init --write`, or `verify --execute` is used.\n" +
+      "init, upgrade, verify, discover, twin, and inspect the bundled contract JSON Schema. This CLI never modifies the repository\n" +
+      "unless `generate --write`, `init --write`, `verify --execute`, or `twin build` is used.\n" +
       "Never executes repository commands unless `verify --execute` is used.",
   )
   .version(pkg.version);
@@ -234,6 +237,85 @@ program
     if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
     process.exitCode = outcome.exitCode;
   });
+
+program
+  .command("discover")
+  .description(
+    "Build a deterministic, evidence-bearing model of a repository. Works\n" +
+      "with or without an agent-ready.yaml: a missing contract is reported as\n" +
+      "a fact, not as a failure. Strictly read-only — no write, force, process,\n" +
+      "Git, or network path exists. See docs/decisions/0044-repository-discovery-model.md.",
+  )
+  .option("--json", "Print the discovery snapshot as machine-readable JSON.", false)
+  .option("--root <path>", "Repository directory to inspect. Defaults to the working directory.")
+  .action(async (opts: { json: boolean; root?: string }) => {
+    const fs = new NodeFileSystem();
+    const outcome = await runDiscover(fs, {
+      json: opts.json,
+      ...(opts.root !== undefined && { root: opts.root }),
+    });
+    if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
+    if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
+    process.exitCode = outcome.exitCode;
+  });
+
+const twin = program
+  .command("twin")
+  .description(
+    "Experimental snapshot build and bounded query over a saved discover\n" +
+      "artifact (ADR-0049). `twin query` reads the snapshot only.",
+  );
+
+twin
+  .command("build")
+  .description(
+    "Run discovery and write a validated Discovery Snapshot Format 1 JSON\n" +
+      "document to the path you name. The only twin command that writes.",
+  )
+  .requiredOption("--output <path>", "Destination file for the snapshot JSON.")
+  .option("--root <path>", "Repository directory to inspect. Defaults to the working directory.")
+  .option("--force", "Overwrite an existing destination file.", false)
+  .action(async (opts: { output: string; root?: string; force: boolean }) => {
+    const fs = new NodeFileSystem();
+    const outcome = await runTwinBuild(fs, {
+      output: opts.output,
+      force: opts.force,
+      ...(opts.root !== undefined && { root: opts.root }),
+    });
+    if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
+    if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
+    process.exitCode = outcome.exitCode;
+  });
+
+twin
+  .command("query")
+  .description("Answer a bounded question from a snapshot file only.")
+  .requiredOption("--snapshot <path>", "Path to a Snapshot Format 1 JSON file.")
+  .requiredOption("--kind <kind>", "Query kind (see docs for vocabulary).")
+  .option("--parameter <value>", "Parameter for the query kind (e.g. package or module path).")
+  .option("--limit <n>", "Maximum list entries before truncation.", (value) => Number(value))
+  .option("--json", "Print the query result as JSON.", false)
+  .action(
+    async (opts: {
+      snapshot: string;
+      kind: string;
+      parameter?: string;
+      limit?: number;
+      json: boolean;
+    }) => {
+      const fs = new NodeFileSystem();
+      const outcome = await runTwinQuery(fs, {
+        snapshot: opts.snapshot,
+        kind: opts.kind,
+        json: opts.json,
+        ...(opts.parameter !== undefined && { parameter: opts.parameter }),
+        ...(opts.limit !== undefined && { limit: opts.limit }),
+      });
+      if (outcome.stdout.length > 0) process.stdout.write(outcome.stdout);
+      if (outcome.stderr.length > 0) process.stderr.write(outcome.stderr);
+      process.exitCode = outcome.exitCode;
+    },
+  );
 
 program
   .command("verify")

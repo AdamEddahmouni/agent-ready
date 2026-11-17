@@ -6,6 +6,7 @@ export default defineConfig({
       "tests/unit/**/*.test.ts",
       "tests/integration/**/*.test.ts",
       "tests/compatibility/**/*.test.ts",
+      "tests/research/**/*.test.ts",
     ],
     environment: "node",
     testTimeout: 10_000,

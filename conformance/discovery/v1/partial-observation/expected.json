@@ -1,0 +1,374 @@
+{
+  "ok": true,
+  "snapshotVersion": 1,
+  "root": ".",
+  "facts": {
+    "repository.commands": {
+      "id": "repository.commands",
+      "kind": "declared",
+      "value": [
+        {
+          "packagePath": ".",
+          "scriptsStatus": "unobservable",
+          "commands": [],
+          "unmodelledScripts": [],
+          "unsupportedReason": null
+        }
+      ],
+      "claims": [
+        {
+          "kind": "declared",
+          "value": [
+            {
+              "packagePath": ".",
+              "scriptsStatus": "unobservable",
+              "commands": [],
+              "unmodelledScripts": [],
+              "unsupportedReason": null
+            }
+          ],
+          "evidence": [
+            {
+              "source": "package.json",
+              "pointer": "/scripts",
+              "detail": "manifest could not be interpreted"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "declared"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.contract.present": {
+      "id": "repository.contract.present",
+      "kind": "derived",
+      "value": false,
+      "claims": [
+        {
+          "kind": "derived",
+          "value": false,
+          "evidence": [
+            {
+              "source": "agent-ready.yaml",
+              "detail": "not present"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.contract.valid": {
+      "id": "repository.contract.valid",
+      "kind": "unknown",
+      "reason": "not-probed",
+      "evidence": []
+    },
+    "repository.contract.verification": {
+      "id": "repository.contract.verification",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "agent-ready.yaml",
+          "detail": "declares no verification sequence"
+        }
+      ]
+    },
+    "repository.declarationSurface.present": {
+      "id": "repository.declarationSurface.present",
+      "kind": "derived",
+      "value": false,
+      "claims": [
+        {
+          "kind": "derived",
+          "value": false,
+          "evidence": [
+            {
+              "source": "AGENTS.md",
+              "detail": "not present"
+            },
+            {
+              "source": "CLAUDE.md",
+              "detail": "not present"
+            },
+            {
+              "source": ".cursorrules",
+              "detail": "not present"
+            },
+            {
+              "source": ".github/copilot-instructions.md",
+              "detail": "not present"
+            },
+            {
+              "source": ".github/workflows",
+              "detail": "not present"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.packageManager.root": {
+      "id": "repository.packageManager.root",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "agent-ready.yaml",
+          "pointer": "/environment/packageManager",
+          "detail": "not declared"
+        },
+        {
+          "source": "npm-shrinkwrap.json",
+          "detail": "not present"
+        },
+        {
+          "source": "package-lock.json",
+          "detail": "not present"
+        },
+        {
+          "source": "package.json",
+          "pointer": "/packageManager",
+          "detail": "not declared"
+        },
+        {
+          "source": "pnpm-lock.yaml",
+          "detail": "not present"
+        },
+        {
+          "source": "yarn.lock",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.packages": {
+      "id": "repository.packages",
+      "kind": "derived",
+      "value": [
+        {
+          "path": ".",
+          "name": null,
+          "nameStatus": "absent",
+          "private": null,
+          "version": null,
+          "manifestStatus": "malformed"
+        }
+      ],
+      "claims": [
+        {
+          "kind": "derived",
+          "value": [
+            {
+              "path": ".",
+              "name": null,
+              "nameStatus": "absent",
+              "private": null,
+              "version": null,
+              "manifestStatus": "malformed"
+            }
+          ],
+          "evidence": [
+            {
+              "source": "package.json",
+              "detail": "package manifest"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.root": {
+      "id": "repository.root",
+      "kind": "derived",
+      "value": ".",
+      "claims": [
+        {
+          "kind": "derived",
+          "value": ".",
+          "evidence": [
+            {
+              "source": ".git",
+              "detail": "nearest ancestor directory containing a .git entry"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.verificationEntrypoints": {
+      "id": "repository.verificationEntrypoints",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "no declared script name matches a recognised verification role"
+        }
+      ]
+    },
+    "repository.workspace.candidates": {
+      "id": "repository.workspace.candidates",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "not present"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.declarations": {
+      "id": "repository.workspace.declarations",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "not present"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.members": {
+      "id": "repository.workspace.members",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "not present"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    },
+    "repository.workspace.root": {
+      "id": "repository.workspace.root",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "not present"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "not present"
+        }
+      ]
+    }
+  },
+  "graph": {
+    "nodes": [],
+    "edges": [],
+    "sourceUniverse": {
+      "strategy": "bounded-traversal",
+      "tsconfigs": [],
+      "resolutionMode": "Bundler",
+      "extensions": [
+        ".ts",
+        ".mts",
+        ".cts",
+        ".tsx",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".jsx"
+      ],
+      "files": [],
+      "truncated": false
+    },
+    "ownership": {
+      "status": "absent",
+      "source": null,
+      "rules": 0,
+      "unsupportedPatterns": [],
+      "detail": null
+    },
+    "counts": {
+      "nodes": 0,
+      "edges": 0,
+      "packages": 0,
+      "modules": 0,
+      "externalDependencies": 0,
+      "owners": 0,
+      "importEdges": 0,
+      "resolvedImports": 0,
+      "unresolvedImports": 0,
+      "dependencyEdges": 0,
+      "resolvedDependencies": 0,
+      "workspaceDependencies": 0,
+      "ownedSubjects": 0,
+      "unownedSubjects": 0
+    },
+    "complete": false,
+    "truncatedBy": null
+  },
+  "summary": {
+    "facts": 13,
+    "known": 5,
+    "unknown": 8,
+    "conflicts": 0,
+    "complete": false
+  },
+  "diagnostics": [
+    {
+      "code": "DISCOVERY_PARTIAL",
+      "severity": "warning",
+      "summary": "A package manifest could not be interpreted: package.json.",
+      "detail": "The file exists and was read, but its contents are not a usable JSON object, so nothing is known about the package it declares.",
+      "remediation": "Check the file's syntax and read permissions. Every other package in the repository is still reported; only this one is affected.",
+      "metadata": {
+        "path": "package.json",
+        "manifestStatus": "malformed"
+      }
+    },
+    {
+      "code": "DISCOVERY_PARTIAL",
+      "severity": "warning",
+      "summary": "A TypeScript configuration was not used: tsconfig.json.",
+      "detail": "The file is not parseable as JSON, so it was not used.",
+      "sourcePath": "tsconfig.json",
+      "remediation": "Everything the snapshot reports outside this condition is unaffected; treat the graph as a lower bound rather than a complete picture.",
+      "metadata": {}
+    }
+  ]
+}

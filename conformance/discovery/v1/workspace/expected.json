@@ -1,0 +1,924 @@
+{
+  "ok": true,
+  "snapshotVersion": 1,
+  "root": ".",
+  "facts": {
+    "repository.commands": {
+      "id": "repository.commands",
+      "kind": "declared",
+      "value": [
+        {
+          "packagePath": ".",
+          "scriptsStatus": "declared",
+          "commands": [
+            {
+              "name": "test",
+              "body": "pnpm -r test",
+              "source": "package.json",
+              "pointer": "/scripts/test"
+            }
+          ],
+          "unmodelledScripts": [],
+          "unsupportedReason": null
+        },
+        {
+          "packagePath": "packages/api",
+          "scriptsStatus": "declared",
+          "commands": [
+            {
+              "name": "test",
+              "body": "vitest run",
+              "source": "packages/api/package.json",
+              "pointer": "/scripts/test"
+            }
+          ],
+          "unmodelledScripts": [],
+          "unsupportedReason": null
+        },
+        {
+          "packagePath": "packages/core",
+          "scriptsStatus": "declared",
+          "commands": [
+            {
+              "name": "lint",
+              "body": "eslint .",
+              "source": "packages/core/package.json",
+              "pointer": "/scripts/lint"
+            }
+          ],
+          "unmodelledScripts": [],
+          "unsupportedReason": null
+        }
+      ],
+      "claims": [
+        {
+          "kind": "declared",
+          "value": [
+            {
+              "packagePath": ".",
+              "scriptsStatus": "declared",
+              "commands": [
+                {
+                  "name": "test",
+                  "body": "pnpm -r test",
+                  "source": "package.json",
+                  "pointer": "/scripts/test"
+                }
+              ],
+              "unmodelledScripts": [],
+              "unsupportedReason": null
+            },
+            {
+              "packagePath": "packages/api",
+              "scriptsStatus": "declared",
+              "commands": [
+                {
+                  "name": "test",
+                  "body": "vitest run",
+                  "source": "packages/api/package.json",
+                  "pointer": "/scripts/test"
+                }
+              ],
+              "unmodelledScripts": [],
+              "unsupportedReason": null
+            },
+            {
+              "packagePath": "packages/core",
+              "scriptsStatus": "declared",
+              "commands": [
+                {
+                  "name": "lint",
+                  "body": "eslint .",
+                  "source": "packages/core/package.json",
+                  "pointer": "/scripts/lint"
+                }
+              ],
+              "unmodelledScripts": [],
+              "unsupportedReason": null
+            }
+          ],
+          "evidence": [
+            {
+              "source": "package.json",
+              "pointer": "/scripts",
+              "detail": "1 declared script(s)"
+            },
+            {
+              "source": "packages/api/package.json",
+              "pointer": "/scripts",
+              "detail": "1 declared script(s)"
+            },
+            {
+              "source": "packages/core/package.json",
+              "pointer": "/scripts",
+              "detail": "1 declared script(s)"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "declared"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.contract.present": {
+      "id": "repository.contract.present",
+      "kind": "derived",
+      "value": false,
+      "claims": [
+        {
+          "kind": "derived",
+          "value": false,
+          "evidence": [
+            {
+              "source": "agent-ready.yaml",
+              "detail": "not present"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.contract.valid": {
+      "id": "repository.contract.valid",
+      "kind": "unknown",
+      "reason": "not-probed",
+      "evidence": []
+    },
+    "repository.contract.verification": {
+      "id": "repository.contract.verification",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "agent-ready.yaml",
+          "detail": "declares no verification sequence"
+        }
+      ]
+    },
+    "repository.declarationSurface.present": {
+      "id": "repository.declarationSurface.present",
+      "kind": "derived",
+      "value": false,
+      "claims": [
+        {
+          "kind": "derived",
+          "value": false,
+          "evidence": [
+            {
+              "source": "AGENTS.md",
+              "detail": "not present"
+            },
+            {
+              "source": "CLAUDE.md",
+              "detail": "not present"
+            },
+            {
+              "source": ".cursorrules",
+              "detail": "not present"
+            },
+            {
+              "source": ".github/copilot-instructions.md",
+              "detail": "not present"
+            },
+            {
+              "source": ".github/workflows",
+              "detail": "not present"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.packageManager.packages/core": {
+      "id": "repository.packageManager.packages/core",
+      "kind": "derived",
+      "value": "packages/core/pnpm-lock.yaml",
+      "claims": [
+        {
+          "kind": "derived",
+          "value": "packages/core/pnpm-lock.yaml",
+          "evidence": [
+            {
+              "source": "packages/core/pnpm-lock.yaml",
+              "detail": "a pnpm lockfile exists"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.packageManager.root": {
+      "id": "repository.packageManager.root",
+      "kind": "declared",
+      "value": "pnpm@10.0.0",
+      "claims": [
+        {
+          "kind": "declared",
+          "value": "pnpm@10.0.0",
+          "evidence": [
+            {
+              "source": "package.json",
+              "pointer": "/packageManager",
+              "detail": "declared package manager"
+            }
+          ]
+        },
+        {
+          "kind": "derived",
+          "value": "pnpm-lock.yaml",
+          "evidence": [
+            {
+              "source": "pnpm-lock.yaml",
+              "detail": "a pnpm lockfile exists"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "declared",
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": true
+      }
+    },
+    "repository.packages": {
+      "id": "repository.packages",
+      "kind": "derived",
+      "value": [
+        {
+          "path": ".",
+          "name": "workspace-root",
+          "nameStatus": "declared",
+          "private": true,
+          "version": null,
+          "manifestStatus": "read"
+        },
+        {
+          "path": "packages/api",
+          "name": "@scope/api",
+          "nameStatus": "declared",
+          "private": null,
+          "version": "0.1.0",
+          "manifestStatus": "read"
+        },
+        {
+          "path": "packages/core",
+          "name": "@scope/core",
+          "nameStatus": "declared",
+          "private": null,
+          "version": "0.1.0",
+          "manifestStatus": "read"
+        }
+      ],
+      "claims": [
+        {
+          "kind": "derived",
+          "value": [
+            {
+              "path": ".",
+              "name": "workspace-root",
+              "nameStatus": "declared",
+              "private": true,
+              "version": null,
+              "manifestStatus": "read"
+            },
+            {
+              "path": "packages/api",
+              "name": "@scope/api",
+              "nameStatus": "declared",
+              "private": null,
+              "version": "0.1.0",
+              "manifestStatus": "read"
+            },
+            {
+              "path": "packages/core",
+              "name": "@scope/core",
+              "nameStatus": "declared",
+              "private": null,
+              "version": "0.1.0",
+              "manifestStatus": "read"
+            }
+          ],
+          "evidence": [
+            {
+              "source": "package.json",
+              "detail": "package manifest"
+            },
+            {
+              "source": "packages/api/package.json",
+              "detail": "package manifest"
+            },
+            {
+              "source": "packages/core/package.json",
+              "detail": "package manifest"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.root": {
+      "id": "repository.root",
+      "kind": "derived",
+      "value": ".",
+      "claims": [
+        {
+          "kind": "derived",
+          "value": ".",
+          "evidence": [
+            {
+              "source": ".git",
+              "detail": "nearest ancestor directory containing a .git entry"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.verificationEntrypoints": {
+      "id": "repository.verificationEntrypoints",
+      "kind": "derived",
+      "value": [
+        {
+          "packagePath": ".",
+          "script": "test",
+          "role": "test",
+          "body": "pnpm -r test",
+          "primary": true,
+          "invocation": {
+            "cwd": ".",
+            "executable": "pnpm",
+            "args": [
+              "run",
+              "test"
+            ]
+          },
+          "invocationStatus": "resolved",
+          "source": "package.json",
+          "pointer": "/scripts/test"
+        },
+        {
+          "packagePath": "packages/api",
+          "script": "test",
+          "role": "test",
+          "body": "vitest run",
+          "primary": true,
+          "invocation": {
+            "cwd": "packages/api",
+            "executable": "pnpm",
+            "args": [
+              "run",
+              "test"
+            ]
+          },
+          "invocationStatus": "resolved",
+          "source": "packages/api/package.json",
+          "pointer": "/scripts/test"
+        },
+        {
+          "packagePath": "packages/core",
+          "script": "lint",
+          "role": "lint",
+          "body": "eslint .",
+          "primary": true,
+          "invocation": {
+            "cwd": "packages/core",
+            "executable": "pnpm",
+            "args": [
+              "run",
+              "lint"
+            ]
+          },
+          "invocationStatus": "resolved",
+          "source": "packages/core/package.json",
+          "pointer": "/scripts/lint"
+        }
+      ],
+      "claims": [
+        {
+          "kind": "derived",
+          "value": [
+            {
+              "packagePath": ".",
+              "script": "test",
+              "role": "test",
+              "body": "pnpm -r test",
+              "primary": true,
+              "invocation": {
+                "cwd": ".",
+                "executable": "pnpm",
+                "args": [
+                  "run",
+                  "test"
+                ]
+              },
+              "invocationStatus": "resolved",
+              "source": "package.json",
+              "pointer": "/scripts/test"
+            },
+            {
+              "packagePath": "packages/api",
+              "script": "test",
+              "role": "test",
+              "body": "vitest run",
+              "primary": true,
+              "invocation": {
+                "cwd": "packages/api",
+                "executable": "pnpm",
+                "args": [
+                  "run",
+                  "test"
+                ]
+              },
+              "invocationStatus": "resolved",
+              "source": "packages/api/package.json",
+              "pointer": "/scripts/test"
+            },
+            {
+              "packagePath": "packages/core",
+              "script": "lint",
+              "role": "lint",
+              "body": "eslint .",
+              "primary": true,
+              "invocation": {
+                "cwd": "packages/core",
+                "executable": "pnpm",
+                "args": [
+                  "run",
+                  "lint"
+                ]
+              },
+              "invocationStatus": "resolved",
+              "source": "packages/core/package.json",
+              "pointer": "/scripts/lint"
+            }
+          ],
+          "evidence": [
+            {
+              "source": "package.json",
+              "pointer": "/scripts",
+              "detail": "declared script names matched the role grammar"
+            },
+            {
+              "source": "packages/api/package.json",
+              "pointer": "/scripts",
+              "detail": "declared script names matched the role grammar"
+            },
+            {
+              "source": "packages/core/package.json",
+              "pointer": "/scripts",
+              "detail": "declared script names matched the role grammar"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.workspace.candidates": {
+      "id": "repository.workspace.candidates",
+      "kind": "derived",
+      "value": [
+        {
+          "path": "packages/api",
+          "source": "pnpm-workspace.yaml",
+          "pattern": "packages/*",
+          "present": true
+        },
+        {
+          "path": "packages/core",
+          "source": "pnpm-workspace.yaml",
+          "pattern": "packages/*",
+          "present": true
+        }
+      ],
+      "claims": [
+        {
+          "kind": "derived",
+          "value": [
+            {
+              "path": "packages/api",
+              "source": "pnpm-workspace.yaml",
+              "pattern": "packages/*",
+              "present": true
+            },
+            {
+              "path": "packages/core",
+              "source": "pnpm-workspace.yaml",
+              "pattern": "packages/*",
+              "present": true
+            }
+          ],
+          "evidence": [
+            {
+              "source": "pnpm-workspace.yaml",
+              "detail": "1 pattern(s) expanded"
+            },
+            {
+              "source": "packages/api",
+              "detail": "matched packages/*"
+            },
+            {
+              "source": "packages/core",
+              "detail": "matched packages/*"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.workspace.declarations": {
+      "id": "repository.workspace.declarations",
+      "kind": "declared",
+      "value": [
+        {
+          "source": "pnpm-workspace.yaml",
+          "form": "array",
+          "patterns": [
+            "packages/*"
+          ],
+          "unsupportedReason": null
+        }
+      ],
+      "claims": [
+        {
+          "kind": "declared",
+          "value": [
+            {
+              "source": "pnpm-workspace.yaml",
+              "form": "array",
+              "patterns": [
+                "packages/*"
+              ],
+              "unsupportedReason": null
+            }
+          ],
+          "evidence": [
+            {
+              "source": "pnpm-workspace.yaml",
+              "pointer": "/workspaces",
+              "detail": "declared as array"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "declared"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.workspace.members": {
+      "id": "repository.workspace.members",
+      "kind": "derived",
+      "value": [
+        {
+          "path": "packages/api",
+          "name": "@scope/api",
+          "nameStatus": "declared",
+          "private": null,
+          "version": "0.1.0",
+          "manifestStatus": "read"
+        },
+        {
+          "path": "packages/core",
+          "name": "@scope/core",
+          "nameStatus": "declared",
+          "private": null,
+          "version": "0.1.0",
+          "manifestStatus": "read"
+        }
+      ],
+      "claims": [
+        {
+          "kind": "derived",
+          "value": [
+            {
+              "path": "packages/api",
+              "name": "@scope/api",
+              "nameStatus": "declared",
+              "private": null,
+              "version": "0.1.0",
+              "manifestStatus": "read"
+            },
+            {
+              "path": "packages/core",
+              "name": "@scope/core",
+              "nameStatus": "declared",
+              "private": null,
+              "version": "0.1.0",
+              "manifestStatus": "read"
+            }
+          ],
+          "evidence": [
+            {
+              "source": "pnpm-workspace.yaml",
+              "detail": "workspace declaration expanded"
+            },
+            {
+              "source": "packages/api/package.json",
+              "detail": "workspace member manifest (read)"
+            },
+            {
+              "source": "packages/core/package.json",
+              "detail": "workspace member manifest (read)"
+            }
+          ]
+        }
+      ],
+      "corroboration": {
+        "kinds": [
+          "derived"
+        ],
+        "authorDeclared": false,
+        "corroborated": false
+      }
+    },
+    "repository.workspace.root": {
+      "id": "repository.workspace.root",
+      "kind": "unknown",
+      "reason": "no-evidence",
+      "evidence": [
+        {
+          "source": "package.json",
+          "detail": "present, declares no workspace"
+        },
+        {
+          "source": "pnpm-workspace.yaml",
+          "detail": "present, declares no workspace"
+        }
+      ]
+    }
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "module:packages/api/src/index.ts",
+        "kind": "module",
+        "path": "packages/api/src/index.ts",
+        "packagePath": "packages/api",
+        "provenance": {
+          "source": "packages/api/src/index.ts",
+          "line": 1
+        },
+        "ownership": {
+          "status": "unowned",
+          "policy": {
+            "status": "absent",
+            "source": null
+          }
+        }
+      },
+      {
+        "id": "module:packages/core/src/index.ts",
+        "kind": "module",
+        "path": "packages/core/src/index.ts",
+        "packagePath": "packages/core",
+        "provenance": {
+          "source": "packages/core/src/index.ts",
+          "line": 1
+        },
+        "ownership": {
+          "status": "unowned",
+          "policy": {
+            "status": "absent",
+            "source": null
+          }
+        }
+      },
+      {
+        "id": "package:.",
+        "kind": "package",
+        "path": ".",
+        "name": "workspace-root",
+        "provenance": {
+          "source": "package.json",
+          "line": 2,
+          "column": 3,
+          "endLine": 2,
+          "endColumn": 9,
+          "pointer": "/name"
+        },
+        "ownership": {
+          "status": "unowned",
+          "policy": {
+            "status": "absent",
+            "source": null
+          }
+        }
+      },
+      {
+        "id": "package:packages/api",
+        "kind": "package",
+        "path": "packages/api",
+        "name": "@scope/api",
+        "provenance": {
+          "source": "packages/api/package.json",
+          "line": 2,
+          "column": 3,
+          "endLine": 2,
+          "endColumn": 9,
+          "pointer": "/name"
+        },
+        "ownership": {
+          "status": "unowned",
+          "policy": {
+            "status": "absent",
+            "source": null
+          }
+        }
+      },
+      {
+        "id": "package:packages/core",
+        "kind": "package",
+        "path": "packages/core",
+        "name": "@scope/core",
+        "provenance": {
+          "source": "packages/core/package.json",
+          "line": 2,
+          "column": 3,
+          "endLine": 2,
+          "endColumn": 9,
+          "pointer": "/name"
+        },
+        "ownership": {
+          "status": "unowned",
+          "policy": {
+            "status": "absent",
+            "source": null
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "dependency:package:packages/api->package:packages/core",
+        "kind": "package-depends-on",
+        "source": "package:packages/api",
+        "target": "package:packages/core",
+        "declarations": [
+          {
+            "name": "@scope/core",
+            "dependencyClass": "runtime",
+            "declaredSpecifier": "workspace:*",
+            "pointer": "/dependencies/@scope~1core",
+            "provenance": {
+              "source": "packages/api/package.json",
+              "line": 8,
+              "column": 5,
+              "endLine": 8,
+              "endColumn": 18,
+              "pointer": "/dependencies/@scope~1core"
+            }
+          }
+        ],
+        "resolution": {
+          "status": "unresolved"
+        },
+        "provenance": {
+          "source": "packages/api/package.json",
+          "line": 8,
+          "column": 5,
+          "endLine": 8,
+          "endColumn": 18,
+          "pointer": "/dependencies/@scope~1core"
+        },
+        "targetMissing": false
+      },
+      {
+        "id": "import:module:packages/api/src/index.ts->package:packages/core@1:22",
+        "kind": "imports",
+        "source": "module:packages/api/src/index.ts",
+        "specifier": "@scope/core",
+        "syntax": "import",
+        "typeOnly": false,
+        "resolution": {
+          "status": "package",
+          "target": "package:packages/core",
+          "subpath": null
+        },
+        "provenance": {
+          "source": "packages/api/src/index.ts",
+          "line": 1,
+          "column": 22,
+          "endLine": 1,
+          "endColumn": 35
+        }
+      }
+    ],
+    "sourceUniverse": {
+      "strategy": "bounded-traversal",
+      "tsconfigs": [],
+      "resolutionMode": "Bundler",
+      "extensions": [
+        ".ts",
+        ".mts",
+        ".cts",
+        ".tsx",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".jsx"
+      ],
+      "files": [
+        "packages/api/src/index.ts",
+        "packages/core/src/index.ts"
+      ],
+      "truncated": false
+    },
+    "ownership": {
+      "status": "absent",
+      "source": null,
+      "rules": 0,
+      "unsupportedPatterns": [],
+      "detail": null
+    },
+    "counts": {
+      "nodes": 5,
+      "edges": 2,
+      "packages": 3,
+      "modules": 2,
+      "externalDependencies": 0,
+      "owners": 0,
+      "importEdges": 1,
+      "resolvedImports": 1,
+      "unresolvedImports": 0,
+      "dependencyEdges": 1,
+      "resolvedDependencies": 0,
+      "workspaceDependencies": 0,
+      "ownedSubjects": 0,
+      "unownedSubjects": 5
+    },
+    "complete": true,
+    "truncatedBy": null
+  },
+  "summary": {
+    "facts": 14,
+    "known": 11,
+    "unknown": 3,
+    "conflicts": 0,
+    "complete": false
+  },
+  "diagnostics": [
+    {
+      "code": "DISCOVERY_PARTIAL",
+      "severity": "warning",
+      "summary": "Workspace expansion stopped at its bound, so the candidate list is incomplete.",
+      "detail": "More than 2000 directory entries or 8 levels of nesting were reached while expanding workspace patterns. Paths beyond the bound are not reported.",
+      "remediation": "Narrow the workspace patterns, or treat this snapshot's candidate list as a lower bound rather than a complete one.",
+      "metadata": {
+        "maxEntries": 2000,
+        "maxDepth": 8
+      }
+    }
+  ]
+}
