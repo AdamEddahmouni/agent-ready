@@ -199,8 +199,8 @@ explicitly, and the graph is not persisted and has no command of its own.
 
 ### Issue #5 — Stable JSON snapshot and schema
 
-**Status**: implemented on branch `feat/vnext-snapshot-conformance` (GitHub
-[#40](https://github.com/AdamEddahmouni/agent-ready/issues/40)). Recorded in
+**Status**: shipped on `main` (unreleased as of v0.6.1), GitHub
+[#40](https://github.com/AdamEddahmouni/agent-ready/issues/40). Recorded in
 [ADR-0048](../decisions/0048-discovery-snapshot-stability-and-conformance.md);
 consumer stability in
 [SNAPSHOT-STABILITY.md](SNAPSHOT-STABILITY.md); conformance in
@@ -226,6 +226,11 @@ conformance corpus.
 
 ### Issue #6 — Experimental query interface and evaluation harness
 
+**Status**: the `twin build`/`twin query` surface is shipped on `main`
+(unreleased as of v0.6.1); the evaluation harness and benchmark have not run.
+Tracked by milestone [#1](https://github.com/AdamEddahmouni/agent-ready/milestone/1)
+and issues #59–#62.
+
 **Depends on:** #3, #5, **and the protocol in #7**.
 
 **Deliverable.** `twin build` writes a snapshot to a path the user names; `twin
@@ -244,6 +249,9 @@ required by #7.
 ---
 
 ### Issue #7 — Phase 1 benchmark protocol
+
+**Status**: protocol v1 is a draft; it has not been frozen and no evaluation
+run has occurred. Freeze is tracked by #54; execution by #61.
 
 **Depends on:** nothing, and must be agreed **before** #6 runs. **Blocks**: #6.
 

@@ -5,7 +5,7 @@ This document is the honest, current-state entry point for anyone asking
 because Agent-Ready's direction is easy to over- or under-state: the
 project is neither a documentation-only proposal nor a finished product.
 
-## What exists today (v0.6.1 security-hardened line, pre-1.0)
+## What exists today (v0.6.1 stable line, plus unreleased vNext discovery)
 
 Agent-Ready already ships a real, installable-from-source CLI and
 TypeScript package, not just a specification document:
@@ -15,11 +15,17 @@ TypeScript package, not just a specification document:
   ([schemas/v1/agent-ready.schema.json](../schemas/v1/agent-ready.schema.json))
   and a full field reference
   ([docs/specification/contract-reference.md](specification/contract-reference.md)).
-- A working CLI (`agent-ready`, package bin) with eleven real commands:
-  `validate`, `inspect`, `generate`, `check`, `analyze`, `schema`,
-  `doctor`, `explain`, `init`, `upgrade`, `verify` — see
+- A working CLI (`agent-ready`, package bin) with twelve real top-level
+  commands: `validate`, `inspect`, `generate`, `check`, `analyze`, `schema`,
+  `doctor`, `explain`, `init`, `upgrade`, `discover`, `verify` — plus the
+  experimental `twin build` and `twin query` subcommands. See
   [docs/specification/cli-reference.md](specification/cli-reference.md)
   for exact behavior, flags, exit codes, and JSON output shapes.
+- An experimental vNext discovery surface on `main`, not yet in the `0.6.1`
+  npm package: Discovery Snapshot Format 1, a provenance-carrying repository
+  graph, and `twin build`/`twin query` over a saved snapshot. See
+  [ADR-0048](decisions/0048-discovery-snapshot-stability-and-conformance.md)
+  and [ADR-0049](decisions/0049-snapshot-build-and-bounded-query.md).
 - Five implemented adapters that generate agent-instruction files from
   one contract: `AGENTS.md`, `CLAUDE.md`, `.cursorrules`,
   `.github/copilot-instructions.md`, `GEMINI.md` — with a managed-file
@@ -37,7 +43,7 @@ TypeScript package, not just a specification document:
   embedding the validation pipeline in another tool — see
   [docs/specification/api-stability.md](specification/api-stability.md).
 - Unit and integration tests, a CI pipeline
-  (`.github/workflows/ci.yml`), 40 Architecture Decision Records
+  (`.github/workflows/ci.yml`), 48 Architecture Decision Records
   (`docs/decisions/`), a threat model, and a stated pre-1.0
   compatibility policy.
 
@@ -46,6 +52,13 @@ install && pnpm build` and every command above is real.
 
 ## What does not exist yet
 
+- **No CI or API discovery in Discovery Snapshot Format 1.** Format 1 covers
+  facts, the graph, commands, and verification; CI workflow and exported-API
+  discovery are deferred by
+  [ADR-0051](decisions/0051-defer-ci-api-discovery-from-format-1.md).
+- **No Phase 1 benchmark result.** Protocol v1 is a draft and no evaluation run
+  has occurred; the harness, pilot, and 78-trial run are tracked in milestone
+  [#1](https://github.com/AdamEddahmouni/agent-ready/milestone/1).
 - **No v1.0 compatibility commitment.** `0.6.1` is the stable npm package
   and Git tag, published with a GitHub-verified signed tag, while the project
   remains pre-1.0 under the documented compatibility policy.
@@ -102,17 +115,20 @@ for planning by [VISION.md](../VISION.md).
 
 In September 2026 the project selected a **vNext design phase** and froze the
 shipped line. The distinction is the single most important thing on this page,
-because everything above describes what exists and the vNext documents describe
-what does not.
+because the vNext documents mix surfaces that now exist on `main` with
+capabilities that remain design.
 
 - The v1 contract, the eleven shipped commands, and the adapter-output corpus are
   **frozen and still releasing** as v0.6.x, per
   [ADR-0042](decisions/0042-v1-freeze-and-parallel-vnext-surface.md).
 - The vNext direction — a control plane for constitutionally governed autonomous
   software evolution — is documented in [VISION.md](../VISION.md) and
-  [RFC-0001](vnext/RFC-0001-autonomous-software-evolution.md), and
-  **implemented in no part**. No `discover`, no Twin, no Evolution, no
-  transaction, no capability model.
+  [RFC-0001](vnext/RFC-0001-autonomous-software-evolution.md), and is
+  **partially implemented on `main`, unreleased in npm `0.6.1`**: `discover`,
+  Discovery Snapshot Format 1, the provenance graph, and experimental
+  `twin build`/`twin query`. The Phase 1 benchmark has not run. Evolution,
+  transactions, proof, Constitution, capabilities, MCP, and hosted services are
+  **not implemented**.
 - vNext is written to be falsifiable. The conditions under which it should be
   abandoned are stated in advance, and the first phase is gated on a research
   question rather than a feature list.
@@ -121,8 +137,10 @@ what does not.
   are quarantined behind per-capability design ADRs
   ([ADR-0043](decisions/0043-core-posture-and-integration-quarantine.md)).
 - The threat surface this direction creates is enumerated in
-  [threat-model-vnext.md](security/threat-model-vnext.md), where **none of it is
-  mitigated today**, because none of the capabilities exist.
+  [threat-model-vnext.md](security/threat-model-vnext.md), where **none of the
+  control-plane threats is mitigated today**, because the capabilities it treats
+  do not exist. The local, read-only discovery and twin surfaces do not
+  implement them.
 
 The archived v0.7-to-v1.0 release plan is preserved at
 [archive/roadmap-v1.md](archive/roadmap-v1.md). Its planned ADR-0037 through

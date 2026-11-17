@@ -27,6 +27,10 @@ All notable changes to Agent-Ready are documented here. The project follows
 
 ### Changed
 
+- CI and API discovery are deferred from Discovery Snapshot Format 1 rather than
+  added before the Phase 1 benchmark; public Phase 1 status now reflects the
+  shipped discovery and twin surface. See
+  [ADR-0051](docs/decisions/0051-defer-ci-api-discovery-from-format-1.md).
 - `discover --json` now emits `snapshotVersion: 1` (was `0`). Version `0`
   promised nothing; there is no migration path from `0` snapshots.
 
