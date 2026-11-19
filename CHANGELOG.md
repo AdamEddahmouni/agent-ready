@@ -75,8 +75,27 @@ All notable changes to Agent-Ready are documented here. The project follows
   exported with `git archive`) or verified against a build stamp recording that
   commit, so a stale or locally edited `dist/` is refused. Research tooling only.
 
+### Added
+
+- Phase 1 benchmark protocol **v2** (research), applying proposal 0001:
+  `axios-01-identify-test-script` now asks for the script that runs only the
+  unit project and scores `test:vitest:unit` instead of the aggregate `test`
+  entry point that also runs the browser projects. A sibling
+  `docs/research/phase1-benchmark-protocol/v2/` carries the artifacts, a v2
+  freeze record, and `-v2` schemas; v1 stays frozen with its results. Raw
+  records are validated against their own version's schema, the runner writes
+  the manifest's version, aggregation refuses mixed versions, and
+  `research:benchmark-reproduce` picks the decision rule the records cite. A v2
+  run manifest (`phase1-v2-2026-11-19`) reuses the v1 seed so the 78-trial order
+  is unchanged.
+
 ### Changed
 
+- Phase 1 research: `verificationSelectionResult` counts only a check the
+  session actually executed. Recorded shell calls are tokenized with quote
+  awareness and compared word for word, so a command that is echoed, grepped, or
+  written to a log no longer reads as verification, and a script merely named in
+  `verificationSurface` still does not count.
 - Phase 1 research: `verificationSelectionResult` is now derived from the
   task's `command-exit-zero` oracle clauses rather than left to adjudication, so
   a run that executes the task's own check is not reported as a verification

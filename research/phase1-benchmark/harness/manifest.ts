@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import type { ValidateFunction } from "ajv";
+import type { ProtocolVersion } from "./types.js";
 
 /**
  * Loads the committed run manifest for a run. The manifest is the environment
@@ -10,15 +11,27 @@ import type { ValidateFunction } from "ajv";
  * run instead of being repaired or defaulted.
  */
 
-export const RUN_MANIFEST_SCHEMA_PATH = fileURLToPath(
-  new URL(
-    "../../../schemas/research/phase1-benchmark-run-manifest-v1.schema.json",
-    import.meta.url,
+const RUN_MANIFEST_SCHEMA_PATHS: Readonly<Record<ProtocolVersion, string>> = {
+  1: fileURLToPath(
+    new URL(
+      "../../../schemas/research/phase1-benchmark-run-manifest-v1.schema.json",
+      import.meta.url,
+    ),
   ),
-);
+  2: fileURLToPath(
+    new URL(
+      "../../../schemas/research/phase1-benchmark-run-manifest-v2.schema.json",
+      import.meta.url,
+    ),
+  ),
+};
 
+/** The v1 schema path, kept for callers that predate v2. */
+export const RUN_MANIFEST_SCHEMA_PATH = RUN_MANIFEST_SCHEMA_PATHS[1];
+
+/** New runs execute the current protocol; v1's manifest stays loadable by path. */
 export const DEFAULT_RUN_MANIFEST_PATH = fileURLToPath(
-  new URL("../../../docs/research/phase1-benchmark-run-v1/run-manifest.json", import.meta.url),
+  new URL("../../../docs/research/phase1-benchmark-run-v2/run-manifest.json", import.meta.url),
 );
 
 export interface RunManifestBudgets {
@@ -28,7 +41,7 @@ export interface RunManifestBudgets {
 }
 
 export interface RunManifest {
-  readonly protocolVersion: 1;
+  readonly protocolVersion: ProtocolVersion;
   readonly id: string;
   readonly createdAt: string;
   readonly model: {
@@ -59,14 +72,16 @@ export class RunManifestError extends Error {
   }
 }
 
-let compiled: ValidateFunction | undefined;
+const compiled = new Map<ProtocolVersion, ValidateFunction>();
 
-function manifestValidator(): ValidateFunction {
-  if (compiled === undefined) {
-    const schema = JSON.parse(readFileSync(RUN_MANIFEST_SCHEMA_PATH, "utf8")) as object;
-    compiled = new Ajv2020({ allErrors: true, strict: true }).compile(schema);
-  }
-  return compiled;
+function manifestValidator(version: ProtocolVersion): ValidateFunction {
+  const cached = compiled.get(version);
+  if (cached !== undefined) return cached;
+
+  const schema = JSON.parse(readFileSync(RUN_MANIFEST_SCHEMA_PATHS[version], "utf8")) as object;
+  const validate = new Ajv2020({ allErrors: true, strict: true }).compile(schema);
+  compiled.set(version, validate);
+  return validate;
 }
 
 function budgetIssue(manifest: RunManifest, name: keyof RunManifestBudgets): string | undefined {
@@ -79,7 +94,14 @@ function budgetIssue(manifest: RunManifest, name: keyof RunManifestBudgets): str
 
 /** Validates a parsed manifest against the frozen schema and the caps the runner relies on. */
 export function parseRunManifest(input: unknown): RunManifest {
-  const validate = manifestValidator();
+  const declared =
+    typeof input === "object" && input !== null
+      ? (input as Record<string, unknown>)["protocolVersion"]
+      : undefined;
+  if (declared !== 1 && declared !== 2) {
+    throw new RunManifestError(["protocolVersion must be 1 or 2"]);
+  }
+  const validate = manifestValidator(declared);
   if (!validate(input)) {
     const errors = (validate.errors ?? []).map((error) => {
       const path = error.instancePath.length > 0 ? error.instancePath : "/";

@@ -9,7 +9,13 @@ import {
 } from "./score.js";
 import { recordRawRun, type RawRunRecord } from "./record.js";
 import type { PreparedConditionWorkspace } from "./prepare.js";
-import type { AgentObservations, Condition, TaskDefinition, TokenMetrics } from "./types.js";
+import type {
+  AgentObservations,
+  Condition,
+  ProtocolVersion,
+  TaskDefinition,
+  TokenMetrics,
+} from "./types.js";
 import { selectedVerificationFor } from "./verificationSelection.js";
 
 export interface RunConfiguration {
@@ -158,6 +164,7 @@ function failedObservations(error: unknown): AgentObservations {
  */
 export async function executeTrial(options: {
   readonly runManifestId: string;
+  readonly protocolVersion: ProtocolVersion;
   readonly task: TaskDefinition;
   readonly repositoryId: string;
   readonly condition: Condition;
@@ -212,7 +219,7 @@ export async function executeTrial(options: {
 
   const infrastructureFailure = observations.infrastructureFailure === true;
   const raw: RawRunRecord = {
-    protocolVersion: 1,
+    protocolVersion: options.protocolVersion,
     runManifestId: options.runManifestId,
     taskId: options.task.id,
     condition: options.condition,

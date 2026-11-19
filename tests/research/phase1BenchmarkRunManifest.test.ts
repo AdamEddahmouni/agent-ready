@@ -6,18 +6,12 @@ import type { ValidateFunction } from "ajv";
 import { describe, expect, it } from "vitest";
 
 /**
- * The committed run manifest is the environment the protocol runs inside: its
- * id is cited by every raw record, and the protocol forbids mutating it after
- * the first trial. These checks keep the recorded environment honest — a value
- * read from a frozen artifact, measured, or derived from a measurement — and
- * fail on any edit unless the digest is deliberately re-frozen.
+ * A committed run manifest is the environment a protocol run executes inside:
+ * its id is cited by every raw record, and the protocol forbids mutating it
+ * after the first trial. Each version's manifest is checked against that
+ * version's protocol and schema, and against its own digest, so a value can
+ * only change through a deliberate re-freeze.
  */
-
-const RUN_DIR = "docs/research/phase1-benchmark-run-v1";
-const MANIFEST_PATH = `${RUN_DIR}/run-manifest.json`;
-const DIGEST_PATH = `${RUN_DIR}/run-manifest.sha256`;
-const PROTOCOL_DIR = "docs/research/phase1-benchmark-protocol/v1";
-const SCHEMA_PATH = "schemas/research/phase1-benchmark-run-manifest-v1.schema.json";
 
 /** Largest measured session: axios-02, 92,038 input tokens, per captures/README. */
 const LARGEST_MEASURED_INPUT_TOKENS = 92_038;
@@ -41,32 +35,43 @@ interface RunManifest {
   readonly notes?: string;
 }
 
+const SUITES = [
+  { version: 1, runDir: "docs/research/phase1-benchmark-run-v1" },
+  { version: 2, runDir: "docs/research/phase1-benchmark-run-v2" },
+] as const;
+
 function readJson(path: string): unknown {
   return JSON.parse(readFileSync(join(process.cwd(), path), "utf8")) as unknown;
 }
 
-const manifestText = readFileSync(join(process.cwd(), MANIFEST_PATH), "utf8");
-const manifest = JSON.parse(manifestText) as RunManifest;
-const repositories = readJson(`${PROTOCOL_DIR}/repositories.json`) as {
-  readonly repositories: readonly { readonly id: string; readonly commit: string }[];
-};
-const tasks = readJson(`${PROTOCOL_DIR}/tasks.json`) as {
-  readonly tasks: readonly { readonly timeoutMinutes: number }[];
-};
-const schema = readJson(SCHEMA_PATH) as object;
-const validate: ValidateFunction = new Ajv2020({ allErrors: true, strict: true }).compile(schema);
+describe.each(SUITES)("committed run manifest (v$version)", (suite) => {
+  const manifestPath = `${suite.runDir}/run-manifest.json`;
+  const digestPath = `${suite.runDir}/run-manifest.sha256`;
+  const protocolDir = `docs/research/phase1-benchmark-protocol/v${String(suite.version)}`;
+  const schemaPath = `schemas/research/phase1-benchmark-run-manifest-v${String(suite.version)}.schema.json`;
 
-function budget(name: string): number {
-  const value = manifest.budgets[name];
-  if (typeof value !== "number") throw new Error(`run manifest has no numeric budget ${name}`);
-  return value;
-}
+  const manifestText = readFileSync(join(process.cwd(), manifestPath), "utf8");
+  const manifest = JSON.parse(manifestText) as RunManifest;
+  const repositories = readJson(`${protocolDir}/repositories.json`) as {
+    readonly repositories: readonly { readonly id: string; readonly commit: string }[];
+  };
+  const tasks = readJson(`${protocolDir}/tasks.json`) as {
+    readonly tasks: readonly { readonly id: string; readonly timeoutMinutes: number }[];
+  };
+  const schema = readJson(schemaPath) as object;
+  const validate: ValidateFunction = new Ajv2020({ allErrors: true, strict: true }).compile(schema);
 
-describe("committed run manifest", () => {
-  it("conforms to the frozen run-manifest schema", () => {
+  function budget(name: string): number {
+    const value = manifest.budgets[name];
+    if (typeof value !== "number") throw new Error(`run manifest has no numeric budget ${name}`);
+    return value;
+  }
+
+  it("conforms to its protocol version's frozen schema", () => {
     const valid = validate(manifest);
     expect(validate.errors ?? []).toEqual([]);
     expect(valid).toBe(true);
+    expect(manifest.protocolVersion).toBe(suite.version);
   });
 
   it("records real values instead of template placeholders", () => {
@@ -81,7 +86,7 @@ describe("committed run manifest", () => {
     expect(Number.isNaN(Date.parse(manifest.createdAt))).toBe(false);
   });
 
-  it("pins the same five repositories as the frozen protocol", () => {
+  it("pins the same five repositories as its frozen protocol", () => {
     expect(manifest.repositories.map(({ id, commit }) => ({ id, commit }))).toEqual(
       repositories.repositories.map(({ id, commit }) => ({ id, commit })),
     );
@@ -111,7 +116,7 @@ describe("committed run manifest", () => {
   });
 
   it("is frozen by digest, so changing it takes a deliberate re-freeze", () => {
-    const lines = readFileSync(join(process.cwd(), DIGEST_PATH), "utf8")
+    const lines = readFileSync(join(process.cwd(), digestPath), "utf8")
       .split("\n")
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
@@ -119,8 +124,24 @@ describe("committed run manifest", () => {
     const match = /^([0-9a-f]{64}) {2}(.+)$/.exec(lines[0] ?? "");
     expect(match).not.toBeNull();
     const [, recorded, artifact] = match ?? [];
-    expect(artifact).toBe(MANIFEST_PATH);
+    expect(artifact).toBe(manifestPath);
     const actual = createHash("sha256").update(manifestText).digest("hex");
     expect(actual).toBe(recorded);
+  });
+});
+
+describe("run manifest versions stay comparable but separate", () => {
+  const v1 = readJson("docs/research/phase1-benchmark-run-v1/run-manifest.json") as RunManifest;
+  const v2 = readJson("docs/research/phase1-benchmark-run-v2/run-manifest.json") as RunManifest;
+
+  it("gives each version its own id, so records cannot be confused", () => {
+    expect(v1.id).not.toBe(v2.id);
+    expect(v1.protocolVersion).toBe(1);
+    expect(v2.protocolVersion).toBe(2);
+    expect(v2.id).toContain("v2");
+  });
+
+  it("reuses the v1 seed, so the 78-trial order is the same in both versions", () => {
+    expect(v2.randomizationSeed).toBe(v1.randomizationSeed);
   });
 });

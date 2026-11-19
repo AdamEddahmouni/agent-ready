@@ -1,7 +1,7 @@
 # Proposal 0001 — `axios-01` asks for a script the prompt does not describe
 
-**Status:** draft, not applied. v1 stays frozen and byte-identical; if accepted
-this becomes a sibling `v2/`, per
+**Status:** applied in [`v2/`](../v2/PROTOCOL.md) with option B, on 2026-11-19.
+v1 stays frozen and byte-identical, per
 [`PROTOCOL.md`](../v1/PROTOCOL.md) and [`FROZEN.sha256`](../v1/FROZEN.sha256)
 ("Any edit to a listed artifact requires protocol v2").
 
@@ -111,9 +111,9 @@ Consequences to accept:
   v2 gets its own, so a reader can always tell which bytes produced which
   numbers.
 
-## If accepted
+## Applied in v2
 
-1. Copy `v1/` to `v2/` and apply option B there.
+1. `v1/` was copied to `v2/` and option B applied there.
 2. Parameterise the validator, loader, record and manifest types on the version,
    and add `-v2` schemas.
 3. Re-freeze v2, add a run manifest pinned to it, and point CI at both.

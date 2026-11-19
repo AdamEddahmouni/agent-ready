@@ -97,6 +97,16 @@ the run, or `--agent-ready-cli <path>` to verify a build you made yourself. The 
 the client's `PATH`. That wrapper changes to the package root before executing,
 because the CLI resolves its bundled schemas relative to the working directory.
 
+## Protocol versions
+
+Two frozen versions exist and both stay readable. v2 supersedes v1 by
+correcting the `axios-01` script oracle (proposal 0001); every other task,
+repository pin and budget is identical. `loadProtocolForVersion` selects the
+directory, raw records are validated against the schema of the version they
+cite, the runner writes the manifest's version, and aggregation refuses a
+directory that mixes versions. New runs default to the v2 run manifest;
+v1 records and their reports stay as written.
+
 ## Condition access
 
 Both conditions receive the task prompt verbatim followed by one fixed
@@ -114,9 +124,11 @@ artifact.
 
 `verificationSelectionResult` is derived in
 `harness/verificationSelection.ts` from the oracle's `command-exit-zero`
-clauses and nothing else: a recorded shell call whose command contains one of
-those check commands, in any quoting or inside a `cd … &&` chain, sets the
-field to `true`.
+clauses and nothing else, and only when the check was actually `executed`. A
+recorded shell call is tokenized with quote awareness, split into simple
+commands, unwrapped from `bash -lc "…"`, stripped of `env`/`FOO=bar` prefixes,
+and compared word for word, so `rg "npm run check:sponsor-data"`,
+`echo …` and a command that only appears inside a log never count.
 
 A script named in `verificationSurface` does not count. The surface records
 where an answer lives, not what the agent should run — `axios-01` names

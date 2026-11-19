@@ -82,6 +82,7 @@ describe("Phase 1 agent transcript", () => {
     const runner = new TranscriptReplayRunner(transcript, { allowAuthored: true });
     const result = await executeTrial({
       runManifestId: "transcript-fixture-manifest",
+      protocolVersion: 1,
       task,
       repositoryId: repository.id,
       condition: transcript.condition,
@@ -116,6 +117,7 @@ describe("Phase 1 agent transcript", () => {
 
     const result = await executeTrial({
       runManifestId: "transcript-fixture-manifest",
+      protocolVersion: 1,
       task,
       repositoryId: repository.id,
       condition: transcript.condition,
@@ -147,6 +149,7 @@ describe("Phase 1 agent transcript", () => {
     await expect(
       executeTrial({
         runManifestId: "transcript-fixture-manifest",
+        protocolVersion: 1,
         task,
         repositoryId: repository.id,
         condition: transcript.condition,
@@ -172,6 +175,7 @@ describe("Phase 1 agent transcript", () => {
 
     const result = await executeTrial({
       runManifestId: "transcript-fixture-manifest",
+      protocolVersion: 1,
       task,
       repositoryId: repository.id,
       condition: "raw",

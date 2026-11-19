@@ -224,6 +224,7 @@ describe("Phase 1 harness", () => {
     const now = (): number => FIXED_NOW + tick++ * 1000;
     const raw = await executeTrial({
       runManifestId: "fixture-manifest",
+      protocolVersion: 1,
       task,
       repositoryId: repository.id,
       condition: "raw",
@@ -236,6 +237,7 @@ describe("Phase 1 harness", () => {
     });
     const agentReady = await executeTrial({
       runManifestId: "fixture-manifest",
+      protocolVersion: 1,
       task,
       repositoryId: repository.id,
       condition: "agent-ready",
@@ -284,6 +286,7 @@ describe("Phase 1 harness", () => {
     });
     const result = await executeTrial({
       runManifestId: "fixture-manifest",
+      protocolVersion: 1,
       task,
       repositoryId: repository.id,
       condition: "raw",

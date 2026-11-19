@@ -142,6 +142,7 @@ describe("Claude Code capture adapter", () => {
     const task = taskById(protocol, "axios-02-add-devdep");
     const result = await executeTrial({
       runManifestId: "claude-adapter-fixture",
+      protocolVersion: 1,
       task,
       repositoryId: task.repositoryId,
       condition: "raw",

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   expectedVerificationCommands,
   selectedVerificationFor,
+  tokenizeCommand,
 } from "../../research/phase1-benchmark/harness/verificationSelection.js";
 import type {
   Oracle,
@@ -26,17 +27,16 @@ function shell(command: string): ToolCallRecord {
   return { name: "shell", command };
 }
 
+const check = { type: "command-exit-zero", command: "npm run check:sponsor-data" } as const;
+
 describe("expectedVerificationCommands", () => {
   it("takes every command-exit-zero clause, including nested all-of clauses", () => {
     const oracle: Oracle = {
       type: "all-of",
       clauses: [
         { type: "file-contains", path: "package.json", substring: "x" },
-        { type: "command-exit-zero", command: "npm run check:sponsor-data" },
-        {
-          type: "all-of",
-          clauses: [{ type: "command-exit-zero", command: "npm test" }],
-        },
+        check,
+        { type: "all-of", clauses: [{ type: "command-exit-zero", command: "npm test" }] },
       ],
     };
 
@@ -47,26 +47,57 @@ describe("expectedVerificationCommands", () => {
   });
 
   it("ignores a script the verification surface merely names", () => {
-    const definition = task({ verificationSurface: ["package.json scripts.test"] });
-    expect(expectedVerificationCommands(definition)).toEqual([]);
+    expect(
+      expectedVerificationCommands(task({ verificationSurface: ["package.json scripts.test"] })),
+    ).toEqual([]);
+  });
+});
+
+describe("tokenizeCommand", () => {
+  it("splits chained commands and keeps quoted text as one word", () => {
+    expect(tokenizeCommand(`cd pkg && rg -n "a|npm run check:sponsor-data" package.json`)).toEqual([
+      ["cd", "pkg"],
+      ["rg", "-n", "a|npm run check:sponsor-data", "package.json"],
+    ]);
   });
 });
 
 describe("selectedVerificationFor", () => {
-  it("counts a run that ran the oracle command, including inside a shell wrapper", () => {
-    const definition = task({
-      successOracle: { type: "command-exit-zero", command: "npm run check:sponsor-data" },
-    });
+  it("counts a run that executed the oracle command, including through a shell wrapper", () => {
+    const definition = task({ successOracle: check });
 
     expect(
       selectedVerificationFor(definition, [shell("/bin/bash -lc 'npm run check:sponsor-data'")]),
     ).toBe(true);
+    expect(
+      selectedVerificationFor(definition, [shell(`cd /srv/repo && npm run check:sponsor-data`)]),
+    ).toBe(true);
+  });
+
+  it("counts a prefixed invocation of the same program", () => {
+    const definition = task({ successOracle: check });
+
+    expect(
+      selectedVerificationFor(definition, [shell("env CI=1 npm run check:sponsor-data")]),
+    ).toBe(true);
+  });
+
+  it("does not count the command echoed, grepped or written to a log", () => {
+    const definition = task({ successOracle: check });
+
+    expect(selectedVerificationFor(definition, [shell(`echo "npm run check:sponsor-data"`)])).toBe(
+      false,
+    );
+    expect(selectedVerificationFor(definition, [shell(`rg "npm run check:sponsor-data"`)])).toBe(
+      false,
+    );
+    expect(
+      selectedVerificationFor(definition, [shell(`bash -lc 'rg -n "npm run check:sponsor-data"'`)]),
+    ).toBe(false);
   });
 
   it("does not count a near-miss command", () => {
-    const definition = task({
-      successOracle: { type: "command-exit-zero", command: "npm run check:sponsor-data" },
-    });
+    const definition = task({ successOracle: check });
 
     expect(selectedVerificationFor(definition, [shell("npm run check:sponsor")])).toBe(false);
     expect(selectedVerificationFor(definition, [shell("npm test")])).toBe(false);
@@ -76,6 +107,5 @@ describe("selectedVerificationFor", () => {
     const definition = task({ verificationSurface: ["package.json scripts.test"] });
 
     expect(selectedVerificationFor(definition, [shell("npm test")])).toBeUndefined();
-    expect(selectedVerificationFor(definition, [shell("rg test package.json")])).toBeUndefined();
   });
 });

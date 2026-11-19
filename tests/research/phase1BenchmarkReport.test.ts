@@ -13,6 +13,7 @@ import {
   renderReportJson,
   renderReportMarkdown,
   ReportCompletenessError,
+  uniformProtocolVersion,
   validateReportCompleteness,
   type RawRunFile,
 } from "../../research/phase1-benchmark/report.js";
@@ -162,5 +163,26 @@ describe("benchmark report", () => {
     await expect(readRawRunFiles(rawDirectory)).rejects.toThrow(
       /raw run record failed schema validation/,
     );
+  });
+});
+
+describe("protocol version isolation", () => {
+  it("reports the version every record cites", () => {
+    const files = [rawFile(makeRun(), "a.json"), rawFile(makeRun({ runIndex: 1 }), "b.json")];
+    expect(uniformProtocolVersion(files)).toBe(1);
+
+    const v2Files = [
+      rawFile(makeRun({ protocolVersion: 2 }), "a.json"),
+      rawFile(makeRun({ protocolVersion: 2, runIndex: 1 }), "b.json"),
+    ];
+    expect(uniformProtocolVersion(v2Files)).toBe(2);
+  });
+
+  it("refuses to blend records from two protocol versions", () => {
+    const files = [
+      rawFile(makeRun(), "a.json"),
+      rawFile(makeRun({ protocolVersion: 2, runIndex: 1 }), "b.json"),
+    ];
+    expect(() => uniformProtocolVersion(files)).toThrow(/mixed protocol versions/);
   });
 });

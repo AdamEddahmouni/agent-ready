@@ -29,7 +29,7 @@ import {
   type RepositoryFetcher,
   type SnapshotBuilder,
 } from "./harness/prepare.js";
-import { loadProtocol, repositoryById, taskById } from "./harness/protocol.js";
+import { loadProtocolForVersion, repositoryById, taskById } from "./harness/protocol.js";
 import { executeTrial, type RunConfiguration } from "./harness/run.js";
 import type { AgentRunner } from "./harness/run.js";
 import type { RawRunRecord } from "./harness/record.js";
@@ -239,6 +239,7 @@ export async function executeProtocolRun(options: ProtocolRunOptions): Promise<P
         const runner = options.createRunner({ trial, task, workspace, attempt });
         const result = await executeTrial({
           runManifestId,
+          protocolVersion: options.protocol.manifest.protocolVersion,
           task,
           repositoryId: trial.repositoryId,
           condition: trial.condition,
@@ -411,7 +412,7 @@ async function main(): Promise<number> {
   const manifest = await loadRunManifest(
     typeof values["manifest"] === "string" ? values["manifest"] : DEFAULT_RUN_MANIFEST_PATH,
   );
-  const protocol = await loadProtocol();
+  const protocol = await loadProtocolForVersion(manifest.protocolVersion);
   assertManifestMatchesProtocol(manifest, protocol.repositories);
 
   const conditions = multiples(values["condition"]);

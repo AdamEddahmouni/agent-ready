@@ -141,6 +141,7 @@ describe("capture entry", () => {
     const task = taskById(protocol, TASK_ID);
     const result = await executeTrial({
       runManifestId: "committed-codex-capture",
+      protocolVersion: 1,
       task,
       repositoryId: task.repositoryId,
       condition: "raw",
