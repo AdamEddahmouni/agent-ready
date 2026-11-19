@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, symlink, writeFile } from "node:fs/promises";
+import { removeTree } from "../../src/filesystem/removeTree.js";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { InMemoryFileSystem } from "../../src/filesystem/inMemoryFileSystem.js";
@@ -49,7 +50,7 @@ describe("NodeFileSystem secure writes", () => {
         );
         await expect(readFile(target, "utf8")).resolves.toBe("preserve me");
       } finally {
-        await rm(root, { recursive: true, force: true });
+        await removeTree(root);
       }
     },
   );
@@ -67,10 +68,7 @@ describe("NodeFileSystem secure writes", () => {
       ).rejects.toThrow("outside the allowed root");
       await expect(readFile(join(outside, "escaped.txt"), "utf8")).rejects.toThrow();
     } finally {
-      await Promise.all([
-        rm(root, { recursive: true, force: true }),
-        rm(outside, { recursive: true, force: true }),
-      ]);
+      await Promise.all([removeTree(root), removeTree(outside)]);
     }
   });
 });

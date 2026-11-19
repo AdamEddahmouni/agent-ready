@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { removeTree } from "../../research/phase1-benchmark/harness/removeTree.js";
+import { removeTree } from "../../src/filesystem/removeTree.js";
 import {
   assessCaptureCoverage,
   shellMutationRisk,

@@ -56,11 +56,11 @@ All notable changes to Agent-Ready are documented here. The project follows
   when it is a subdirectory of the checkout. Real Codex sessions on
   `axios-02-add-devdep` and `axios-03-add-sponsor-data-check` are recorded under
   `research/phase1-benchmark/captures/` with their raw logs and replay results —
-  individual sessions, not protocol runs. Prepared workspaces and fixtures are
-  removed with a retrying delete, because Windows reports a transient `EBUSY`
-  when a tree is removed while a `git` child or a scanner still holds a handle
-  inside it. Research tooling only: no CLI, public contract schema, or
-  package-output change.
+  individual sessions, not protocol runs. Every temporary tree in the harness
+  and the test suite is removed through one retrying delete, because Windows
+  reports a transient `EBUSY` when a tree is removed while a `git` child or a
+  scanner still holds a handle inside it. Research tooling only: no CLI, public
+  contract schema, or package-output change.
 - Experimental `agent-ready twin build` and `agent-ready twin query` (ADR-0049).
 
 ### Changed

@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { runTwinBuild } from "../../../src/cli/commands/twinBuild.js";
 import { NodeFileSystem } from "../../../src/filesystem/nodeFileSystem.js";
-import { removeTree } from "./removeTree.js";
+import { removeTree } from "../../../src/filesystem/removeTree.js";
 import type { Condition, RepositoryPin } from "./types.js";
 
 const execFile = promisify(execFileCallback);
