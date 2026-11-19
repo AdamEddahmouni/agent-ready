@@ -36,7 +36,7 @@ Every value above is either read from a frozen artifact, measured, or derived
 from measurements; none is a placeholder. `temperature` and `maxOutputTokens`
 are `null` because `codex exec --json` has no flag for either.
 
-## Environment checks already run
+## Checkout, snapshot and oracle checks
 
 `prepareWorkspace` (fresh clone at the pinned SHA, detached) and `TwinSnapshotBuilder`
 (`twin build`) on the two pilot candidates:
@@ -63,37 +63,52 @@ oracle evaluation. Both captured sessions report usage through
 | Runs          | `runIndex: 0` for `raw` and for `agent-ready`                                                                                                                                                                                                                             |
 | Why this pair | It is the only task whose oracle both edits a file and runs a command, so the pilot exercises the write path, the `command-exit-zero` clause and the oracle aggregation in one trial. A real session for it is already committed, so the pilot has a known-good baseline. |
 
-## Procedure for one pilot trial
+## Running a trial
 
-1. `prepareConditionWorkspace` with the pin above and the condition. `raw` gets
-   the checkout; `agent-ready` also gets `twin build` output outside the checkout.
-2. Run the client once for the task's prompt with the condition's access, saving
-   the raw `--json` stream.
-3. `transcriptFromCodexStream` converts that log against the untouched checkout;
-   `executeTrial` scores it with a real command executor and validates the raw
-   record.
-4. Write the record to the pilot run directory, then
-   `pnpm research:benchmark-reproduce --raw <pilot>/raw --out <pilot>`.
-5. Confirm the record validates, the report names every run, and the two
-   conditions' observations differ only through access (same prompt, same config).
+One command per run. It prepares a fresh checkout at the pinned SHA, builds the
+snapshot for the `agent-ready` condition, runs `codex exec --json` once per trial,
+saves the client log and transcript, scores through `executeTrial`, and writes
+one schema-valid record to `raw/`:
+
+```bash
+pnpm build   # once, at agentReadyCommit: agent-ready trials need a built CLI
+pnpm research:benchmark-run --out runs/pilot \
+  --task axios-03-add-sponsor-data-check --runs 1
+pnpm research:benchmark-reproduce --raw runs/pilot/raw --out runs/pilot
+```
+
+The run resumes by skipping trials that already have a record (`--force`
+re-runs), retries an infrastructure failure once, stops at the manifest's token
+or wall-clock cap, and refuses to run an `agent-ready` trial without snapshot
+access rather than silently recording a second raw trial.
+
+`--dry-run` executes the full 78-trial order with a scripted runner and no
+model: it writes under `<out>/dry-run` citing `phase1-v1-2026-11-19-dry-run`, so
+those records cannot be confused with protocol results.
+
+## Environment checks already run
+
+| Check                          | Result                                                                                                                                                                |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Seeded plan                    | 78 trials, 39 per condition, identical for the same seed and a permutation for another                                                                                |
+| Dry run end to end             | 78 records written and validated, then reproduced into `derived/metrics.json` and both report files                                                                   |
+| Live runner against a real log | The committed axios-03 session replayed through the spawner: 54,211 input / 251 output tokens, measured (not sequence-derived) event timing, log byte-count preserved |
+| Twin wrapper                   | Built CLI answers `summary` (`13 facts, 7 known, 6 unknown`) and `packages` from the snapshot when called from inside the checkout                                    |
+| Snapshot build                 | axios 823,541 B in ~2 s, nestjs 4,206,654 B in ~3 s                                                                                                                   |
 
 ## What still blocks the 78 trials
 
-1. **No trial orchestrator.** `executeTrial` is a library function and the only
-   `AgentRunner` implementations are the scripted fake and the transcript
-   replay. Nothing prepares a workspace, invokes `codex exec` for a trial,
-   captures the log, scores it and writes a raw record; the seed above has no
-   consumer yet.
-2. **The `agent-ready` condition has no access wiring.** `AgentRunRequest.access`
-   only carries booleans. No condition-specific tool description exists, and
-   nothing exposes the snapshot path or `twin query` to the client, so a trial
-   in that condition would silently be a second `raw` trial.
-3. **The Agent-Ready pin is a SHA, not a release** (#64 open). The manifest
+1. **The Agent-Ready pin is a SHA, not a release** (#64 open). The manifest
    records the SHA deliberately; publishing v0.7.0 afterwards cannot be
    retro-fitted into this manifest.
-4. **48 of the 78 trials need human adjudication.** Eight tasks use
+2. **48 of the 78 trials need human adjudication.** Eight tasks use
    `manual-rubric` (jest-01, jest-02, vite-01, vite-02, lodash-01, lodash-02,
    nestjs-01, nestjs-02): 8 × 3 runs × 2 conditions = 48 runs, each needing two
-   blinded reviewers and a third on disagreement.
-5. **Cost is a cap, not an estimate.** The manifest bounds spend in tokens and
-   wall clock; a dollar figure needs the pilot's measured usage first.
+   blinded reviewers and a third on disagreement, scored through the
+   adjudication sidecar rather than the raw log.
+3. **Cost is a cap, not an estimate.** The manifest bounds tokens and wall clock;
+   a dollar figure needs the pilot's measured usage first.
+4. **Client quota is unproven at 78 trials.** A single pilot session is known to
+   work; sustained rate limits, per-trial login expiry, and the wall-clock cost
+   of five repository checkouts per pass have not been measured across a full
+   run.

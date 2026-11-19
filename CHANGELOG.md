@@ -62,6 +62,15 @@ All notable changes to Agent-Ready are documented here. The project follows
   scanner still holds a handle inside it. Research tooling only: no CLI, public
   contract schema, or package-output change.
 - Experimental `agent-ready twin build` and `agent-ready twin query` (ADR-0049).
+- The Phase 1 trial runner (research): `pnpm research:benchmark-run` prepares a fresh
+  pinned checkout, invokes `codex exec --json`, writes the client log, converts
+  it through the same capture adapter, scores it with the protocol oracles, and
+  writes one schema-valid raw record per trial, with one retry for an
+  infrastructure failure and the manifest's token and wall-clock caps. Trial
+  order comes from the manifest seed, and `--dry-run` replays the full 78-trial
+  order with a scripted runner. The `agent-ready` condition gets a fixed tool
+  description plus an `agent-ready twin query` wrapper bound to the trial's
+  snapshot on PATH, so it is not a second raw trial. Research tooling only.
 
 ### Changed
 

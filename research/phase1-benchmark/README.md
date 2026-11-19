@@ -20,6 +20,11 @@ Raw run records validate against `schemas/research/phase1-benchmark-raw-run-v1.s
 - `score.ts` — all six oracle types, post-hoc forbidden-action detection, and the partial-oracle timing metric
 - `record.ts` — strict validation against the raw-run schema
 - `fakeRunner.ts` — scripted runner for CI; no model, network, or subprocess calls
+- `plan.ts` — the trial order, derived from the run manifest's seed
+- `access.ts` — the condition-specific tool description and the snapshot query wrapper
+- `codexRunner.ts` — the live runner: `codex exec --json`, log capture, measured timing
+- `codex.ts` — the adapter that turns that log into Agent Transcript v1
+- `manifest.ts` — the run manifest loader and protocol pin check
 
 `tests/research/` exercises every oracle and forbidden-action class, a fake two-condition end-to-end run, the snapshot-only `twin query` guarantee, aggregation and Wilson arithmetic, all four decision outcomes, report completeness, and reviewer adjudication. `research:benchmark-test` runs the whole research test directory.
 
@@ -59,6 +64,33 @@ checkout: the adapter reads each changed file when it runs.
 
 [`captures/`](captures/README.md) holds real captured sessions with their raw
 logs and replay results. They are single sessions, not protocol runs.
+
+## Running trials
+
+One command per run. It prepares a fresh checkout at the pinned SHA, builds the
+snapshot for the `agent-ready` condition, runs the client once per trial, saves
+the raw log and transcript, scores through `executeTrial`, and writes
+`raw/<task>--<condition>--<runIndex>.json`:
+
+```bash
+pnpm build   # once, at the manifest's agentReadyCommit: agent-ready trials need it
+pnpm research:benchmark-run --out runs/phase1-v1          # all 78, in seed order
+pnpm research:benchmark-run --out runs/pilot --task axios-03-add-sponsor-data-check --runs 1 --limit 2
+pnpm research:benchmark-run --out runs/dry --dry-run      # scripted runner, no model
+```
+
+An existing record is skipped, so an interrupted run resumes where it stopped
+(`--force` re-runs it). A trial that fails infrastructure is retried once and
+then recorded with `infrastructureFailure: true`. The run stops when the
+manifest's token or wall-clock cap is reached. `--dry-run` writes under
+`<out>/dry-run` and cites `<manifest id>-dry-run`; those records are plumbing
+evidence and must never be published as protocol results.
+
+The `agent-ready` condition needs a built CLI (`--agent-ready-cli`, default
+`dist/cli/index.js`). The runner writes `<runRoot>/bin/agent-ready`, which calls
+`twin query` with that trial's snapshot appended, and prepends the directory to
+the client's `PATH`. That wrapper changes to the package root before executing,
+because the CLI resolves its bundled schemas relative to the working directory.
 
 ## Reproducing metrics and reports
 
