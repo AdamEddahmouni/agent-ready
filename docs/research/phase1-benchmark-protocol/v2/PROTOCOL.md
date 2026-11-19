@@ -27,6 +27,24 @@ Protocol v2 was frozen on **2026-11-19**. From this freeze:
 - v1 stays frozen with its own [freeze record](../v1/FROZEN.sha256). Its artifacts, schemas and raw results remain, and records that cite `protocolVersion: 1` are never pooled with v2 records.
 - [`FROZEN.sha256`](FROZEN.sha256) records the SHA-256 of every listed v2 artifact and schema. The protocol validator and tests fail if a listed byte changes.
 
+## Freeze history
+
+v2 was first frozen on **2026-11-19** and re-frozen the same day, before any v2
+result beyond a two-trial pilot was published. The re-freeze corrected v1 text
+that had been copied into this directory: the immutability sentence still said
+changes require `protocolVersion 2`, three schema links and both `-v2` schema
+titles pointed at v1, the template carried v1's example date, and the metric
+table still defined `verificationSelectionResult` from `verificationSurface`
+rather than from the command the agent executed.
+
+**It does not affect scoring.** `tasks.json`, `repositories.json` and
+`decision-rule.json` are byte-identical to the first freeze, so no prompt,
+oracle, repository pin, threshold, budget, timeout or schema constraint changed:
+only prose, titles, link targets, the template's example date, and one metric
+_description_ that now matches what the harness already did. The pilot records
+in `runs/phase1-pilot-v2-axios-01/` still validate against the v2 schema and
+reproduce byte-identically, and the earlier v1 freeze record is untouched.
+
 ## Changes in v2
 
 Proposal 0001 ([applied](../proposals/0001-axios-01-unit-test-script.md)) is the only change in this revision:

@@ -90,9 +90,9 @@ so the prompt's "unit tests" and the oracle's `test` disagree. That is task
 data to settle in a protocol revision, not a harness fault, and it fails
 identically in both conditions so the pair stays comparable. It is recorded here
 rather than edited, because the protocol is frozen with a digest lock. The
-correction is drafted in
+correction was drafted in
 [`proposals/0001-axios-01-unit-test-script.md`](../phase1-benchmark-protocol/proposals/0001-axios-01-unit-test-script.md)
-for the next revision.
+and is applied in [protocol v2](../phase1-benchmark-protocol/v2/PROTOCOL.md).
 
 The first attempt at this pair is kept at
 `runs/phase1-pilot-axios-01-preflight/`: the treatment made three queries, the
