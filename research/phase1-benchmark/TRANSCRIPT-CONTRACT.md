@@ -1,0 +1,118 @@
+# Runner adapter contract — agent transcripts v1
+
+**Status:** implemented in the harness; no real capture exists yet.
+
+The harness scores observations, not processes. `AgentRunner` in
+[`harness/run.ts`](harness/run.ts) is the only seam between the benchmark and a
+coding agent: given an `AgentRunRequest`, it returns `AgentObservations`. This
+document defines the second half of that seam — how a real session becomes a
+transcript the harness can score, replay, and archive.
+
+## Why a normalized transcript exists
+
+A raw client log is a vendor format. Scoring directly from it would make the
+benchmark depend on whichever client produced it, and would let a log's shape
+change between trials without the protocol noticing. Instead:
+
+1. **Adapter** — a `AgentRunner` implementation launches the agent, records its
+   tool events, and writes one **Agent Transcript v1** document.
+2. **Replay** — `TranscriptReplayRunner` turns that document back into
+   `AgentObservations`, which the existing scorer consumes unchanged.
+
+A trial is therefore reproducible from the transcript alone: no model, no
+network, no subprocess. That is what makes a published raw run auditable.
+
+## The v1 document
+
+Schema: [`schemas/research/phase1-benchmark-transcript-v1.schema.json`](../../schemas/research/phase1-benchmark-transcript-v1.schema.json).
+Implementation: [`harness/transcript.ts`](harness/transcript.ts).
+
+| Field                                            | Meaning                                                                                         |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `transcriptVersion`                              | `1`. A change to event kinds or required fields is a new version.                               |
+| `taskId`, `condition`                            | The protocol task and condition this session actually ran.                                      |
+| `agent.client`, `agent.version`, `agent.modelId` | What produced the session. Replay rejects a request that disagrees.                             |
+| `provenance`                                     | `captured: true` plus the source client log format and capture time.                            |
+| `startedAt`                                      | Trial start, ISO 8601.                                                                          |
+| `events`                                         | Ordered `read` / `write` / `shell` / `search` / `other` events with `atMs` from trial start.    |
+| `finalResponse`                                  | The agent's final message, verbatim.                                                            |
+| `usage`                                          | `input` / `output` / `cached` / `reasoning` token counts; `null` where the client reports none. |
+| `verificationSelectionResult`                    | Post-hoc adjudication; absent means `false` (fail closed).                                      |
+| `notes`                                          | Optional, recorded as a limitation.                                                             |
+
+Replay **applies the recorded writes** to the prepared workspace, in recorded
+order, before scoring. An edit-task oracle reads a file, not an event log, so
+without materialization a transcript that describes a correct edit would fail
+its own oracle. Writes are resolved inside the workspace and refused if any path
+component is a symbolic link.
+
+Rules the schema cannot express, enforced by `parseTranscript`:
+
+- Every `path` is repository-relative. Absolute paths and `..` are rejected.
+- `atMs` values never decrease. An adapter that receives interleaved
+  timestamps must normalize them before writing, not silently reorder events.
+- Unknown event kinds are rejected. A client that invents a tool must map it to
+  `other` explicitly.
+
+## Provenance is not optional
+
+`TranscriptReplayRunner` refuses a transcript whose `provenance.captured` is not
+`true` unless the caller passes `allowAuthored: true`. Only tests may pass it.
+
+This is deliberate. An authored transcript can be shaped to pass; a captured one
+is evidence. The repository ships one authored fixture
+([`tests/fixtures/research/transcript-axios-01-identify-test-script.json`](../../tests/fixtures/research/transcript-axios-01-identify-test-script.json))
+to exercise the seam, and it is labelled as authored in its own provenance
+block. It is not a benchmark result and must never be aggregated as one.
+
+## Capturing with the Claude Code adapter
+
+`transcriptFromClaudeCodeStream` ([`harness/claudeCode.ts`](harness/claudeCode.ts))
+converts a Claude Code `--output-format stream-json` session into Transcript v1.
+It maps `Read`, `Write`, `Edit`, `MultiEdit`, `Bash`, `Grep`, and `Glob` to the
+event kinds above, grounds an `Edit` by applying `old_string` → `new_string`
+against the workspace file, and takes the model, client version, final response,
+and token usage from the stream's `init` and `result` events.
+
+```ts
+const capture = await transcriptFromClaudeCodeStream(streamJsonl, {
+  taskId: task.id,
+  condition: "raw",
+  workspaceRoot: workspace.path,
+  startedAt,
+  capturedAt: new Date().toISOString(),
+  timing: (index) => elapsedPerEvent[index], // measured in a live capture
+});
+// capture.transcript is schema-validated and replayable
+```
+
+The adapter throws on anything it cannot ground: a path outside the workspace,
+an edit whose target text is absent, a stream with no model, or a stream with no
+`result` usage. It does not guess.
+
+**Timing.** A saved log carries no per-event timestamps. When `timing` is
+omitted, `atMs` is the event index, `timingIsSequenceDerived` is `true`, and the
+transcript records that as a limitation. Such a transcript is fine for
+correctness and tool-use metrics, but it must not be used to report
+time-to-first-correct-modification.
+
+## Capturing the first real transcript (pilot, #57)
+
+The environment for the pilot is not yet fixed. When it is:
+
+1. Record the client's native event log to disk, unmodified.
+2. Convert it to Transcript v1 with a dedicated adapter — no hand editing of
+   tool events, paths, or timings after the fact. Any lost field is recorded as
+   a limitation, not filled in.
+3. Write the transcript under the run directory beside its raw record, and set
+   `provenance.captured: true` with `clientLogFormat` and `capturedAt`.
+4. Replay it through `executeTrial` and confirm the resulting raw record matches
+   what the live trial produced. A mismatch means the adapter is lossy.
+
+One installed client, Claude Code `2.1.316`, exposes a JSON event stream
+(`--print --output-format stream-json`) that the bundled adapter converts. Other
+clients need their own adapter; the contract does not privilege one.
+
+The first real capture is also the pilot's first acceptance check: if the
+adapter cannot reproduce a live score byte-for-byte, the harness is not ready
+for the 78-trial run.

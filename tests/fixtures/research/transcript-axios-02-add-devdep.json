@@ -1,0 +1,28 @@
+{
+  "transcriptVersion": 1,
+  "taskId": "axios-02-add-devdep",
+  "condition": "raw",
+  "agent": {
+    "client": "claude-code",
+    "version": "2.1.316 (Claude Code)",
+    "modelId": "claude-sonnet-4-5"
+  },
+  "provenance": {
+    "captured": false,
+    "clientLogFormat": "stream-json",
+    "note": "Authored fixture: session-shaped events, not a captured session. The first pilot trial replaces this file with a real capture."
+  },
+  "startedAt": "2026-11-17T00:00:00.000Z",
+  "events": [
+    { "kind": "read", "path": "package.json", "atMs": 500 },
+    {
+      "kind": "write",
+      "path": "package.json",
+      "content": "{\n  \"name\": \"fixture\",\n  \"dependencies\": {\n    \"semver\": \"^7.6.0\"\n  }\n}\n",
+      "atMs": 1000
+    }
+  ],
+  "finalResponse": "Added semver ^7.6.0 to dependencies.",
+  "usage": { "input": 14310, "output": 226, "cached": 4096, "reasoning": null },
+  "verificationSelectionResult": false
+}

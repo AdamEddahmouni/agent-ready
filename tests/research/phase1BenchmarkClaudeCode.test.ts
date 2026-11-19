@@ -1,0 +1,273 @@
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { transcriptFromClaudeCodeStream } from "../../research/phase1-benchmark/harness/claudeCode.js";
+import type {
+  CheckoutRequest,
+  RepositoryFetcher,
+} from "../../research/phase1-benchmark/harness/prepare.js";
+import { prepareConditionWorkspace } from "../../research/phase1-benchmark/harness/prepare.js";
+import {
+  loadProtocol,
+  repositoryById,
+  taskById,
+} from "../../research/phase1-benchmark/harness/protocol.js";
+import {
+  executeTrial,
+  type RunConfiguration,
+} from "../../research/phase1-benchmark/harness/run.js";
+import type {
+  CommandExecution,
+  CommandExecutor,
+} from "../../research/phase1-benchmark/harness/score.js";
+import {
+  applyRecordedWrites,
+  TranscriptReplayRunner,
+} from "../../research/phase1-benchmark/harness/transcript.js";
+
+class FixtureFetcher implements RepositoryFetcher {
+  async checkout(request: CheckoutRequest): Promise<void> {
+    await mkdir(request.destination, { recursive: true });
+    await writeFile(join(request.destination, "package.json"), '{"name":"fixture"}\n', "utf8");
+  }
+}
+
+class FakeCommandExecutor implements CommandExecutor {
+  async run(): Promise<CommandExecution> {
+    return await Promise.resolve({ exitCode: 0, timedOut: false, stdout: "", stderr: "" });
+  }
+}
+
+const MODEL_ID = "claude-sonnet-4-5";
+const CLIENT_VERSION = "2.1.316 (Claude Code)";
+const CONFIG: RunConfiguration = {
+  modelId: MODEL_ID,
+  agentClientVersion: CLIENT_VERSION,
+  temperature: 0,
+};
+const STARTED_AT = "2026-11-17T00:00:00.000Z";
+
+let baseDirectory: string;
+
+beforeEach(async () => {
+  baseDirectory = await mkdtemp(join(tmpdir(), "phase1-claude-adapter-test-"));
+});
+
+afterEach(async () => {
+  await rm(baseDirectory, { recursive: true, force: true });
+});
+
+async function editWorkspace(): Promise<string> {
+  const protocol = await loadProtocol();
+  const task = taskById(protocol, "axios-02-add-devdep");
+  const workspace = await prepareConditionWorkspace({
+    repository: repositoryById(protocol, task.repositoryId),
+    condition: "raw",
+    baseDirectory,
+    fetcher: new FixtureFetcher(),
+  });
+  return workspace.path;
+}
+
+function initEvent(cwd: string): Record<string, unknown> {
+  return {
+    type: "system",
+    subtype: "init",
+    model: MODEL_ID,
+    claude_code_version: CLIENT_VERSION,
+    cwd,
+  };
+}
+
+function writeToolUse(filePath: string, content: string): Record<string, unknown> {
+  return {
+    type: "assistant",
+    message: {
+      role: "assistant",
+      content: [
+        { type: "tool_use", id: "toolu_1", name: "Write", input: { file_path: filePath, content } },
+      ],
+    },
+  };
+}
+
+function resultEvent(result: string): Record<string, unknown> {
+  return {
+    type: "result",
+    subtype: "success",
+    is_error: false,
+    result,
+    usage: {
+      input_tokens: 1200,
+      output_tokens: 80,
+      cache_read_input_tokens: 400,
+      cache_creation_input_tokens: 100,
+    },
+  };
+}
+
+describe("Claude Code capture adapter", () => {
+  it("converts a stream with a Write into a transcript whose replay satisfies an edit-task oracle", async () => {
+    const workspacePath = await editWorkspace();
+    const packageJson = JSON.stringify(
+      { name: "fixture", dependencies: { semver: "^7.6.0" } },
+      null,
+      2,
+    );
+
+    const capture = await transcriptFromClaudeCodeStream(
+      [
+        initEvent(workspacePath),
+        writeToolUse(join(workspacePath, "package.json"), packageJson),
+        resultEvent("Added semver."),
+      ],
+      {
+        taskId: "axios-02-add-devdep",
+        condition: "raw",
+        workspaceRoot: workspacePath,
+        startedAt: STARTED_AT,
+        capturedAt: "2026-11-17T00:01:00.000Z",
+        timing: (index) => index * 1000,
+      },
+    );
+
+    expect(capture.timingIsSequenceDerived).toBe(false);
+    expect(capture.transcript.provenance.captured).toBe(true);
+    expect(capture.transcript.agent).toEqual({
+      client: "claude-code",
+      version: CLIENT_VERSION,
+      modelId: MODEL_ID,
+    });
+    expect(capture.transcript.usage).toEqual({
+      input: 1200,
+      output: 80,
+      cached: 500,
+      reasoning: null,
+    });
+
+    const protocol = await loadProtocol();
+    const task = taskById(protocol, "axios-02-add-devdep");
+    const result = await executeTrial({
+      runManifestId: "claude-adapter-fixture",
+      task,
+      repositoryId: task.repositoryId,
+      condition: "raw",
+      runIndex: 0,
+      config: CONFIG,
+      workspace: await prepareConditionWorkspace({
+        repository: repositoryById(protocol, task.repositoryId),
+        condition: "raw",
+        baseDirectory,
+        fetcher: new FixtureFetcher(),
+      }),
+      runner: new TranscriptReplayRunner(capture.transcript),
+      commandExecutor: new FakeCommandExecutor(),
+      now: () => Date.parse(STARTED_AT),
+    });
+
+    expect(result.record.success).toBe(true);
+    expect(result.score.forbidden).toEqual([]);
+    expect(await readFile(join(result.request.workspacePath, "package.json"), "utf8")).toContain(
+      '"semver": "^7.6.0"',
+    );
+  });
+
+  it("grounds an Edit in the workspace file and materializes the result", async () => {
+    const workspacePath = await editWorkspace();
+    const capture = await transcriptFromClaudeCodeStream(
+      [
+        initEvent(workspacePath),
+        {
+          type: "assistant",
+          message: {
+            role: "assistant",
+            content: [
+              {
+                type: "tool_use",
+                id: "toolu_1",
+                name: "Edit",
+                input: {
+                  file_path: join(workspacePath, "package.json"),
+                  old_string: '"name":"fixture"',
+                  new_string: '"name":"fixture","dependencies":{"semver":"^7.6.0"}',
+                },
+              },
+            ],
+          },
+        },
+        resultEvent("Edited the manifest."),
+      ],
+      {
+        taskId: "axios-02-add-devdep",
+        condition: "raw",
+        workspaceRoot: workspacePath,
+        startedAt: STARTED_AT,
+        capturedAt: "2026-11-17T00:01:00.000Z",
+        timing: (index) => index * 1000,
+      },
+    );
+
+    const [event] = capture.transcript.events;
+    if (event?.kind !== "write") throw new Error("Edit was not converted to a write");
+    expect(JSON.parse(event.content)).toMatchObject({
+      name: "fixture",
+      dependencies: { semver: "^7.6.0" },
+    });
+
+    await applyRecordedWrites(capture.transcript, workspacePath);
+    expect(await readFile(join(workspacePath, "package.json"), "utf8")).toContain("^7.6.0");
+  });
+
+  it("marks a capture without measured timings as sequence-derived", async () => {
+    const workspacePath = await editWorkspace();
+    const capture = await transcriptFromClaudeCodeStream(
+      [
+        initEvent(workspacePath),
+        writeToolUse(join(workspacePath, "package.json"), "{}\n"),
+        resultEvent("Done."),
+      ],
+      {
+        taskId: "axios-02-add-devdep",
+        condition: "raw",
+        workspaceRoot: workspacePath,
+        startedAt: STARTED_AT,
+        capturedAt: "2026-11-17T00:01:00.000Z",
+      },
+    );
+
+    expect(capture.timingIsSequenceDerived).toBe(true);
+    expect(capture.transcript.notes).toContain("sequence-derived");
+  });
+
+  it("refuses a path outside the workspace and a capture without usage", async () => {
+    const workspacePath = await editWorkspace();
+
+    await expect(
+      transcriptFromClaudeCodeStream(
+        [
+          initEvent(workspacePath),
+          writeToolUse(join(baseDirectory, "outside.json"), "{}"),
+          resultEvent("Done."),
+        ],
+        {
+          taskId: "axios-02-add-devdep",
+          condition: "raw",
+          workspaceRoot: workspacePath,
+          startedAt: STARTED_AT,
+          capturedAt: "2026-11-17T00:01:00.000Z",
+        },
+      ),
+    ).rejects.toThrow(/outside the workspace/);
+
+    await expect(
+      transcriptFromClaudeCodeStream([initEvent(workspacePath)], {
+        taskId: "axios-02-add-devdep",
+        condition: "raw",
+        workspaceRoot: workspacePath,
+        startedAt: STARTED_AT,
+        capturedAt: "2026-11-17T00:01:00.000Z",
+      }),
+    ).rejects.toThrow(/usage/);
+  });
+});

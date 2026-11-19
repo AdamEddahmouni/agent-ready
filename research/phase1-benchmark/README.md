@@ -23,6 +23,22 @@ Raw run records validate against `schemas/research/phase1-benchmark-raw-run-v1.s
 
 `tests/research/` exercises every oracle and forbidden-action class, a fake two-condition end-to-end run, the snapshot-only `twin query` guarantee, aggregation and Wilson arithmetic, all four decision outcomes, report completeness, and reviewer adjudication. `research:benchmark-test` runs the whole research test directory.
 
+## Runner adapter and transcripts
+
+`AgentRunner` ([`harness/run.ts`](harness/run.ts)) is the only seam between the
+benchmark and an agent. [TRANSCRIPT-CONTRACT.md](TRANSCRIPT-CONTRACT.md) defines
+Agent Transcript v1 — the normalized document an adapter records and
+`TranscriptReplayRunner` replays — and the provenance rule: a transcript must be
+a real capture to count, and an authored fixture may be replayed only by tests.
+
+[`harness/transcript.ts`](harness/transcript.ts) validates the document against
+[`schemas/research/phase1-benchmark-transcript-v1.schema.json`](../../schemas/research/phase1-benchmark-transcript-v1.schema.json)
+and rejects absolute paths, decreasing timestamps, and unknown event kinds.
+Replay applies recorded writes to the prepared workspace (so edit-task oracles
+see the recorded state) and invokes no model and no subprocess.
+[`harness/claudeCode.ts`](harness/claudeCode.ts) converts a Claude Code
+`stream-json` session into the same document.
+
 ## Reproducing metrics and reports
 
 Run from a clean checkout with raw records in `<run-dir>/raw/`:

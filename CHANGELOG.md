@@ -32,10 +32,21 @@ All notable changes to Agent-Ready are documented here. The project follows
   derived → report metrics with Wilson intervals, blinded adjudication, and
   SHA-256 checksums (`--check` verifies byte-identical output). Research only:
   no CLI, schema, contract, or package-output change.
+- The Phase 1 runner adapter contract (research): Agent Transcript v1 with a
+  JSON Schema; a replay runner that applies recorded writes to the prepared
+  workspace (so edit-task oracles see the recorded state) and refuses a
+  transcript which is not a real capture or which disagrees with the run's
+  task, condition, model, or client; and a Claude Code `stream-json` capture
+  adapter that grounds `Read`/`Write`/`Edit`/`MultiEdit`/`Bash`/`Grep`/`Glob`
+  tools, with replay tests through the scorer. Research tooling only: no CLI,
+  public contract schema, or package-output change.
 - Experimental `agent-ready twin build` and `agent-ready twin query` (ADR-0049).
 
 ### Changed
 
+- Pre-register [ADR-0052](docs/decisions/0052-phase-1-outcome.md): the Phase 1
+  outcome is measured by the frozen protocol, and the consequence of each of the
+  four outcomes is fixed before the pilot runs.
 - CI and API discovery are deferred from Discovery Snapshot Format 1 rather than
   added before the Phase 1 benchmark; public Phase 1 status now reflects the
   shipped discovery and twin surface. See
