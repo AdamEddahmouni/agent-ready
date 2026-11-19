@@ -1,7 +1,8 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { removeTree } from "../../research/phase1-benchmark/harness/removeTree.js";
 import { transcriptFromCodexStream } from "../../research/phase1-benchmark/harness/codex.js";
 import { prepareConditionWorkspace } from "../../research/phase1-benchmark/harness/prepare.js";
 import {
@@ -32,7 +33,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await rm(baseDirectory, { recursive: true, force: true });
+  await removeTree(baseDirectory);
 });
 
 async function editWorkspace(): Promise<string> {

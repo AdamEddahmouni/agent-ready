@@ -1,7 +1,8 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { removeTree } from "../../research/phase1-benchmark/harness/removeTree.js";
 import {
   captureTranscript,
   runCaptureCli,
@@ -33,7 +34,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   vi.restoreAllMocks();
-  await rm(baseDirectory, { recursive: true, force: true });
+  await removeTree(baseDirectory);
 });
 
 async function workspace(): Promise<string> {

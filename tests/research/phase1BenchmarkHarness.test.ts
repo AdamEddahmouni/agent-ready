@@ -1,7 +1,8 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { removeTree } from "../../research/phase1-benchmark/harness/removeTree.js";
 import { runTwinQuery } from "../../src/cli/commands/twinQuery.js";
 import { loadCorpus, runCase } from "../../src/conformance/discovery.js";
 import type { FileStat, FileSystem, FileSystemEntry } from "../../src/filesystem/types.js";
@@ -105,7 +106,24 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await rm(baseDirectory, { recursive: true, force: true });
+  await removeTree(baseDirectory);
+});
+
+describe("prepared workspace cleanup", () => {
+  it("removes a nested tree and tolerates one that is already gone", async () => {
+    const tree = join(baseDirectory, "nested");
+    await mkdir(join(tree, "a"), { recursive: true });
+    await writeFile(join(tree, "a", "file.txt"), "x\n", "utf8");
+
+    await removeTree(tree);
+
+    await expect(readFile(join(tree, "a", "file.txt"), "utf8")).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    // Retrying a tree that is already gone must stay a no-op, since a cleanup
+    // can run twice when a preparation fails after creating it.
+    await expect(removeTree(tree)).resolves.toBeUndefined();
+  });
 });
 
 describe("Phase 1 harness", () => {

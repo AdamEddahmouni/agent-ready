@@ -1,9 +1,10 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { removeTree } from "../../research/phase1-benchmark/harness/removeTree.js";
 import {
   assessCaptureCoverage,
   shellMutationRisk,
@@ -20,7 +21,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await rm(directory, { recursive: true, force: true });
+  await removeTree(directory);
 });
 
 async function committedCheckout(files: readonly string[]): Promise<void> {

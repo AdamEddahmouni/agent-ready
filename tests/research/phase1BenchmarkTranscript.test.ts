@@ -1,7 +1,8 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { removeTree } from "../../research/phase1-benchmark/harness/removeTree.js";
 import { prepareConditionWorkspace } from "../../research/phase1-benchmark/harness/prepare.js";
 import {
   loadProtocol,
@@ -51,7 +52,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await rm(baseDirectory, { recursive: true, force: true });
+  await removeTree(baseDirectory);
 });
 
 describe("Phase 1 agent transcript", () => {
