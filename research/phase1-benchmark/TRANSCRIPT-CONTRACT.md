@@ -118,7 +118,9 @@ time-to-first-correct-modification.
 updates and any item type it does not model to `other` (an item with no type at
 all is recorded as `unrecognized-item`) rather than dropping it. Each
 `file_change` becomes a `write` by reading the changed file from the workspace
-Codex ran in — the stream reports only a path and a kind, never the content. It refuses a deletion, because a write event
+Codex ran in — the stream reports only a path and a kind, never the content, and
+the read happens when the adapter runs, so convert a saved log against the
+checkout before anything else touches it. It refuses a deletion, because a write event
 cannot express one and a replay would keep the file, and keeps only the last
 `file_change` per path.
 
@@ -133,6 +135,10 @@ Claude Code adapter, and a command that certainly wrote files without a
 adapter to a saved log and writes the transcript. It validates the task id
 against protocol v1, requires `--started-at` because no client stream records the
 session's start, and keeps the checkout codex ran in as `--workspace`.
+
+One real Codex session is recorded in [`captures/`](captures/README.md), with
+its raw log, the transcript, and the replay result. It is a single session, not
+a protocol run.
 
 ## Capturing the first real transcript (pilot, #57)
 

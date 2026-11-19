@@ -15,7 +15,9 @@ import type { Condition, TokenMetrics } from "./types.js";
  * Converts `codex exec --json` JSONL into Agent Transcript v1. Codex reports a
  * file change as a path and a kind without the resulting content, so the
  * adapter reads that file from the workspace the session ran in and records it
- * as a write event. It never runs the agent itself.
+ * as a write event. That read happens when the adapter runs, so a saved log
+ * must be converted against the checkout before anything else touches it. It
+ * never runs the agent itself.
  */
 
 export interface CodexCaptureOptions {
@@ -244,7 +246,7 @@ export async function transcriptFromCodexStream(
   }
   if (state.events.some((event) => event.kind === "write")) {
     state.notes.push(
-      "write contents were read from the workspace when Codex reported each file change",
+      "write contents were read from the workspace when the capture ran, not when Codex reported each change",
     );
   }
 

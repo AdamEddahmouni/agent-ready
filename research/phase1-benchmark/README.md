@@ -53,7 +53,12 @@ pnpm research:benchmark-capture \
 ```
 
 `--client-version`, `--captured-at` and `--on-shell-mutation flag` are optional;
-Claude Code logs may omit `--model-id` because their init event records it.
+Claude Code logs may omit `--model-id` because their init event records it. A
+Codex `file_change` carries no content, so convert against the untouched
+checkout: the adapter reads each changed file when it runs.
+
+[`captures/`](captures/README.md) holds real captured sessions with their raw
+logs and replay results. They are single sessions, not protocol runs.
 
 ## Reproducing metrics and reports
 
