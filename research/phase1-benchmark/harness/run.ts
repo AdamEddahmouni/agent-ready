@@ -10,6 +10,7 @@ import {
 import { recordRawRun, type RawRunRecord } from "./record.js";
 import type { PreparedConditionWorkspace } from "./prepare.js";
 import type { AgentObservations, Condition, TaskDefinition, TokenMetrics } from "./types.js";
+import { selectedVerificationFor } from "./verificationSelection.js";
 
 export interface RunConfiguration {
   readonly modelId: string;
@@ -227,7 +228,9 @@ export async function executeTrial(options: {
     assumptions: [...(observations.assumptions ?? [])],
     dependencyReasoningFindings: [...(observations.dependencyReasoningFindings ?? [])],
     verificationAttempts: [...(observations.verificationAttempts ?? [])],
-    verificationSelectionResult: observations.verificationSelectionResult ?? false,
+    verificationSelectionResult:
+      observations.verificationSelectionResult === true ||
+      selectedVerificationFor(options.task, observations.toolCalls) === true,
     finalPatch: observations.finalPatch ?? null,
     verificationResults: [...(observations.verificationResults ?? [])],
     infrastructureFailure,

@@ -129,6 +129,9 @@ describe("condition access", () => {
     expect(wrapper).toContain('--snapshot "/tmp/run/snapshot.json"');
     expect(wrapper).toContain('cd "/srv/agent-ready"');
     expect(wrapper).toContain('"$@"');
+    // A caller-supplied snapshot would defeat the pin, so the wrapper refuses one.
+    expect(wrapper).toContain("--snapshot|--snapshot=*)");
+    expect(wrapper).toContain("exit 2");
   });
 });
 

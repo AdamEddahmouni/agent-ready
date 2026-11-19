@@ -63,41 +63,96 @@ oracle evaluation. Both captured sessions report usage through
 | Runs          | `runIndex: 0` for `raw` and for `agent-ready`                                                                                                                                                                                                                             |
 | Why this pair | It is the only task whose oracle both edits a file and runs a command, so the pilot exercises the write path, the `command-exit-zero` clause and the oracle aggregation in one trial. A real session for it is already committed, so the pilot has a known-good baseline. |
 
-## Pilot result (2026-11-19)
+## Pilot results (2026-11-19)
 
-`axios-03-add-sponsor-data-check` × run 0 × both conditions, from the committed
-manifest, through `runs/phase1-pilot-axios-03/`. The agent-ready trial queried
-the CLI built at `2a0515e` (version 0.6.1), which the runner verified by stamp.
-Both records are valid, `infrastructureFailure: false`, and the report
-reproduces from their bytes.
+Two task pairs, one run per condition each, all from the committed manifest. The
+report for every pair is stored beside its records and reproduces with
+`--check`.
 
-|                                    | raw                    | agent-ready            |
-| ---------------------------------- | ---------------------- | ---------------------- |
-| Success                            | yes                    | yes                    |
-| Input tokens                       | 72,428 (67,584 cached) | 56,969 (50,816 cached) |
-| Output tokens                      | 284                    | 234                    |
-| Wall clock                         | 16.3 s                 | 11.7 s                 |
-| Time to first correct modification | 9.86 s                 | 8.38 s                 |
-| Twin queries                       | 0                      | **0**                  |
+### Snapshot access is used
 
-Both runs added the `check:sponsor-data` script and ran it to exit 0. The
-agent-ready session never invoked the wrapper: it inspected `package.json` with
-`sed` and edited it directly. So this pilot validates the pipeline, the pinned
-artifact, the snapshot build and the fact that the tool was available — not a
-behavioural difference between conditions. The task prompt offers snapshot
-access; it does not require a query, and on this task the agent had no reason to
-ask a structure question. A later pilot on a task whose first move is a
-repository-structure question (or a description that names the snapshot query as
-the preferred source for such questions) is what would show usage.
+`axios-01-identify-test-script` is a pure structure question — which npm script
+runs the unit tests — so it is the task that should make the treatment reach for
+the snapshot. `runs/phase1-pilot-axios-01/`:
 
-Both records report `verificationSelectionResult: false`, which is the
-fail-closed default: that metric is post-hoc and adjudicated, and no adjudication
-has been recorded. The report's `verification failure 100.0%` and its
-`noDemonstratedBenefit` decision are therefore mechanical output on one run per
-condition, not a result.
+|               | raw                             | agent-ready                           |
+| ------------- | ------------------------------- | ------------------------------------- |
+| Success       | no                              | no                                    |
+| Input tokens  | 35,854 (31,488 cached)          | 56,288 (45,440 cached)                |
+| Output tokens | 58                              | 121                                   |
+| Twin queries  | 0 (`rg` against `package.json`) | **2** (`--kind commands-for-package`) |
+| Wall clock    | 6 s                             | 12 s                                  |
 
-Report: [`report/report.md`](../../../runs/phase1-pilot-axios-03/report/report.md),
-metrics: [`derived/metrics.json`](../../../runs/phase1-pilot-axios-03/derived/metrics.json).
+Both runs answered `{"script":"test:vitest:unit","body":"vitest run --project unit"}`
+and the oracle wants `script == "test"`. The repository at the pin has
+`test: "npm run test:vitest"` and `test:vitest:unit: "vitest run --project unit"`,
+so the prompt's "unit tests" and the oracle's `test` disagree. That is task
+data to settle in a protocol revision, not a harness fault, and it fails
+identically in both conditions so the pair stays comparable. It is recorded here
+rather than edited, because the protocol is frozen with a digest lock.
+
+The first attempt at this pair is kept at
+`runs/phase1-pilot-axios-01-preflight/`: the treatment made three queries, the
+first failing because the description never said that
+`commands-for-package` needs `--parameter`, then read `--help`, then bypassed
+the wrapper by passing its own `--snapshot`. Both gaps are closed: the
+description now points at `--help` for each kind's form, and the wrapper refuses
+`--snapshot` (either spelling, exit 2) so the trial's artifact is fixed.
+
+### Steering the description
+
+The agent-ready description now names repository-structure questions — package
+sets, a package's scripts, module layout, imports, ownership — and says to call
+the query first. The effect is visible on a task that is not a structure
+question: on the axios-03 recheck below the treatment made three queries where
+the original pair made none, and its input tokens rose accordingly.
+
+### Verification selection is measured, not assumed
+
+`verificationSelectionResult` used to come only from adjudication, so it
+defaulted to `false` and a run that executed the task's own check was reported
+as a verification failure. It is now derived from the task: every
+`command-exit-zero` clause in the success oracle, and every
+`<manifest> scripts.<name>` entry in `verificationSurface`, is an expected
+check, and a recorded shell call that runs one satisfies it. Tasks that declare
+neither keep the recorded value.
+
+`runs/phase1-pilot-axios-03-recheck/` runs the same task and conditions as the
+earlier pair, which is kept untouched as pre-fix evidence:
+
+|                               | raw                    | agent-ready              |
+| ----------------------------- | ---------------------- | ------------------------ |
+| Success                       | yes                    | yes                      |
+| Input tokens                  | 92,114 (68,864 cached) | 159,363 (143,872 cached) |
+| Output tokens                 | 294                    | 509                      |
+| Twin queries                  | 0                      | 3                        |
+| Wall clock                    | 17 s                   | 28 s                     |
+| `verificationSelectionResult` | **true** (was false)   | **true** (was false)     |
+| Verification failure rate     | **0.0%** (was 100.0%)  | **0.0%** (was 100.0%)    |
+
+### Full-run cost estimate
+
+Measured over the six fresh pilot trials (three pairs, including one 159k-token
+run): mean 78,836 input and 250 output tokens per trial, of which 86% of input
+is reported as cached. The manifest's 78 trials therefore project to:
+
+- **~6.1M input tokens** (median-based ~5.0M; observed range 35.9k–159.4k per
+  trial) and **~19.5k output tokens**, about 31% of the 20M-token cap;
+- **~24 minutes** of client wall clock at ~14 s per trial plus ~4 s of checkout
+  and snapshot per trial, far under the 2,880-minute cap.
+
+Dollar cost needs the model's prices, which this repository does not record, so
+it is given as a sensitivity rather than a number:
+
+| assumed price per 1M (input / cached / output) | full-run cost |
+| ---------------------------------------------- | ------------- |
+| \$0.25 / \$0.025 / \$2                         | ~\$0.39       |
+| \$1.25 / \$0.125 / \$10                        | ~\$1.93       |
+| \$15 / \$1.50 / \$60                           | ~\$22         |
+
+These are projections from six single runs of two tasks. The 48 `manual-rubric`
+trials may read more than a two-file edit does, and one pilot run was 2.7× the
+mean, so treat the token figure as ±50% until a wider pilot lands.
 
 ## Running a trial
 

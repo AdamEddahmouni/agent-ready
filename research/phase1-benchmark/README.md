@@ -97,6 +97,29 @@ the run, or `--agent-ready-cli <path>` to verify a build you made yourself. The 
 the client's `PATH`. That wrapper changes to the package root before executing,
 because the CLI resolves its bundled schemas relative to the working directory.
 
+## Condition access
+
+Both conditions receive the task prompt verbatim followed by one fixed
+description block, built from a template rather than written per trial. The
+`agent-ready` block names the snapshot, lists the query kinds, and says that
+for repository-structure questions — the package set, a package's scripts,
+module layout, imports, ownership — the query is the intended source and
+answers in one command. It also points at `agent-ready twin query --help` for
+the kinds that need `--parameter`.
+
+The wrapper prepended to `PATH` binds the trial's snapshot by appending
+`--snapshot <path>`, and refuses any caller-supplied `--snapshot`
+(`--snapshot` or `--snapshot=`, exit 2), so a trial cannot query a different
+artifact.
+
+`verificationSelectionResult` is derived in
+`harness/verificationSelection.ts`: the expected checks are the oracle's
+`command-exit-zero` clauses plus any script named by `verificationSurface`
+(`<manifest> scripts.<name>`), and a recorded shell call that runs one — under
+any of `npm`, `pnpm`, `yarn` or `bun`, optionally inside a shell wrapper or a
+`cd … &&` chain — sets the field to `true`. A task that declares no check
+returns `undefined` and the recorded adjudication stands.
+
 ## Reproducing metrics and reports
 
 Run from a clean checkout with raw records in `<run-dir>/raw/`:

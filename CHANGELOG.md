@@ -77,6 +77,15 @@ All notable changes to Agent-Ready are documented here. The project follows
 
 ### Changed
 
+- Phase 1 research: `verificationSelectionResult` is now derived from the task
+  rather than left to adjudication, so a run that executes the task's own check
+  (a `command-exit-zero` clause, or a script named in `verificationSurface`)
+  is not reported as a verification failure; a task that declares no check keeps
+  its recorded value.
+- Phase 1 research: the `agent-ready` condition's description steers
+  repository-structure questions to the snapshot query, and its `PATH` wrapper
+  refuses a caller-supplied `--snapshot`, so a trial cannot query another
+  artifact.
 - Pre-register [ADR-0052](docs/decisions/0052-phase-1-outcome.md): the Phase 1
   outcome is measured by the frozen protocol, and the consequence of each of the
   four outcomes is fixed before the pilot runs.
