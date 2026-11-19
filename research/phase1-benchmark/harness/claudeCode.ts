@@ -4,7 +4,7 @@ import { parseTranscript, type AgentTranscript, type TranscriptEvent } from "./t
 import {
   asNumber,
   asString,
-  assessShellMutation,
+  assessCaptureCoverage,
   isRecord,
   readJsonl,
   repositoryPath,
@@ -251,7 +251,7 @@ export async function transcriptFromClaudeCodeStream(
     throw new Error("Claude Code stream has no result usage; the capture is incomplete");
   }
 
-  const assessment = await assessShellMutation({
+  const assessment = await assessCaptureCoverage({
     workspaceRoot: options.workspaceRoot,
     recordedWrites: state.events.flatMap((event) =>
       event.kind === "write" ? [{ path: event.path, content: event.content }] : [],

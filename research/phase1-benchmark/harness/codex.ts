@@ -4,7 +4,7 @@ import { parseTranscript, type AgentTranscript, type TranscriptEvent } from "./t
 import {
   asNumber,
   asString,
-  assessShellMutation,
+  assessCaptureCoverage,
   isRecord,
   readJsonl,
   repositoryPath,
@@ -225,7 +225,7 @@ export async function transcriptFromCodexStream(
   }
 
   const collapsed = collapseRepeatedWrites(state.events);
-  const assessment = await assessShellMutation({
+  const assessment = await assessCaptureCoverage({
     workspaceRoot: options.workspaceRoot,
     recordedWrites: collapsed.flatMap((event) =>
       event.kind === "write" ? [{ path: event.path, content: event.content }] : [],

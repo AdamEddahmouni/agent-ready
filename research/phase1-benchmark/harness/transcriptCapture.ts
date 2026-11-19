@@ -171,7 +171,7 @@ function segmentRisk(segment: string): MutationRisk {
 /** Classifies a shell line. Conservative by construction: quotes are not parsed. */
 export function shellMutationRisk(command: string): MutationRisk {
   // This is only a hint about where to look. Whether a mutation actually went
-  // unrecorded is decided by `assessShellMutation`, which compares the checkout
+  // unrecorded is decided by `assessCaptureCoverage`, which compares the checkout
   // with the recorded writes instead of trusting the command text.
   let risk: MutationRisk = "none";
   for (const segment of commandSegments(command)) {
@@ -264,7 +264,7 @@ async function changedAfterCapture(
  * checkout. The classifier only says whether a Bash command could explain a
  * gap; it never decides coverage itself.
  */
-export async function assessShellMutation(options: {
+export async function assessCaptureCoverage(options: {
   readonly workspaceRoot: string;
   readonly recordedWrites: readonly RecordedWrite[];
   readonly commands: readonly ShellCommandRisk[];

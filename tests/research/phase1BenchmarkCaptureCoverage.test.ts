@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  assessShellMutation,
+  assessCaptureCoverage,
   shellMutationRisk,
 } from "../../research/phase1-benchmark/harness/transcriptCapture.js";
 
@@ -32,7 +32,7 @@ async function committedCheckout(files: readonly string[]): Promise<void> {
   await execFileAsync("git", ["commit", "--quiet", "-m", "base"], { cwd: directory });
 }
 
-describe("shell mutation assessment", () => {
+describe("capture coverage assessment", () => {
   it("classifies the command a shell wrapper carries", () => {
     expect(shellMutationRisk('/bin/bash -lc "truncate -s -1 package.json"')).toBe("certain");
     expect(shellMutationRisk('/bin/bash -lc "git status --short"')).toBe("none");
@@ -44,7 +44,7 @@ describe("shell mutation assessment", () => {
     await committedCheckout(["package.json"]);
     await writeFile(join(directory, "package.json"), CONTENT, "utf8");
 
-    const assessment = await assessShellMutation({
+    const assessment = await assessCaptureCoverage({
       workspaceRoot: directory,
       recordedWrites: [{ path: "package.json", content: CONTENT }],
       commands: CERTAIN,
@@ -59,7 +59,7 @@ describe("shell mutation assessment", () => {
   it("accepts a mutating command that changed nothing", async () => {
     await committedCheckout(["package.json"]);
 
-    const assessment = await assessShellMutation({
+    const assessment = await assessCaptureCoverage({
       workspaceRoot: directory,
       recordedWrites: [],
       commands: CERTAIN,
@@ -75,7 +75,7 @@ describe("shell mutation assessment", () => {
     await writeFile(join(directory, "package.json"), CONTENT, "utf8");
     await writeFile(join(directory, "notes.txt"), "changed by bash\n", "utf8");
 
-    const assessment = await assessShellMutation({
+    const assessment = await assessCaptureCoverage({
       workspaceRoot: directory,
       recordedWrites: [{ path: "package.json", content: CONTENT }],
       commands: CERTAIN,
@@ -91,7 +91,7 @@ describe("shell mutation assessment", () => {
     await committedCheckout(["package.json"]);
     await writeFile(join(directory, "package.json"), `${CONTENT}edited later\n`, "utf8");
 
-    const assessment = await assessShellMutation({
+    const assessment = await assessCaptureCoverage({
       workspaceRoot: directory,
       recordedWrites: [{ path: "package.json", content: CONTENT }],
       commands: [],
@@ -106,7 +106,7 @@ describe("shell mutation assessment", () => {
   it("refuses a recorded file that has since been deleted", async () => {
     await committedCheckout(["package.json"]);
 
-    const assessment = await assessShellMutation({
+    const assessment = await assessCaptureCoverage({
       workspaceRoot: directory,
       recordedWrites: [{ path: "missing.txt", content: "gone\n" }],
       commands: [],
@@ -118,7 +118,7 @@ describe("shell mutation assessment", () => {
   });
 
   it("refuses an unverifiable checkout instead of assuming coverage", async () => {
-    const assessment = await assessShellMutation({
+    const assessment = await assessCaptureCoverage({
       workspaceRoot: directory,
       recordedWrites: [],
       commands: CERTAIN,
@@ -132,7 +132,7 @@ describe("shell mutation assessment", () => {
     await committedCheckout(["package.json"]);
     await writeFile(join(directory, "package.json"), CONTENT, "utf8");
 
-    const assessment = await assessShellMutation({
+    const assessment = await assessCaptureCoverage({
       workspaceRoot: directory,
       recordedWrites: [],
       commands: [{ command: "node ./patch.js", level: "possible" }],
@@ -147,7 +147,7 @@ describe("shell mutation assessment", () => {
     await committedCheckout(["package.json"]);
     await writeFile(join(directory, "package.json"), CONTENT, "utf8");
 
-    const assessment = await assessShellMutation({
+    const assessment = await assessCaptureCoverage({
       workspaceRoot: directory,
       recordedWrites: [{ path: "package.json", content: "derived from the tool input\n" }],
       commands: [],
@@ -157,7 +157,7 @@ describe("shell mutation assessment", () => {
   });
 
   it("does not consult git when nothing was written and nothing looks mutating", async () => {
-    const assessment = await assessShellMutation({
+    const assessment = await assessCaptureCoverage({
       workspaceRoot: join(directory, "missing"),
       recordedWrites: [],
       commands: [{ command: "cat package.json", level: "none" }],
