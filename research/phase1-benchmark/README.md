@@ -37,7 +37,8 @@ and rejects absolute paths, decreasing timestamps, and unknown event kinds.
 Replay applies recorded writes to the prepared workspace (so edit-task oracles
 see the recorded state) and invokes no model and no subprocess.
 [`harness/claudeCode.ts`](harness/claudeCode.ts) converts a Claude Code
-`stream-json` session into the same document.
+`stream-json` session into the same document, and
+[`harness/codex.ts`](harness/codex.ts) converts `codex exec --json`.
 
 ## Reproducing metrics and reports
 

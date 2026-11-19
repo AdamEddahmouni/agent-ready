@@ -1,16 +1,10 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  shellMutationRisk,
-  transcriptFromClaudeCodeStream,
-} from "../../research/phase1-benchmark/harness/claudeCode.js";
-import type {
-  CheckoutRequest,
-  RepositoryFetcher,
-} from "../../research/phase1-benchmark/harness/prepare.js";
+import { transcriptFromClaudeCodeStream } from "../../research/phase1-benchmark/harness/claudeCode.js";
 import { prepareConditionWorkspace } from "../../research/phase1-benchmark/harness/prepare.js";
+import { shellMutationRisk } from "../../research/phase1-benchmark/harness/transcriptCapture.js";
 import {
   loadProtocol,
   repositoryById,
@@ -20,27 +14,11 @@ import {
   executeTrial,
   type RunConfiguration,
 } from "../../research/phase1-benchmark/harness/run.js";
-import type {
-  CommandExecution,
-  CommandExecutor,
-} from "../../research/phase1-benchmark/harness/score.js";
+import { FakeCommandExecutor, FixtureFetcher } from "./harnessDoubles.js";
 import {
   applyRecordedWrites,
   TranscriptReplayRunner,
 } from "../../research/phase1-benchmark/harness/transcript.js";
-
-class FixtureFetcher implements RepositoryFetcher {
-  async checkout(request: CheckoutRequest): Promise<void> {
-    await mkdir(request.destination, { recursive: true });
-    await writeFile(join(request.destination, "package.json"), '{"name":"fixture"}\n', "utf8");
-  }
-}
-
-class FakeCommandExecutor implements CommandExecutor {
-  async run(): Promise<CommandExecution> {
-    return await Promise.resolve({ exitCode: 0, timedOut: false, stdout: "", stderr: "" });
-  }
-}
 
 const MODEL_ID = "claude-sonnet-4-5";
 const CLIENT_VERSION = "2.1.316 (Claude Code)";

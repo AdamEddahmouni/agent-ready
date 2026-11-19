@@ -1,11 +1,7 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type {
-  CheckoutRequest,
-  RepositoryFetcher,
-} from "../../research/phase1-benchmark/harness/prepare.js";
 import { prepareConditionWorkspace } from "../../research/phase1-benchmark/harness/prepare.js";
 import {
   loadProtocol,
@@ -18,10 +14,6 @@ import {
   executeTrial,
   type RunConfiguration,
 } from "../../research/phase1-benchmark/harness/run.js";
-import type {
-  CommandExecution,
-  CommandExecutor,
-} from "../../research/phase1-benchmark/harness/score.js";
 import {
   observationsFromTranscript,
   parseTranscript,
@@ -31,6 +23,7 @@ import {
   TranscriptValidationError,
   type AgentTranscript,
 } from "../../research/phase1-benchmark/harness/transcript.js";
+import { FakeCommandExecutor, FixtureFetcher } from "./harnessDoubles.js";
 
 const FIXTURE_PATH = join(
   process.cwd(),
@@ -40,22 +33,6 @@ const EDIT_FIXTURE_PATH = join(
   process.cwd(),
   "tests/fixtures/research/transcript-axios-02-add-devdep.json",
 );
-
-class FixtureFetcher implements RepositoryFetcher {
-  readonly calls: CheckoutRequest[] = [];
-
-  async checkout(request: CheckoutRequest): Promise<void> {
-    this.calls.push(request);
-    await mkdir(request.destination, { recursive: true });
-    await writeFile(join(request.destination, "package.json"), '{"name":"fixture"}\n', "utf8");
-  }
-}
-
-class FakeCommandExecutor implements CommandExecutor {
-  async run(): Promise<CommandExecution> {
-    return await Promise.resolve({ exitCode: 0, timedOut: false, stdout: "", stderr: "" });
-  }
-}
 
 async function loadFixture(): Promise<AgentTranscript> {
   return parseTranscript(JSON.parse(await readFile(FIXTURE_PATH, "utf8")) as unknown);

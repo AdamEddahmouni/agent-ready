@@ -41,8 +41,11 @@ All notable changes to Agent-Ready are documented here. The project follows
   tools, with replay tests through the scorer. The adapter refuses a Bash
   command that certainly changed files and flags an ambiguous interpreter, and
   a replay mismatch now aborts the trial instead of being recorded as an
-  infrastructure failure. Research tooling only: no CLI, public contract
-  schema, or package-output change.
+  infrastructure failure. A Codex `exec --json` adapter records each reported
+  file change by reading it from the session's workspace, refuses a deletion it
+  cannot replay, applies the same shell-mutation rule, and records an item type
+  it does not model as `other` instead of dropping it. Research tooling
+  only: no CLI, public contract schema, or package-output change.
 - Experimental `agent-ready twin build` and `agent-ready twin query` (ADR-0049).
 
 ### Changed

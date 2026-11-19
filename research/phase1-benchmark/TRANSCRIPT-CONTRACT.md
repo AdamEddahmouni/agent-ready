@@ -110,6 +110,25 @@ transcript records that as a limitation. Such a transcript is fine for
 correctness and tool-use metrics, but it must not be used to report
 time-to-first-correct-modification.
 
+## Capturing with the Codex adapter
+
+`transcriptFromCodexStream` ([`harness/codex.ts`](harness/codex.ts)) converts
+`codex exec --json` JSONL into the same document. It maps
+`command_execution` to `shell`, `web_search` to `search`, and MCP calls, plan
+updates and any item type it does not model to `other` (an item with no type at
+all is recorded as `unrecognized-item`) rather than dropping it. Each
+`file_change` becomes a `write` by reading the changed file from the workspace
+Codex ran in — the stream reports only a path and a kind, never the content. It refuses a deletion, because a write event
+cannot express one and a replay would keep the file, and keeps only the last
+`file_change` per path.
+
+Codex events carry no model or client version, so `modelId` is required and an
+omitted `clientVersion` is recorded as `unknown`. Usage comes from
+`turn.completed`; a resumed thread reports the running total, which the adapter
+notes when it sees more than one turn. Bash is classified exactly as in the
+Claude Code adapter, and a command that certainly wrote files without a
+`file_change` item is refused unless `onShellMutation: "flag"` accepts the gap.
+
 ## Capturing the first real transcript (pilot, #57)
 
 The environment for the pilot is not yet fixed. When it is:
