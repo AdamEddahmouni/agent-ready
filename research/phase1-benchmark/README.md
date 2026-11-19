@@ -9,7 +9,7 @@ Offline tooling for protocol v1. **Does not invoke models or run the benchmark.*
 - `adjudication.ts` — requires two reviewers for manual rubrics and a distinct third reviewer on disagreement; adjudications are stored in a separate sidecar file
 - `capture.ts` — turns a saved client event log into Agent Transcript v1 (see below)
 
-Raw run records validate against `schemas/research/phase1-benchmark-raw-run-v1.schema.json`. Run manifests start from `docs/research/phase1-benchmark-protocol/v1/run-manifest.template.json` and validate against `schemas/research/phase1-benchmark-run-manifest-v1.schema.json`.
+Raw run records validate against `schemas/research/phase1-benchmark-raw-run-v1.schema.json`. Run manifests start from `docs/research/phase1-benchmark-protocol/v1/run-manifest.template.json` and validate against `schemas/research/phase1-benchmark-run-manifest-v1.schema.json`. The committed run v1 manifest, its digest lock, and the pilot runbook live in [`docs/research/phase1-benchmark-run-v1`](../../docs/research/phase1-benchmark-run-v1/README.md).
 
 ## Evaluation harness
 
