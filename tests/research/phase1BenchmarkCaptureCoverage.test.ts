@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -68,6 +68,33 @@ describe("capture coverage assessment", () => {
     expect(assessment.refusal).toBeUndefined();
     expect(assessment.risk).toBe(false);
     expect(assessment.note).toContain("the checkout reports no changes");
+  });
+
+  it("resolves git paths when the workspace is a subdirectory of the checkout", async () => {
+    await execFileAsync("git", ["init", "--quiet"], { cwd: directory });
+    await execFileAsync("git", ["config", "user.email", "test@example.com"], { cwd: directory });
+    await execFileAsync("git", ["config", "user.name", "Test"], { cwd: directory });
+    await mkdir(join(directory, "sub"), { recursive: true });
+    await writeFile(join(directory, "sub", "package.json"), "{}\n", "utf8");
+    await writeFile(join(directory, "other.txt"), "root\n", "utf8");
+    await execFileAsync("git", ["add", "-A"], { cwd: directory });
+    await execFileAsync("git", ["commit", "--quiet", "-m", "base"], { cwd: directory });
+
+    await writeFile(join(directory, "sub", "package.json"), CONTENT, "utf8");
+    await writeFile(join(directory, "other.txt"), "changed at the root\n", "utf8");
+
+    const assessment = await assessCaptureCoverage({
+      workspaceRoot: join(directory, "sub"),
+      recordedWrites: [{ path: "package.json", content: CONTENT }],
+      commands: CERTAIN,
+      verifyWrittenBytes: true,
+    });
+
+    // The subdirectory's path is matched without its `sub/` prefix, and the
+    // change outside the workspace is not the transcript's business.
+    expect(assessment.refusal).toBeUndefined();
+    expect(assessment.risk).toBe(false);
+    expect(assessment.note).toContain("every path the checkout reports as changed is recorded");
   });
 
   it("refuses when the checkout has a change the transcript does not record", async () => {

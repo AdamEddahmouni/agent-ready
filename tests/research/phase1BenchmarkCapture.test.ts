@@ -172,6 +172,30 @@ describe("capture entry", () => {
     expect(replayed.equals(Buffer.from(recorded.content, "utf8"))).toBe(true);
   });
 
+  it("keeps the second committed capture consistent with its task", async () => {
+    const transcript = parseTranscript(
+      JSON.parse(
+        await readFile(
+          join(
+            process.cwd(),
+            "research/phase1-benchmark/captures/axios-03-add-sponsor-data-check-codex-gpt-6.2-sol.json",
+          ),
+          "utf8",
+        ),
+      ) as unknown,
+    );
+
+    expect(transcript.taskId).toBe("axios-03-add-sponsor-data-check");
+    expect(transcript.provenance.captured).toBe(true);
+    expect(transcript.shellMutationRisk).toBeUndefined();
+    expect(transcript.events.map((event) => event.kind)).toEqual(["shell", "write", "shell"]);
+    const write = transcript.events.find((event) => event.kind === "write");
+    if (write?.kind !== "write") throw new Error("the capture records no write event");
+    expect(write.path).toBe("package.json");
+    expect(write.content).toContain('"check:sponsor-data":');
+    expect(transcript.notes).toContain("every path the checkout reports as changed is recorded");
+  });
+
   it("refuses a Codex capture without a model and a task the protocol does not define", async () => {
     const workspacePath = await workspace();
     const logPath = join(baseDirectory, "codex.jsonl");

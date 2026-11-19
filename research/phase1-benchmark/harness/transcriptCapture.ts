@@ -217,18 +217,37 @@ function parseGitStatusPaths(output: string): string[] {
 }
 
 /**
+ * Re-expresses git's repository-root paths against the workspace. A capture may
+ * point at a subdirectory of a checkout, and paths outside that directory
+ * cannot affect the transcript, so they are dropped rather than reported as
+ * gaps.
+ */
+function workspaceRelativePaths(paths: readonly string[], prefix: string): string[] {
+  if (prefix.length === 0) return [...paths];
+  const normalized = prefix.endsWith("/") ? prefix : `${prefix}/`;
+  return paths
+    .filter((path) => path.startsWith(normalized))
+    .map((path) => path.slice(normalized.length));
+}
+
+/**
  * Paths the checkout reports as changed, relative to the workspace root.
  * `undefined` means git could not answer, which is not the same as "nothing
  * changed" and must never be treated as coverage.
  */
 export async function changedWorkspacePaths(workspaceRoot: string): Promise<string[] | undefined> {
   try {
-    const { stdout } = await execFile(
-      "git",
-      ["status", "--porcelain", "-z", "--untracked-files=all"],
-      { cwd: workspaceRoot, maxBuffer: MAX_GIT_OUTPUT_BYTES },
-    );
-    return parseGitStatusPaths(stdout);
+    const [status, prefix] = await Promise.all([
+      execFile("git", ["status", "--porcelain", "-z", "--untracked-files=all"], {
+        cwd: workspaceRoot,
+        maxBuffer: MAX_GIT_OUTPUT_BYTES,
+      }),
+      execFile("git", ["rev-parse", "--show-prefix"], {
+        cwd: workspaceRoot,
+        maxBuffer: MAX_GIT_OUTPUT_BYTES,
+      }),
+    ]);
+    return workspaceRelativePaths(parseGitStatusPaths(status.stdout), prefix.stdout.trim());
   } catch {
     return undefined;
   }

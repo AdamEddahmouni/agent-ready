@@ -52,10 +52,12 @@ All notable changes to Agent-Ready are documented here. The project follows
   recorded, so a session whose `file_change` items cover every change is
   captured without a risk flag, and an unrecorded or later-edited path is what
   triggers the refusal. Commands wrapped as `/bin/bash -lc "…"` are classified
-  by the command they carry. The first real Codex session is recorded under
-  `research/phase1-benchmark/captures/` with its raw log and replay result — one
-  session, not a protocol run, guarded by a replay test. Research tooling only:
-  no CLI, public contract schema, or package-output change.
+  by the command they carry, and paths are resolved against the workspace even
+  when it is a subdirectory of the checkout. Real Codex sessions on
+  `axios-02-add-devdep` and `axios-03-add-sponsor-data-check` are recorded under
+  `research/phase1-benchmark/captures/` with their raw logs and replay results —
+  individual sessions, not protocol runs. Research tooling only: no CLI, public
+  contract schema, or package-output change.
 - Experimental `agent-ready twin build` and `agent-ready twin query` (ADR-0049).
 
 ### Changed

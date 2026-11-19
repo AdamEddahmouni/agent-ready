@@ -1,7 +1,7 @@
 # Captured transcripts
 
 Real client sessions converted with `pnpm research:benchmark-capture`. Nothing
-here is authored, and none of it is a protocol run.
+here is authored, and none of them is a protocol run.
 
 ## axios-02-add-devdep · Codex CLI · 2026-11-19
 
@@ -39,3 +39,28 @@ Limitations recorded in the transcript:
   report time-to-first-correct-modification.
 - One session on one task. It is not part of the 78-trial run, and the pilot
   environment (#57) is not frozen.
+
+## axios-03-add-sponsor-data-check · Codex CLI · 2026-11-19
+
+|            |                                                                                      |
+| ---------- | ------------------------------------------------------------------------------------ |
+| Raw log    | `axios-03-add-sponsor-data-check-codex-gpt-6.2-sol.jsonl` (`codex exec --json`)      |
+| Transcript | `axios-03-add-sponsor-data-check-codex-gpt-6.2-sol.json`                             |
+| Client     | `codex-cli` 0.166.0, model `gpt-6.2-sol`, `--sandbox workspace-write`                |
+| Checkout   | axios `2426e03ba9020be31ed013873423cea6b7cd2e67`, prepared by `GitRepositoryFetcher` |
+| Prompt     | the protocol task text, unedited                                                     |
+| Usage      | 54,211 input / 45,184 cached / 251 output / 0 reasoning                              |
+
+The session added a `check:sponsor-data` script that parses
+`docs/data/sponsors.json` with `node -e` and ran `npm run check:sponsor-data`
+(exit 0). Replaying it against a fresh checkout scores `success: true` with no
+forbidden actions, satisfies both `all-of` clauses, and reproduces the session's
+`package.json` byte for byte (6,802 bytes, sha256
+`2275f727b84a675d61690294a0a8b0775694dc047a1bbaa58b85459e48824b28`).
+
+This transcript carries no `shellMutationRisk`: the only changed path is
+`package.json`, which is recorded as a write, and its bytes still match.
+`tests/research/phase1BenchmarkCapture.test.ts` guards the artifact's shape;
+the end-to-end replay above, including the `command-exit-zero` clause, was run
+with a real command executor and is recorded here rather than re-run in CI,
+which uses a fake executor for that clause.

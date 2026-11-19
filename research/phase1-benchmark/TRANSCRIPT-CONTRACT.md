@@ -151,9 +151,9 @@ adapter to a saved log and writes the transcript. It validates the task id
 against protocol v1, requires `--started-at` because no client stream records the
 session's start, and keeps the checkout codex ran in as `--workspace`.
 
-One real Codex session is recorded in [`captures/`](captures/README.md), with
-its raw log, the transcript, and the replay result. It is a single session, not
-a protocol run.
+Real Codex sessions are recorded in [`captures/`](captures/README.md), each with
+its raw log, transcript and replay result. They are individual sessions, not
+protocol runs.
 
 ## Capturing the first real transcript (pilot, #57)
 
