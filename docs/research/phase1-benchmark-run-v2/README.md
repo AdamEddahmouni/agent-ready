@@ -71,6 +71,7 @@ $1.25/$0.125/$10, and $15/$1.50/$60 per 1M.
 clauses, and `axios-01` has none — it is scored from the response JSON. A task
 with no check to run therefore records `false`, and the report's
 "verification failure rate" reads 100% for it even though nothing failed to
-verify. The metric is fail-closed by design; treating "not applicable" as a
-separate state is a protocol question for a future revision, not something to
-silently reinterpret here.
+verify. The metric is fail-closed by design, so treating "not applicable" as a
+separate state is drafted in
+[proposal 0002](../phase1-benchmark-protocol/proposals/0002-verification-not-applicable.md)
+rather than reinterpreted here.

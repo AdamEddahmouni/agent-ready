@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agent-ready.dev/schemas/research/phase1-benchmark-raw-run-v2.schema.json",
-  "title": "Phase 1 benchmark raw run record v1",
+  "title": "Phase 1 benchmark raw run record v2",
   "type": "object",
   "additionalProperties": false,
   "required": [

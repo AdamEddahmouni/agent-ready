@@ -15,5 +15,5 @@
   "tasksFile": "tasks.json",
   "decisionRuleFile": "decision-rule.json",
   "runsPerTaskPerCondition": 3,
-  "immutability": "Once protocol v1 is used for evaluation, this directory is frozen. Changes require protocolVersion 2 in a sibling directory; v1 artifacts and results remain."
+  "immutability": "Protocol v2 is frozen for evaluation. Changes require a sibling v3 directory and protocolVersion 3; v2 artifacts, v1 artifacts and all results remain."
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agent-ready.dev/schemas/research/phase1-benchmark-run-manifest-v2.schema.json",
-  "title": "Phase 1 benchmark run manifest v1",
+  "title": "Phase 1 benchmark run manifest v2",
   "description": "The manifest committed before the first Phase 1 benchmark trial. It pins the model, client, environment, Agent-Ready commit, and repository commits; records the predeclared run arithmetic and budgets; and supplies the randomization seed. Raw run records cite its id as runManifestId.",
   "type": "object",
   "additionalProperties": false,

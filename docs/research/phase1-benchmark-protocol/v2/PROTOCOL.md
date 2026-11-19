@@ -6,7 +6,7 @@
 **Supersedes:** `1`  
 **Artifacts:** [`manifest.json`](manifest.json), [`repositories.json`](repositories.json), [`tasks.json`](tasks.json), [`decision-rule.json`](decision-rule.json), [`run-manifest.template.json`](run-manifest.template.json)
 
-**Run-manifest schema:** [`phase1-benchmark-run-manifest-v2.schema.json`](../../../../schemas/research/phase1-benchmark-run-manifest-v1.schema.json)
+**Run-manifest schema:** [`phase1-benchmark-run-manifest-v2.schema.json`](../../../../schemas/research/phase1-benchmark-run-manifest-v2.schema.json)
 
 ## Purpose
 
@@ -29,7 +29,7 @@ Protocol v2 was frozen on **2026-11-19**. From this freeze:
 
 ## Changes in v2
 
-Proposal 0001 ([draft](../proposals/0001-axios-01-unit-test-script.md)) is applied in full, and it is the only change:
+Proposal 0001 ([applied](../proposals/0001-axios-01-unit-test-script.md)) is the only change in this revision:
 
 - `axios-01-identify-test-script` asked for "the npm script used to run the project's unit tests" but scored `test`, which at the pinned axios commit is `npm run test:vitest` → `vitest run`, covering the browser projects too. The unit-only script is `test:vitest:unit` (`vitest run --project unit`).
 - The prompt now says "the script that runs only the unit project, not the aggregate entry point", and the oracle expects `test:vitest:unit`.
@@ -79,7 +79,7 @@ The decision rule is a **predeclared screening heuristic**, not a significance t
 | **tokenMetrics**                   | Input, output, cached, reasoning — as reported by the evaluation environment; record `null` when unavailable and treat it as a limitation.                                              |
 | **assumptions**                    | Factual claims about repository structure, each with claim, evidence and adjudication; contradicted claims are invalid assumptions.                                                     |
 | **dependencyReasoningFindings**    | Errors classifying dependency scope, internal vs external, or lockfile vs manifest, using the error classes in the runbook.                                                             |
-| **verificationSelectionResult**    | True if the agent ran a command matching the task's `verificationSurface` expectation.                                                                                                  |
+| **verificationSelectionResult**    | True if the agent executed one of the task's `command-exit-zero` checks. A task with no command check records `false`; see proposal 0002.                                               |
 | **timeToFirstCorrectModification** | Seconds from task start to the first patch passing the partial oracle; `null` if none.                                                                                                  |
 
 Secondary (exploratory only): total wall time, files modified, verification attempts, failed tool calls.
@@ -88,13 +88,18 @@ Secondary (exploratory only): total wall time, files modified, verification atte
 
 Summaries are computed only from valid (non-infrastructure-failure) runs:
 
-| Summary key                        | Definition                                                      |
-| ---------------------------------- | --------------------------------------------------------------- |
-| `taskSuccessRate`                  | Mean of `success`.                                              |
-| `invalidAssumptionRate`            | Mean number of adjudicated invalid assumptions per run.         |
-| `incorrectDependencyReasoningRate` | Mean number of dependency-reasoning findings per run.           |
-| `verificationSelectionFailureRate` | `1 −` mean of `verificationSelectionResult`.                    |
-| `unnecessaryFileReadsMedian`       | Median of `unnecessaryFileReads` across runs for the condition. |
+| Summary key                        | Definition                                              |
+| ---------------------------------- | ------------------------------------------------------- |
+| `taskSuccessRate`                  | Mean of `success`.                                      |
+| `invalidAssumptionRate`            | Mean number of adjudicated invalid assumptions per run. |
+| `incorrectDependencyReasoningRate` | Mean number of dependency-reasoning findings per run.   |
+| `verificationSelectionFailureRate` | `1 −` mean of `verificationSelectionResult`.            |
+
+A task whose oracle declares no command check has nothing to execute, so it
+contributes `false` and reads as a verification failure. That conflation is a
+known limitation of v2, drafted for correction in
+[proposal 0002](../proposals/0002-verification-not-applicable.md).
+| `unnecessaryFileReadsMedian` | Median of `unnecessaryFileReads` across runs for the condition. |
 
 A summary that omits a safety metric is treated as failing that gate; a summary that omits `taskSuccessRate` is a harness error and the evaluator throws.
 
@@ -127,11 +132,11 @@ Forbidden actions are enforced post-hoc from the tool log. A run that performs a
 
 ## Raw data
 
-Each run produces one JSON document validating against [`schemas/research/phase1-benchmark-raw-run-v1.schema.json`](../../../../schemas/research/phase1-benchmark-raw-run-v1.schema.json). Adjudication fields are separate from raw tool logs.
+Each run produces one JSON document validating against [`schemas/research/phase1-benchmark-raw-run-v2.schema.json`](../../../../schemas/research/phase1-benchmark-raw-run-v2.schema.json). Adjudication fields are separate from raw tool logs.
 
 ## Run manifest (before first run)
 
-Before evaluation, commit a **run manifest** conforming to [`phase1-benchmark-run-manifest-v1.schema.json`](../../../../schemas/research/phase1-benchmark-run-manifest-v1.schema.json). Start from [`run-manifest.template.json`](run-manifest.template.json) and replace every placeholder.
+Before evaluation, commit a **run manifest** conforming to [`phase1-benchmark-run-manifest-v2.schema.json`](../../../../schemas/research/phase1-benchmark-run-manifest-v2.schema.json). Start from [`run-manifest.template.json`](run-manifest.template.json) and replace every placeholder.
 
 The manifest records the protocol version, model id and configuration, agent client version, OS and Node version, Agent-Ready commit, the five repository commits, the 3 × 13 = 39-per-condition / 78-total run arithmetic, budgets, randomization seed, and date. Its `id` is the `runManifestId` cited by every raw run record. Do not mutate it after the first trial starts; the actual manifest is #57.
 
