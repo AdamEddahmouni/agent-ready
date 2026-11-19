@@ -174,7 +174,8 @@ describe("trial runner", () => {
       expect(workspace?.snapshotPath).toBeDefined();
       const wrapper = join(workspace?.runRoot ?? "", "bin", "agent-ready");
       const content = await readFile(wrapper, "utf8");
-      expect(content).toContain(workspace?.snapshotPath ?? "missing");
+      // The wrapper JSON-escapes the path, so compare against the escaped form.
+      expect(content).toContain(JSON.stringify(workspace?.snapshotPath ?? "missing"));
       expect(content).toContain("/srv/agent-ready/dist/cli/index.js");
       expect(content).toContain('"$@"');
     } finally {

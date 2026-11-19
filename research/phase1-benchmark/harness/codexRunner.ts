@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { createInterface } from "node:readline";
 import { buildAgentPrompt } from "./access.js";
 import { transcriptFromCodexStream } from "./codex.js";
@@ -85,7 +85,7 @@ export function buildCodexInvocation(
       ? { ...baseEnv }
       : {
           ...baseEnv,
-          PATH: `${options.binDirectory}:${baseEnv["PATH"] ?? ""}`,
+          PATH: `${options.binDirectory}${delimiter}${baseEnv["PATH"] ?? ""}`,
         };
   return {
     command: options.codexCommand ?? "codex",

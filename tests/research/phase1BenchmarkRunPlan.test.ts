@@ -1,3 +1,4 @@
+import { delimiter } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   ConditionAccessError,
@@ -147,6 +148,6 @@ describe("codex invocation", () => {
       baseEnv: { PATH: "/usr/bin" },
       binDirectory: "/tmp/run/bin",
     });
-    expect(agentReady.env["PATH"]).toBe("/tmp/run/bin:/usr/bin");
+    expect(agentReady.env["PATH"]).toBe(`/tmp/run/bin${delimiter}/usr/bin`);
   });
 });
