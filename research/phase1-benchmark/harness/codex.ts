@@ -4,6 +4,7 @@ import { parseTranscript, type AgentTranscript, type TranscriptEvent } from "./t
 import {
   asNumber,
   asString,
+  assessShellMutation,
   isRecord,
   readJsonl,
   repositoryPath,
@@ -223,27 +224,21 @@ export async function transcriptFromCodexStream(
     state.notes.push("client version not supplied");
   }
 
-  const shellCommands = state.events
-    .flatMap((event) =>
+  const collapsed = collapseRepeatedWrites(state.events);
+  const assessment = await assessShellMutation({
+    workspaceRoot: options.workspaceRoot,
+    recordedPaths: collapsed.flatMap((event) => (event.kind === "write" ? [event.path] : [])),
+    commands: state.events.flatMap((event) =>
       event.kind === "shell"
         ? [{ command: event.command, level: shellMutationRisk(event.command) }]
         : [],
-    )
-    .filter((risk) => risk.level !== "none");
-  const certainShellMutations = shellCommands.filter((risk) => risk.level === "certain");
-  if (certainShellMutations.length > 0 && options.onShellMutation !== "flag") {
-    throw new Error(
-      "Bash certainly changed files but Codex reported no file_change for them, so replay cannot " +
-        `reproduce this session: ${certainShellMutations.map((risk) => JSON.stringify(risk.command)).join(", ")}. ` +
-        'Pass onShellMutation: "flag" to accept the gap.',
-    );
+    ),
+  });
+  if (assessment.refusal !== undefined && options.onShellMutation !== "flag") {
+    throw new Error(assessment.refusal);
   }
-  const shellMutation = shellCommands.length > 0;
-  if (shellMutation) {
-    state.notes.push(
-      "Bash may have changed files without a file_change item; replay is not guaranteed to match this session",
-    );
-  }
+  const shellMutation = assessment.risk;
+  if (assessment.note !== undefined) state.notes.push(assessment.note);
   if (state.events.some((event) => event.kind === "write")) {
     state.notes.push(
       "write contents were read from the workspace when the capture ran, not when Codex reported each change",
@@ -274,7 +269,7 @@ export async function transcriptFromCodexStream(
       ...(sequenceDerived && { note: "timing is sequence-derived" }),
     },
     startedAt: options.startedAt,
-    events: collapseRepeatedWrites(state.events),
+    events: collapsed,
     finalResponse: state.lastAgentMessage,
     usage,
     ...(shellMutation && { shellMutationRisk: true }),

@@ -10,7 +10,7 @@
   "provenance": {
     "captured": true,
     "clientLogFormat": "jsonl",
-    "capturedAt": "2026-11-19T19:23:56.000Z",
+    "capturedAt": "2026-11-19T19:32:39.000Z",
     "note": "timing is sequence-derived"
   },
   "startedAt": "2026-11-19T19:22:45.000Z",
@@ -53,6 +53,5 @@
     "cached": 86400,
     "reasoning": 0
   },
-  "shellMutationRisk": true,
-  "notes": "Bash may have changed files without a file_change item; replay is not guaranteed to match this session; write contents were read from the workspace when Codex reported each file change; atMs is sequence-derived, not measured; do not report a duration from this capture"
+  "notes": "Bash commands classified as mutations ran (1 certain, 2 possible), but every path the checkout reports as changed is recorded as a write; write contents were read from the workspace when the capture ran, not when Codex reported each change; atMs is sequence-derived, not measured; do not report a duration from this capture"
 }

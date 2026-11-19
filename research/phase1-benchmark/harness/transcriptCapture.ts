@@ -1,5 +1,10 @@
+import { execFile as execFileCallback } from "node:child_process";
 import { isAbsolute, relative, sep } from "node:path";
+import { promisify } from "node:util";
 import { normalizeWorkspacePath } from "./score.js";
+
+const execFile = promisify(execFileCallback);
+const MAX_GIT_OUTPUT_BYTES = 16 * 1024 * 1024;
 
 /** Shared parsing and classification for client event streams. */
 
@@ -103,6 +108,28 @@ const READ_ONLY = new Set([
   "false",
 ]);
 const REDIRECT = /(^|[^0-9&])>>?\s*[^&\s]/;
+const SHELLS = new Set(["bash", "sh", "zsh", "dash", "ksh"]);
+
+/**
+ * Codex runs every command through `/bin/bash -lc "..."`. Classifying that
+ * wrapper would only ever say "bash", so look at the command it carries. A
+ * wrapper that cannot be read stays ambiguous rather than looking safe.
+ */
+function unwrapShellCommand(tokens: readonly string[]): string | undefined {
+  const first = tokens[0];
+  if (first === undefined) return undefined;
+  const executable = first.replaceAll('"', "").replaceAll("'", "");
+  const base = executable.slice(executable.lastIndexOf("/") + 1);
+  if (!SHELLS.has(base)) return undefined;
+  const flagIndex = tokens.findIndex((token) => /^-[a-z]*c$/.test(token));
+  if (flagIndex === -1) return undefined;
+  const inner = tokens
+    .slice(flagIndex + 1)
+    .join(" ")
+    .replace(/^["']/, "")
+    .replace(/["']$/, "");
+  return inner.length > 0 ? inner : undefined;
+}
 
 function commandSegments(command: string): string[] {
   return command
@@ -116,6 +143,8 @@ function segmentRisk(segment: string): MutationRisk {
   const tokens = segment.split(/\s+/).filter((token) => token.length > 0);
   const rawExecutable = tokens[0];
   if (rawExecutable === undefined) return "none";
+  const wrapped = unwrapShellCommand(tokens);
+  if (wrapped !== undefined) return shellMutationRisk(wrapped);
   const executable = rawExecutable.replaceAll('"', "").replaceAll("'", "");
 
   if (executable === "sed") {
@@ -140,6 +169,9 @@ function segmentRisk(segment: string): MutationRisk {
 
 /** Classifies a shell line. Conservative by construction: quotes are not parsed. */
 export function shellMutationRisk(command: string): MutationRisk {
+  // This is only a hint about where to look. Whether a mutation actually went
+  // unrecorded is decided by `assessShellMutation`, which compares the checkout
+  // with the recorded writes instead of trusting the command text.
   let risk: MutationRisk = "none";
   for (const segment of commandSegments(command)) {
     const segmentLevel = segmentRisk(segment);
@@ -147,4 +179,111 @@ export function shellMutationRisk(command: string): MutationRisk {
     if (segmentLevel === "possible") risk = "possible";
   }
   return risk;
+}
+
+export interface ShellCommandRisk {
+  readonly command: string;
+  readonly level: MutationRisk;
+}
+
+export interface ShellMutationAssessment {
+  /** True when replay may not reproduce the checkout's changes. */
+  readonly risk: boolean;
+  /** Explanation to record whenever a mutating command was classified. */
+  readonly note?: string;
+  /** Present when the capture should be refused unless the caller accepts the gap. */
+  readonly refusal?: string;
+}
+
+function parseGitStatusPaths(output: string): string[] {
+  const records = output.split("\0");
+  const paths: string[] = [];
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index] ?? "";
+    // `XY path`; anything shorter than that cannot carry a path.
+    if (record.length < 4) continue;
+    const status = record.slice(0, 2);
+    paths.push(record.slice(3).split(sep).join("/"));
+    // A rename or copy record is followed by the original path.
+    if (status.includes("R") || status.includes("C")) index += 1;
+  }
+  return paths;
+}
+
+/**
+ * Paths the checkout reports as changed, relative to the workspace root.
+ * `undefined` means git could not answer, which is not the same as "nothing
+ * changed" and must never be treated as coverage.
+ */
+export async function changedWorkspacePaths(workspaceRoot: string): Promise<string[] | undefined> {
+  try {
+    const { stdout } = await execFile(
+      "git",
+      ["status", "--porcelain", "-z", "--untracked-files=all"],
+      { cwd: workspaceRoot, maxBuffer: MAX_GIT_OUTPUT_BYTES },
+    );
+    return parseGitStatusPaths(stdout);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Decides whether Bash may have changed the workspace in a way the transcript
+ * does not record. The classifier only says which commands to look at; the
+ * verdict comes from comparing the checkout's changed paths with the recorded
+ * writes, so a reported `file_change` that Bash then edited again is still
+ * covered, and an unrecorded path is caught even when no command looks
+ * mutating.
+ */
+export async function assessShellMutation(options: {
+  readonly workspaceRoot: string;
+  readonly recordedPaths: readonly string[];
+  readonly commands: readonly ShellCommandRisk[];
+}): Promise<ShellMutationAssessment> {
+  const mutating = options.commands.filter((risk) => risk.level !== "none");
+  if (mutating.length === 0) return { risk: false };
+
+  const listed = mutating.map((risk) => JSON.stringify(risk.command)).join(", ");
+  const certain = mutating.some((risk) => risk.level === "certain");
+  const changed = await changedWorkspacePaths(options.workspaceRoot);
+
+  if (changed === undefined) {
+    const reason = "the checkout's changed paths could not be checked (git status failed)";
+    return {
+      risk: true,
+      note: `Bash may have changed files without a recorded write: ${reason}; replay is not guaranteed to match this session`,
+      ...(certain && {
+        refusal:
+          `Bash certainly changed files but ${reason}, so replay cannot be confirmed to ` +
+          `reproduce this session: ${listed}. Pass onShellMutation: "flag" to accept the gap.`,
+      }),
+    };
+  }
+
+  const recorded = new Set(options.recordedPaths);
+  const unrecorded = changed.filter((path) => !recorded.has(path));
+  if (unrecorded.length === 0) {
+    const certainCount = mutating.filter((risk) => risk.level === "certain").length;
+    const possibleCount = mutating.length - certainCount;
+    return {
+      risk: false,
+      note:
+        `Bash commands classified as mutations ran (${String(certainCount)} certain, ` +
+        `${String(possibleCount)} possible), but every path the checkout reports as changed ` +
+        "is recorded as a write",
+    };
+  }
+
+  const paths = unrecorded.map((path) => JSON.stringify(path)).join(", ");
+  return {
+    risk: true,
+    note: `Bash may have changed files the transcript does not record (${paths}); replay is not guaranteed to match this session`,
+    ...(certain && {
+      refusal:
+        `Bash certainly changed files and the checkout has changes the transcript does not record (${paths}), ` +
+        `so replay cannot reproduce this session: ${listed}. ` +
+        'Pass onShellMutation: "flag" to accept the gap.',
+    }),
+  };
 }

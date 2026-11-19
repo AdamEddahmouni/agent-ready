@@ -13,8 +13,12 @@ import {
   repositoryById,
   taskById,
 } from "../../research/phase1-benchmark/harness/protocol.js";
-import { parseTranscript } from "../../research/phase1-benchmark/harness/transcript.js";
-import { FixtureFetcher } from "./harnessDoubles.js";
+import { executeTrial } from "../../research/phase1-benchmark/harness/run.js";
+import {
+  parseTranscript,
+  TranscriptReplayRunner,
+} from "../../research/phase1-benchmark/harness/transcript.js";
+import { FakeCommandExecutor, FixtureFetcher } from "./harnessDoubles.js";
 
 const TASK_ID = "axios-02-add-devdep";
 const STARTED_AT = "2026-11-17T00:00:00.000Z";
@@ -104,6 +108,63 @@ describe("capture entry", () => {
     });
     expect(written.events.map((event) => event.kind)).toEqual(["shell", "write"]);
     expect(outcome.timingIsSequenceDerived).toBe(true);
+  });
+
+  it("replays the committed Codex capture through the harness", async () => {
+    const transcript = parseTranscript(
+      JSON.parse(
+        await readFile(
+          join(
+            process.cwd(),
+            "research/phase1-benchmark/captures/axios-02-add-devdep-codex-gpt-6.2-sol.json",
+          ),
+          "utf8",
+        ),
+      ) as unknown,
+    );
+    expect(transcript.provenance.captured).toBe(true);
+    expect(transcript.shellMutationRisk).toBeUndefined();
+    expect(transcript.events.map((event) => event.kind)).toEqual([
+      "shell",
+      "write",
+      "shell",
+      "shell",
+      "shell",
+    ]);
+
+    const baseline = await readFile(
+      join(process.cwd(), "tests/fixtures/research/axios-02-add-devdep-package.json"),
+      "utf8",
+    );
+    const protocol = await loadProtocol();
+    const task = taskById(protocol, TASK_ID);
+    const result = await executeTrial({
+      runManifestId: "committed-codex-capture",
+      task,
+      repositoryId: task.repositoryId,
+      condition: "raw",
+      runIndex: 0,
+      config: {
+        modelId: transcript.agent.modelId,
+        agentClientVersion: transcript.agent.version,
+        temperature: 0,
+      },
+      workspace: await prepareConditionWorkspace({
+        repository: repositoryById(protocol, task.repositoryId),
+        condition: "raw",
+        baseDirectory,
+        fetcher: new FixtureFetcher(baseline),
+      }),
+      runner: new TranscriptReplayRunner(transcript),
+      commandExecutor: new FakeCommandExecutor(),
+      now: () => Date.parse(transcript.startedAt),
+    });
+
+    expect(result.score.forbidden).toEqual([]);
+    expect(result.record.success).toBe(true);
+    expect(await readFile(join(result.request.workspacePath, "package.json"), "utf8")).toContain(
+      '"semver": "^7.6.0"',
+    );
   });
 
   it("refuses a Codex capture without a model and a task the protocol does not define", async () => {

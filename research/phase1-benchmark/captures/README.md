@@ -20,14 +20,20 @@ against a fresh checkout scores `success: true` with no forbidden actions, and
 the replayed `package.json` is byte-identical to the session's (6,705 bytes,
 sha256 `190276674f76d0b2a427f81e369a29b5001c07734a11d90168b1106e37c32479`).
 
+Reproduction test: `tests/research/phase1BenchmarkCapture.test.ts` replays this
+transcript through `executeTrial` and fails if it stops scoring success, gains a
+forbidden action, or starts carrying `shellMutationRisk`.
+
+**Bash.** After its `file_change` item the session ran
+`truncate -s -1 package.json`, so the capture depends on the rule that compares
+the checkout's changed paths with the recorded writes. Every changed path is
+recorded, so the transcript carries no `shellMutationRisk` and its note records
+the classification (`1 certain, 2 possible` mutating commands). The offline
+conversion read the file after the session finished; converting while the
+session ran would have recorded the pre-truncate content.
+
 Limitations recorded in the transcript:
 
-- `shellMutationRisk: true`. After its `file_change` item the session ran
-  `truncate -s -1 package.json`, which the classifier treats as a certain
-  mutation, so the capture needed `--on-shell-mutation flag`. The offline
-  conversion read the file after the session finished, which is why replay still
-  matched byte for byte; converting while the session ran would have recorded
-  the pre-truncate content.
 - `atMs` is sequence-derived, not measured, so this capture must not be used to
   report time-to-first-correct-modification.
 - One session on one task. It is not part of the 78-trial run, and the pilot

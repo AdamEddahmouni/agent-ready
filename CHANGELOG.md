@@ -46,10 +46,15 @@ All notable changes to Agent-Ready are documented here. The project follows
   cannot replay, applies the same shell-mutation rule, and records an item type
   it does not model as `other` instead of dropping it. A
   `research:benchmark-capture` command applies either adapter to a saved log and
-  writes the transcript. The first real Codex session is recorded under
+  writes the transcript. The shell-mutation rule now decides from the checkout
+  rather than the command text: it compares the paths git reports as changed
+  with the recorded writes, so a session whose `file_change` items cover every
+  change is captured without a risk flag, and an unrecorded path is what
+  triggers the refusal. Commands wrapped as `/bin/bash -lc "…"` are classified
+  by the command they carry. The first real Codex session is recorded under
   `research/phase1-benchmark/captures/` with its raw log and replay result — one
-  session, not a protocol run. Research tooling only: no CLI, public contract
-  schema, or package-output change.
+  session, not a protocol run, guarded by a replay test. Research tooling only:
+  no CLI, public contract schema, or package-output change.
 - Experimental `agent-ready twin build` and `agent-ready twin query` (ADR-0049).
 
 ### Changed

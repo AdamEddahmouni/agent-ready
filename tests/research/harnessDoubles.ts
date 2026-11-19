@@ -12,10 +12,12 @@ import type {
 export class FixtureFetcher implements RepositoryFetcher {
   readonly calls: CheckoutRequest[] = [];
 
+  constructor(private readonly packageJson = '{"name":"fixture"}\n') {}
+
   async checkout(request: CheckoutRequest): Promise<void> {
     this.calls.push(request);
     await mkdir(request.destination, { recursive: true });
-    await writeFile(join(request.destination, "package.json"), '{"name":"fixture"}\n', "utf8");
+    await writeFile(join(request.destination, "package.json"), this.packageJson, "utf8");
   }
 }
 

@@ -4,6 +4,7 @@ import { parseTranscript, type AgentTranscript, type TranscriptEvent } from "./t
 import {
   asNumber,
   asString,
+  assessShellMutation,
   isRecord,
   readJsonl,
   repositoryPath,
@@ -250,30 +251,23 @@ export async function transcriptFromClaudeCodeStream(
     throw new Error("Claude Code stream has no result usage; the capture is incomplete");
   }
 
-  const shellRisks = state.events
-    .flatMap((event) =>
+  const assessment = await assessShellMutation({
+    workspaceRoot: options.workspaceRoot,
+    recordedPaths: state.events.flatMap((event) => (event.kind === "write" ? [event.path] : [])),
+    commands: state.events.flatMap((event) =>
       event.kind === "shell"
         ? [{ command: event.command, level: shellMutationRisk(event.command) }]
         : [],
-    )
-    .filter((risk) => risk.level !== "none");
-  const certainShellMutations = shellRisks.filter((risk) => risk.level === "certain");
-  if (certainShellMutations.length > 0 && options.onShellMutation !== "flag") {
-    throw new Error(
-      "Bash certainly changed files but the result is not recorded, so replay cannot reproduce this session: " +
-        `${certainShellMutations.map((risk) => JSON.stringify(risk.command)).join(", ")}. ` +
-        'Record the resulting files as write events, or pass onShellMutation: "flag" to accept the gap.',
-    );
+    ),
+  });
+  if (assessment.refusal !== undefined && options.onShellMutation !== "flag") {
+    throw new Error(assessment.refusal);
   }
-  const shellMutation = shellRisks.length > 0;
+  const shellMutation = assessment.risk;
 
   const sequenceDerived = state.timingFallback;
   const warnings: string[] = [];
-  if (shellMutation) {
-    warnings.push(
-      "Bash may have changed files without a recorded write; replay is not guaranteed to match this session",
-    );
-  }
+  if (assessment.note !== undefined) warnings.push(assessment.note);
   if (sequenceDerived) {
     warnings.push(
       "atMs is sequence-derived, not measured; do not report a duration from this capture",

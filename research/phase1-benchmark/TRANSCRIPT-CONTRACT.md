@@ -94,15 +94,25 @@ The adapter throws on anything it cannot ground: a path outside the workspace,
 an edit whose target text is absent, a stream with no model, or a stream with no
 `result` usage. It does not guess.
 
-**Bash.** A recorded shell event carries no resulting files. The adapter
-classifies each command conservatively: read-only commands (`cat`, `ls`,
-`git status`, …) pass; a command that certainly writes (`sed -i`, a redirect to
-a file, `rm`/`mv`/`cp`, a package-manager install, a formatter or build, a
-mutating `git` subcommand) is **refused**, because a replay of that transcript
-would score a workspace the session changed; and an interpreter (`node`,
-`python`, a shell) is **flagged** with `shellMutationRisk: true`, because no
-static read can rule out a write. Passing `onShellMutation: "flag"` captures a
-certain mutation anyway — the flag still records that replay may diverge.
+**Bash.** A recorded shell event carries no resulting files, so the adapter
+cannot trust the command text on its own. Classification is only a hint about
+where to look: read-only commands (`cat`, `ls`, `git status`, …) pass; a command
+that certainly writes (`sed -i`, a redirect to a file, `rm`/`mv`/`cp`, a
+package-manager install, a formatter or build, a mutating `git` subcommand) is a
+refusal candidate; an interpreter (`node`, `python`, a shell) is a warning
+candidate. Commands wrapped as `/bin/bash -lc "…"` are classified by the
+command they carry, because Codex runs every shell command that way.
+
+The verdict comes from the checkout, not the text: the adapter compares the
+recorded write paths with the paths `git status --porcelain -z` reports as
+changed. When every changed path is recorded as a write, the capture is
+accepted and a note says so. When a changed path is unrecorded, a refusal
+candidate makes the adapter **refuse** — a replay would score a workspace the
+session changed — and without one it records `shellMutationRisk: true`. A
+directory git cannot answer for is never treated as coverage: a refusal
+candidate still refuses. Passing `onShellMutation: "flag"` accepts a gap the
+adapter would otherwise refuse, and the flag still records that replay may
+diverge.
 
 **Timing.** A saved log carries no per-event timestamps. When `timing` is
 omitted, `atMs` is the event index, `timingIsSequenceDerived` is `true`, and the
@@ -120,16 +130,16 @@ all is recorded as `unrecognized-item`) rather than dropping it. Each
 `file_change` becomes a `write` by reading the changed file from the workspace
 Codex ran in — the stream reports only a path and a kind, never the content, and
 the read happens when the adapter runs, so convert a saved log against the
-checkout before anything else touches it. It refuses a deletion, because a write event
-cannot express one and a replay would keep the file, and keeps only the last
-`file_change` per path.
+checkout before anything else touches it. It refuses a deletion, because a
+write event cannot express one and a replay would keep the file, and keeps only
+the last `file_change` per path.
 
 Codex events carry no model or client version, so `modelId` is required and an
 omitted `clientVersion` is recorded as `unknown`. Usage comes from
 `turn.completed`; a resumed thread reports the running total, which the adapter
-notes when it sees more than one turn. Bash is classified exactly as in the
-Claude Code adapter, and a command that certainly wrote files without a
-`file_change` item is refused unless `onShellMutation: "flag"` accepts the gap.
+notes when it sees more than one turn. Bash follows the same rule as the Claude
+Code adapter: reported `file_change` paths are checked against the checkout, so
+an unrecorded change is what triggers a refusal or `shellMutationRisk`.
 
 `pnpm research:benchmark-capture` ([`capture.ts`](capture.ts)) applies either
 adapter to a saved log and writes the transcript. It validates the task id

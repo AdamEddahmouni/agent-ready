@@ -210,7 +210,7 @@ describe("Codex capture adapter", () => {
       onShellMutation: "flag",
     });
     expect(flagged.transcript.shellMutationRisk).toBe(true);
-    expect(flagged.transcript.notes).toContain("file_change");
+    expect(flagged.transcript.notes).toContain("could not be checked");
   });
 
   it("records an item type it does not model as other instead of dropping it", async () => {
