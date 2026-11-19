@@ -2,7 +2,10 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { transcriptFromClaudeCodeStream } from "../../research/phase1-benchmark/harness/claudeCode.js";
+import {
+  shellMutationRisk,
+  transcriptFromClaudeCodeStream,
+} from "../../research/phase1-benchmark/harness/claudeCode.js";
 import type {
   CheckoutRequest,
   RepositoryFetcher,
@@ -88,6 +91,16 @@ function writeToolUse(filePath: string, content: string): Record<string, unknown
       content: [
         { type: "tool_use", id: "toolu_1", name: "Write", input: { file_path: filePath, content } },
       ],
+    },
+  };
+}
+
+function bashToolUse(command: string): Record<string, unknown> {
+  return {
+    type: "assistant",
+    message: {
+      role: "assistant",
+      content: [{ type: "tool_use", id: "toolu_bash", name: "Bash", input: { command } }],
     },
   };
 }
@@ -238,6 +251,80 @@ describe("Claude Code capture adapter", () => {
 
     expect(capture.timingIsSequenceDerived).toBe(true);
     expect(capture.transcript.notes).toContain("sequence-derived");
+  });
+
+  it("classifies shell commands conservatively", () => {
+    expect(shellMutationRisk("git status --short")).toBe("none");
+    expect(shellMutationRisk("cat package.json | grep name")).toBe("none");
+    expect(shellMutationRisk("git checkout -- .")).toBe("certain");
+    expect(shellMutationRisk("echo '{}' > package.json")).toBe("certain");
+    expect(shellMutationRisk('sed -i "s/a/b/" package.json')).toBe("certain");
+    expect(shellMutationRisk("npm install semver")).toBe("certain");
+    expect(shellMutationRisk("node ./scripts/patch.js")).toBe("possible");
+  });
+
+  it("refuses a capture whose Bash certainly changed files, and flags it when told to", async () => {
+    const workspacePath = await editWorkspace();
+    const stream = [
+      initEvent(workspacePath),
+      bashToolUse('sed -i "s/fixture/other/" package.json'),
+      resultEvent("Rewrote the manifest."),
+    ];
+
+    await expect(
+      transcriptFromClaudeCodeStream(stream, {
+        taskId: "axios-02-add-devdep",
+        condition: "raw",
+        workspaceRoot: workspacePath,
+        startedAt: STARTED_AT,
+        capturedAt: "2026-11-17T00:01:00.000Z",
+        timing: (index) => index * 1000,
+      }),
+    ).rejects.toThrow(/Bash certainly changed files/);
+
+    const flagged = await transcriptFromClaudeCodeStream(stream, {
+      taskId: "axios-02-add-devdep",
+      condition: "raw",
+      workspaceRoot: workspacePath,
+      startedAt: STARTED_AT,
+      capturedAt: "2026-11-17T00:01:00.000Z",
+      timing: (index) => index * 1000,
+      onShellMutation: "flag",
+    });
+
+    expect(flagged.transcript.shellMutationRisk).toBe(true);
+    expect(flagged.transcript.notes).toContain("Bash may have changed files");
+    expect(flagged.transcript.events).toHaveLength(1);
+    expect(flagged.transcript.events[0]?.kind).toBe("shell");
+  });
+
+  it("does not flag a read-only Bash command but flags an interpreter", async () => {
+    const workspacePath = await editWorkspace();
+    const options = {
+      taskId: "axios-02-add-devdep",
+      condition: "raw" as const,
+      workspaceRoot: workspacePath,
+      startedAt: STARTED_AT,
+      capturedAt: "2026-11-17T00:01:00.000Z",
+      timing: (index: number) => index * 1000,
+    };
+
+    const readOnly = await transcriptFromClaudeCodeStream(
+      [initEvent(workspacePath), bashToolUse("cat package.json"), resultEvent("Read it.")],
+      options,
+    );
+    expect(readOnly.transcript.shellMutationRisk).toBeUndefined();
+    expect(readOnly.transcript.notes).toBeUndefined();
+
+    const interpreter = await transcriptFromClaudeCodeStream(
+      [
+        initEvent(workspacePath),
+        bashToolUse("node ./scripts/patch.js"),
+        resultEvent("Ran the script."),
+      ],
+      options,
+    );
+    expect(interpreter.transcript.shellMutationRisk).toBe(true);
   });
 
   it("refuses a path outside the workspace and a capture without usage", async () => {

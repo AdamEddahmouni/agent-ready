@@ -38,8 +38,11 @@ All notable changes to Agent-Ready are documented here. The project follows
   transcript which is not a real capture or which disagrees with the run's
   task, condition, model, or client; and a Claude Code `stream-json` capture
   adapter that grounds `Read`/`Write`/`Edit`/`MultiEdit`/`Bash`/`Grep`/`Glob`
-  tools, with replay tests through the scorer. Research tooling only: no CLI,
-  public contract schema, or package-output change.
+  tools, with replay tests through the scorer. The adapter refuses a Bash
+  command that certainly changed files and flags an ambiguous interpreter, and
+  a replay mismatch now aborts the trial instead of being recorded as an
+  infrastructure failure. Research tooling only: no CLI, public contract
+  schema, or package-output change.
 - Experimental `agent-ready twin build` and `agent-ready twin query` (ADR-0049).
 
 ### Changed

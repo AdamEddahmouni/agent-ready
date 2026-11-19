@@ -28,6 +28,12 @@ export interface ClaudeCodeCaptureOptions {
    * recorded as a limitation because it is sequence, not duration.
    */
   readonly timing?: (index: number) => number | undefined;
+  /**
+   * `refuse` (default) aborts when a shell command certainly changed files;
+   * `flag` records the risk and continues. Ambiguous interpreters are always
+   * flagged, never refused.
+   */
+  readonly onShellMutation?: "refuse" | "flag";
 }
 
 export interface ClaudeCodeCaptureResult {
@@ -56,6 +62,120 @@ export function readClaudeCodeStream(stream: string | readonly unknown[]): reado
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
     .map((line) => JSON.parse(line) as unknown);
+}
+
+type MutationRisk = "none" | "possible" | "certain";
+
+const GIT_READ_ONLY = new Set([
+  "status",
+  "diff",
+  "log",
+  "show",
+  "rev-parse",
+  "ls-files",
+  "grep",
+  "blame",
+  "describe",
+  "cat-file",
+]);
+const PACKAGE_MANAGERS = new Set(["npm", "pnpm", "yarn", "bun", "npx", "pnpx"]);
+const FILE_MUTATORS = new Set([
+  "rm",
+  "rmdir",
+  "mv",
+  "cp",
+  "ln",
+  "mkdir",
+  "touch",
+  "truncate",
+  "dd",
+  "patch",
+  "tee",
+  "chmod",
+  "chown",
+  "tar",
+  "unzip",
+  "zip",
+]);
+const BUILD_TOOLS = new Set([
+  "make",
+  "prettier",
+  "eslint",
+  "tsc",
+  "vitest",
+  "jest",
+  "mocha",
+  "tsx",
+  "cargo",
+  "go",
+]);
+const READ_ONLY = new Set([
+  "cat",
+  "ls",
+  "head",
+  "tail",
+  "wc",
+  "grep",
+  "rg",
+  "find",
+  "pwd",
+  "echo",
+  "stat",
+  "file",
+  "diff",
+  "sort",
+  "uniq",
+  "cut",
+  "which",
+  "type",
+  "true",
+  "false",
+]);
+const REDIRECT = /(^|[^0-9&])>>?\s*[^&\s]/;
+
+function commandSegments(command: string): string[] {
+  return command
+    .split(/[;&|\n]+/)
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+}
+
+function segmentRisk(segment: string): MutationRisk {
+  if (REDIRECT.test(segment) && !/>\s*\/dev\/null/.test(segment)) return "certain";
+  const tokens = segment.split(/\s+/).filter((token) => token.length > 0);
+  const rawExecutable = tokens[0];
+  if (rawExecutable === undefined) return "none";
+  const executable = rawExecutable.replaceAll('"', "").replaceAll("'", "");
+
+  if (executable === "sed") {
+    return tokens.some((token) => /^-i|^--in-place/.test(token)) ? "certain" : "none";
+  }
+  if (executable === "git") {
+    const subcommand = tokens.slice(1).find((token) => !token.startsWith("-"));
+    return subcommand !== undefined && GIT_READ_ONLY.has(subcommand) ? "none" : "certain";
+  }
+  if (READ_ONLY.has(executable)) return "none";
+  if (
+    PACKAGE_MANAGERS.has(executable) ||
+    FILE_MUTATORS.has(executable) ||
+    BUILD_TOOLS.has(executable)
+  ) {
+    return "certain";
+  }
+  // Interpreters and unknown executables can write; no static check can rule it
+  // out, so they are flagged rather than refused.
+  return "possible";
+}
+
+/** Classifies a shell line. Conservative by construction: quotes are not parsed. */
+export function shellMutationRisk(command: string): MutationRisk {
+  let risk: MutationRisk = "none";
+  for (const segment of commandSegments(command)) {
+    const segmentLevel = segmentRisk(segment);
+    if (segmentLevel === "certain") return "certain";
+    if (segmentLevel === "possible") risk = "possible";
+  }
+  return risk;
 }
 
 function repositoryPath(filePath: string, workspaceRoot: string): string {
@@ -268,8 +388,30 @@ export async function transcriptFromClaudeCodeStream(
     throw new Error("Claude Code stream has no result usage; the capture is incomplete");
   }
 
+  const shellRisks = state.events
+    .flatMap((event) =>
+      event.kind === "shell"
+        ? [{ command: event.command, level: shellMutationRisk(event.command) }]
+        : [],
+    )
+    .filter((risk) => risk.level !== "none");
+  const certainShellMutations = shellRisks.filter((risk) => risk.level === "certain");
+  if (certainShellMutations.length > 0 && options.onShellMutation !== "flag") {
+    throw new Error(
+      "Bash certainly changed files but the result is not recorded, so replay cannot reproduce this session: " +
+        `${certainShellMutations.map((risk) => JSON.stringify(risk.command)).join(", ")}. ` +
+        'Record the resulting files as write events, or pass onShellMutation: "flag" to accept the gap.',
+    );
+  }
+  const shellMutation = shellRisks.length > 0;
+
   const sequenceDerived = state.timingFallback;
   const warnings: string[] = [];
+  if (shellMutation) {
+    warnings.push(
+      "Bash may have changed files without a recorded write; replay is not guaranteed to match this session",
+    );
+  }
   if (sequenceDerived) {
     warnings.push(
       "atMs is sequence-derived, not measured; do not report a duration from this capture",
@@ -296,6 +438,7 @@ export async function transcriptFromClaudeCodeStream(
     events: state.events,
     finalResponse: state.lastAssistantText,
     usage,
+    ...(shellMutation && { shellMutationRisk: true }),
     ...(warnings.length > 0 && { notes: warnings.join("; ") }),
   });
 

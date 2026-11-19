@@ -121,6 +121,7 @@
         "reasoning": { "type": ["integer", "null"], "minimum": 0 }
       }
     },
+    "shellMutationRisk": { "type": "boolean" },
     "verificationSelectionResult": { "type": "boolean" },
     "notes": { "type": "string" }
   }

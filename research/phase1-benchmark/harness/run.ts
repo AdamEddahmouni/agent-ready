@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { HarnessAbortError } from "./errors.js";
 import type { CommandExecutor } from "./score.js";
 import {
   createWorkspaceReader,
@@ -177,6 +178,9 @@ export async function executeTrial(options: {
   try {
     observations = await options.runner.run(request);
   } catch (error) {
+    // A mismatch or unusable input is a harness defect: abort instead of
+    // recording a trial that was never actually run.
+    if (error instanceof HarnessAbortError) throw error;
     observations = failedObservations(error);
   }
   const endTime = new Date(now()).toISOString();

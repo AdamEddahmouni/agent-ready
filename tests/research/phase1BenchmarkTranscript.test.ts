@@ -27,6 +27,7 @@ import {
   parseTranscript,
   TranscriptProvenanceError,
   TranscriptReplayRunner,
+  TranscriptRunMismatchError,
   TranscriptValidationError,
   type AgentTranscript,
 } from "../../research/phase1-benchmark/harness/transcript.js";
@@ -155,6 +156,66 @@ describe("Phase 1 agent transcript", () => {
     expect(await readFile(join(workspace.path, "package.json"), "utf8")).toContain(
       '"semver": "^7.6.0"',
     );
+  });
+
+  it("aborts a mismatched replay instead of recording an infrastructure failure", async () => {
+    const transcript = parseTranscript(
+      JSON.parse(await readFile(EDIT_FIXTURE_PATH, "utf8")) as unknown,
+    );
+    const protocol = await loadProtocol();
+    const task = taskById(protocol, "axios-01-identify-test-script");
+    const repository = repositoryById(protocol, task.repositoryId);
+
+    await expect(
+      executeTrial({
+        runManifestId: "transcript-fixture-manifest",
+        task,
+        repositoryId: repository.id,
+        condition: transcript.condition,
+        runIndex: 0,
+        config: CONFIG,
+        workspace: await prepareConditionWorkspace({
+          repository,
+          condition: transcript.condition,
+          baseDirectory,
+          fetcher: new FixtureFetcher(),
+        }),
+        runner: new TranscriptReplayRunner(transcript, { allowAuthored: true }),
+        commandExecutor: new FakeCommandExecutor(),
+        now: () => Date.parse("2026-11-17T00:00:00.000Z"),
+      }),
+    ).rejects.toThrow(TranscriptRunMismatchError);
+  });
+
+  it("still records an ordinary runner failure as an infrastructure failure", async () => {
+    const protocol = await loadProtocol();
+    const task = taskById(protocol, "axios-02-add-devdep");
+    const repository = repositoryById(protocol, task.repositoryId);
+
+    const result = await executeTrial({
+      runManifestId: "transcript-fixture-manifest",
+      task,
+      repositoryId: repository.id,
+      condition: "raw",
+      runIndex: 0,
+      config: CONFIG,
+      workspace: await prepareConditionWorkspace({
+        repository,
+        condition: "raw",
+        baseDirectory,
+        fetcher: new FixtureFetcher(),
+      }),
+      runner: {
+        run(): Promise<never> {
+          return Promise.reject(new Error("workspace checkout vanished"));
+        },
+      },
+      commandExecutor: new FakeCommandExecutor(),
+      now: () => Date.parse("2026-11-17T00:00:00.000Z"),
+    });
+
+    expect(result.record.infrastructureFailure).toBe(true);
+    expect(result.record.success).toBe(false);
   });
 
   it("refuses an authored transcript unless a test says otherwise", async () => {

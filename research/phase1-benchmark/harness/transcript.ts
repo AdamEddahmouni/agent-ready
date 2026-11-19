@@ -4,6 +4,7 @@ import { dirname, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import type { ValidateFunction } from "ajv";
+import { HarnessAbortError } from "./errors.js";
 import { resolveWorkspacePath } from "./score.js";
 import type {
   AgentObservations,
@@ -91,6 +92,11 @@ export interface AgentTranscript {
   readonly events: readonly TranscriptEvent[];
   readonly finalResponse: string;
   readonly usage: TokenMetrics;
+  /**
+   * Present and true when a shell command may have changed the workspace in a
+   * way the transcript does not record. Replay cannot reproduce that state.
+   */
+  readonly shellMutationRisk?: boolean;
   /** Post-hoc adjudication; absent means fail closed to `false`. */
   readonly verificationSelectionResult?: boolean;
   readonly notes?: string;
@@ -287,19 +293,29 @@ export class TranscriptReplayRunner implements AgentRunner {
       );
     }
     if (mismatches.length > 0) {
-      throw new Error(`transcript does not describe this run: ${mismatches.join("; ")}`);
+      throw new TranscriptRunMismatchError(mismatches);
     }
     await applyRecordedWrites(this.transcript, request.workspacePath);
     return await Promise.resolve(observationsFromTranscript(this.transcript));
   }
 }
 
-export class TranscriptProvenanceError extends Error {
+export class TranscriptProvenanceError extends HarnessAbortError {
   constructor(transcript: AgentTranscript) {
     super(
       `transcript for ${transcript.taskId} (${transcript.condition}) is not a real capture; ` +
         "an authored transcript may only be replayed with allowAuthored: true",
     );
     this.name = "TranscriptProvenanceError";
+  }
+}
+
+export class TranscriptRunMismatchError extends HarnessAbortError {
+  readonly mismatches: readonly string[];
+
+  constructor(mismatches: readonly string[]) {
+    super(`transcript does not describe this run: ${mismatches.join("; ")}`);
+    this.name = "TranscriptRunMismatchError";
+    this.mismatches = mismatches;
   }
 }

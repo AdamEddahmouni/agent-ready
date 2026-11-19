@@ -20,7 +20,11 @@ change between trials without the protocol noticing. Instead:
    `AgentObservations`, which the existing scorer consumes unchanged.
 
 A trial is therefore reproducible from the transcript alone: no model, no
-network, no subprocess. That is what makes a published raw run auditable.
+network, no subprocess. That is what makes a published raw run auditable. A
+replay whose task, condition, model, or client disagrees with the transcript
+throws `TranscriptRunMismatchError` (a `HarnessAbortError`), so `executeTrial`
+aborts instead of recording a trial that was never run as an infrastructure
+failure.
 
 ## The v1 document
 
@@ -89,6 +93,16 @@ const capture = await transcriptFromClaudeCodeStream(streamJsonl, {
 The adapter throws on anything it cannot ground: a path outside the workspace,
 an edit whose target text is absent, a stream with no model, or a stream with no
 `result` usage. It does not guess.
+
+**Bash.** A recorded shell event carries no resulting files. The adapter
+classifies each command conservatively: read-only commands (`cat`, `ls`,
+`git status`, …) pass; a command that certainly writes (`sed -i`, a redirect to
+a file, `rm`/`mv`/`cp`, a package-manager install, a formatter or build, a
+mutating `git` subcommand) is **refused**, because a replay of that transcript
+would score a workspace the session changed; and an interpreter (`node`,
+`python`, a shell) is **flagged** with `shellMutationRisk: true`, because no
+static read can rule out a write. Passing `onShellMutation: "flag"` captures a
+certain mutation anyway — the flag still records that replay may diverge.
 
 **Timing.** A saved log carries no per-event timestamps. When `timing` is
 omitted, `atMs` is the event index, `timingIsSequenceDerived` is `true`, and the
