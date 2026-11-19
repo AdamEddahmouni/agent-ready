@@ -89,7 +89,10 @@ and the oracle wants `script == "test"`. The repository at the pin has
 so the prompt's "unit tests" and the oracle's `test` disagree. That is task
 data to settle in a protocol revision, not a harness fault, and it fails
 identically in both conditions so the pair stays comparable. It is recorded here
-rather than edited, because the protocol is frozen with a digest lock.
+rather than edited, because the protocol is frozen with a digest lock. The
+correction is drafted in
+[`proposals/0001-axios-01-unit-test-script.md`](../phase1-benchmark-protocol/proposals/0001-axios-01-unit-test-script.md)
+for the next revision.
 
 The first attempt at this pair is kept at
 `runs/phase1-pilot-axios-01-preflight/`: the treatment made three queries, the
@@ -111,11 +114,12 @@ the original pair made none, and its input tokens rose accordingly.
 
 `verificationSelectionResult` used to come only from adjudication, so it
 defaulted to `false` and a run that executed the task's own check was reported
-as a verification failure. It is now derived from the task: every
-`command-exit-zero` clause in the success oracle, and every
-`<manifest> scripts.<name>` entry in `verificationSurface`, is an expected
-check, and a recorded shell call that runs one satisfies it. Tasks that declare
-neither keep the recorded value.
+as a verification failure. It is now derived from the task's own
+`command-exit-zero` clauses: a recorded shell call that runs one satisfies the
+metric. A script merely named in `verificationSurface` does not count — the
+surface says where an answer lives, not what the agent must run, and otherwise a
+read-only task would score as verified for running `npm test`. Tasks with no
+command clause keep the recorded value.
 
 `runs/phase1-pilot-axios-03-recheck/` runs the same task and conditions as the
 earlier pair, which is kept untouched as pre-fix evidence:

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  expectedVerification,
+  expectedVerificationCommands,
   selectedVerificationFor,
 } from "../../research/phase1-benchmark/harness/verificationSelection.js";
 import type {
@@ -26,7 +26,7 @@ function shell(command: string): ToolCallRecord {
   return { name: "shell", command };
 }
 
-describe("expectedVerification", () => {
+describe("expectedVerificationCommands", () => {
   it("takes every command-exit-zero clause, including nested all-of clauses", () => {
     const oracle: Oracle = {
       type: "all-of",
@@ -40,17 +40,15 @@ describe("expectedVerification", () => {
       ],
     };
 
-    expect(expectedVerification(task({ successOracle: oracle })).commands).toEqual([
+    expect(expectedVerificationCommands(task({ successOracle: oracle }))).toEqual([
       "npm run check:sponsor-data",
       "npm test",
     ]);
   });
 
-  it("reads script names out of the verification surface", () => {
-    const definition = task({
-      verificationSurface: ["package.json scripts.test", "docs/data.json"],
-    });
-    expect(expectedVerification(definition).scripts).toEqual(["test"]);
+  it("ignores a script the verification surface merely names", () => {
+    const definition = task({ verificationSurface: ["package.json scripts.test"] });
+    expect(expectedVerificationCommands(definition)).toEqual([]);
   });
 });
 
@@ -65,25 +63,19 @@ describe("selectedVerificationFor", () => {
     ).toBe(true);
   });
 
-  it("counts a trigger through either package-manager spelling", () => {
-    const definition = task({ verificationSurface: ["package.json scripts.test"] });
+  it("does not count a near-miss command", () => {
+    const definition = task({
+      successOracle: { type: "command-exit-zero", command: "npm run check:sponsor-data" },
+    });
 
-    expect(selectedVerificationFor(definition, [shell("npm test")])).toBe(true);
-    expect(selectedVerificationFor(definition, [shell("cd packages/a && npm run test")])).toBe(
-      true,
-    );
+    expect(selectedVerificationFor(definition, [shell("npm run check:sponsor")])).toBe(false);
+    expect(selectedVerificationFor(definition, [shell("npm test")])).toBe(false);
   });
 
-  it("does not count an unrelated command", () => {
+  it("does not score a read-only task as verified because the agent ran its test script", () => {
     const definition = task({ verificationSurface: ["package.json scripts.test"] });
 
-    expect(selectedVerificationFor(definition, [shell("npm run build")])).toBe(false);
-    expect(
-      selectedVerificationFor(definition, [{ name: "write_file", path: "package.json" }]),
-    ).toBe(false);
-  });
-
-  it("returns undefined when the task declares no check", () => {
-    expect(selectedVerificationFor(task(), [shell("npm test")])).toBeUndefined();
+    expect(selectedVerificationFor(definition, [shell("npm test")])).toBeUndefined();
+    expect(selectedVerificationFor(definition, [shell("rg test package.json")])).toBeUndefined();
   });
 });

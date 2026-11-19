@@ -77,11 +77,12 @@ All notable changes to Agent-Ready are documented here. The project follows
 
 ### Changed
 
-- Phase 1 research: `verificationSelectionResult` is now derived from the task
-  rather than left to adjudication, so a run that executes the task's own check
-  (a `command-exit-zero` clause, or a script named in `verificationSurface`)
-  is not reported as a verification failure; a task that declares no check keeps
-  its recorded value.
+- Phase 1 research: `verificationSelectionResult` is now derived from the
+  task's `command-exit-zero` oracle clauses rather than left to adjudication, so
+  a run that executes the task's own check is not reported as a verification
+  failure. A script named only in `verificationSurface` does not count, so a
+  read-only task cannot score as verified by running the suite; a task with no
+  command clause keeps its recorded value.
 - Phase 1 research: the `agent-ready` condition's description steers
   repository-structure questions to the snapshot query, and its `PATH` wrapper
   refuses a caller-supplied `--snapshot`, so a trial cannot query another

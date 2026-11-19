@@ -113,12 +113,16 @@ The wrapper prepended to `PATH` binds the trial's snapshot by appending
 artifact.
 
 `verificationSelectionResult` is derived in
-`harness/verificationSelection.ts`: the expected checks are the oracle's
-`command-exit-zero` clauses plus any script named by `verificationSurface`
-(`<manifest> scripts.<name>`), and a recorded shell call that runs one — under
-any of `npm`, `pnpm`, `yarn` or `bun`, optionally inside a shell wrapper or a
-`cd … &&` chain — sets the field to `true`. A task that declares no check
-returns `undefined` and the recorded adjudication stands.
+`harness/verificationSelection.ts` from the oracle's `command-exit-zero`
+clauses and nothing else: a recorded shell call whose command contains one of
+those check commands, in any quoting or inside a `cd … &&` chain, sets the
+field to `true`.
+
+A script named in `verificationSurface` does not count. The surface records
+where an answer lives, not what the agent should run — `axios-01` names
+`package.json scripts.test` because the answer is that script's name, and a
+read-only task must not read as verified because the agent happened to run the
+suite. A task with no command clause leaves the field at its recorded value.
 
 ## Reproducing metrics and reports
 
