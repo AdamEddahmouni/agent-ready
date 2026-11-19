@@ -70,7 +70,10 @@ All notable changes to Agent-Ready are documented here. The project follows
   order comes from the manifest seed, and `--dry-run` replays the full 78-trial
   order with a scripted runner. The `agent-ready` condition gets a fixed tool
   description plus an `agent-ready twin query` wrapper bound to the trial's
-  snapshot on PATH, so it is not a second raw trial. Research tooling only.
+  snapshot on PATH, so it is not a second raw trial. The agent-ready CLI is
+  built at the manifest's pinned commit (`research:benchmark-build-agent-ready`,
+  exported with `git archive`) or verified against a build stamp recording that
+  commit, so a stale or locally edited `dist/` is refused. Research tooling only.
 
 ### Changed
 

@@ -73,7 +73,7 @@ the raw log and transcript, scores through `executeTrial`, and writes
 `raw/<task>--<condition>--<runIndex>.json`:
 
 ```bash
-pnpm build   # once, at the manifest's agentReadyCommit: agent-ready trials need it
+pnpm research:benchmark-build-agent-ready   # once: builds the manifest's pinned commit
 pnpm research:benchmark-run --out runs/phase1-v1          # all 78, in seed order
 pnpm research:benchmark-run --out runs/pilot --task axios-03-add-sponsor-data-check --runs 1 --limit 2
 pnpm research:benchmark-run --out runs/dry --dry-run      # scripted runner, no model
@@ -86,8 +86,13 @@ manifest's token or wall-clock cap is reached. `--dry-run` writes under
 `<out>/dry-run` and cites `<manifest id>-dry-run`; those records are plumbing
 evidence and must never be published as protocol results.
 
-The `agent-ready` condition needs a built CLI (`--agent-ready-cli`, default
-`dist/cli/index.js`). The runner writes `<runRoot>/bin/agent-ready`, which calls
+The `agent-ready` condition needs a CLI built from the manifest's pinned commit.
+`research:benchmark-build-agent-ready` exports that commit with `git archive`,
+builds it against this checkout's installed dependencies, and stamps the result
+with `.agent-ready-build.json`. The runner then verifies the stamp: a missing
+stamp, another commit, or a dirty tree is refused, so a stale `dist/` cannot
+stand in for the artifact under test. Pass `--build-agent-ready` to build during
+the run, or `--agent-ready-cli <path>` to verify a build you made yourself. The runner writes `<runRoot>/bin/agent-ready`, which calls
 `twin query` with that trial's snapshot appended, and prepends the directory to
 the client's `PATH`. That wrapper changes to the package root before executing,
 because the CLI resolves its bundled schemas relative to the working directory.

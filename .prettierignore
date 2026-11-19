@@ -6,3 +6,5 @@ compatibility/adapter-output/**/expected/
 # Fixture repositories are data, and some deliberately contain invalid JSON
 # (the partial-observation case) or files a formatter would rewrite.
 conformance/
+build/
+runs/

@@ -5,6 +5,12 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { twinQueryWrapper } from "./harness/access.js";
+import {
+  AgentReadyCliError,
+  BUILD_DIRECTORY,
+  buildAgentReadyCli,
+  verifyAgentReadyCli,
+} from "./harness/agentReadyCli.js";
 import { CodexAgentRunner, type LiveTrialArtifacts } from "./harness/codexRunner.js";
 import { NodeCommandExecutor } from "./harness/command.js";
 import type { CommandExecutor } from "./harness/score.js";
@@ -314,12 +320,13 @@ export async function executeProtocolRun(options: ProtocolRunOptions): Promise<P
   };
 }
 
-const DEFAULT_AGENT_READY_CLI = fileURLToPath(new URL("../../dist/cli/index.js", import.meta.url));
+const REPOSITORY_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
 const USAGE =
   "Usage: pnpm research:benchmark-run --out <run-dir> [--manifest <run-manifest.json>] " +
   "[--task <id>] [--repository <id>] [--condition raw|agent-ready] [--runs <n>] [--limit <n>] " +
-  "[--agent-ready-cli <built-cli>] [--codex <command>] [--base-dir <dir>] [--force] " +
+  "[--agent-ready-cli <built-cli> | --build-agent-ready] [--agent-ready-build-dir <dir>] " +
+  "[--codex <command>] [--base-dir <dir>] [--force] " +
   "[--keep-workspaces] [--dry-run]";
 
 function multiples(value: unknown): readonly string[] | undefined {
@@ -378,6 +385,8 @@ async function main(): Promise<number> {
         runs: { type: "string" },
         limit: { type: "string" },
         "agent-ready-cli": { type: "string" },
+        "agent-ready-build-dir": { type: "string" },
+        "build-agent-ready": { type: "boolean", default: false },
         codex: { type: "string" },
         "base-dir": { type: "string" },
         force: { type: "boolean", default: false },
@@ -433,26 +442,52 @@ async function main(): Promise<number> {
   }
 
   const outputDirectory = dryRun ? join(out, "dry-run") : out;
-  const agentReadyCliPath =
-    typeof values["agent-ready-cli"] === "string"
-      ? values["agent-ready-cli"]
-      : DEFAULT_AGENT_READY_CLI;
   const needsAgentReady = selected.some((trial) => trial.condition === "agent-ready");
+  const defaultBuildRoot = join(
+    REPOSITORY_ROOT,
+    BUILD_DIRECTORY,
+    `agent-ready-${manifest.agentReadyCommit.slice(0, 12)}`,
+  );
 
   // A dry run writes the wrapper but never executes it, so it needs no build.
-  const effectiveAgentReadyCli = dryRun
-    ? typeof values["agent-ready-cli"] === "string"
-      ? values["agent-ready-cli"]
-      : "dry-run-cli"
-    : agentReadyCliPath;
-
-  if (!dryRun && needsAgentReady) {
-    if (!existsSync(agentReadyCliPath)) {
-      console.error(
-        `agent-ready trials need a built CLI at ${agentReadyCliPath}; run \`pnpm build\` ` +
-          "at the manifest's agentReadyCommit or pass --agent-ready-cli <path>",
+  let effectiveAgentReadyCli: string;
+  if (dryRun) {
+    effectiveAgentReadyCli =
+      typeof values["agent-ready-cli"] === "string" ? values["agent-ready-cli"] : "dry-run-cli";
+  } else if (!needsAgentReady) {
+    effectiveAgentReadyCli = "";
+  } else {
+    // The CLI is the artifact under test, so it is built at the pinned commit
+    // or verified against its build stamp. A path alone proves nothing.
+    try {
+      const resolved =
+        values["build-agent-ready"] === true
+          ? await buildAgentReadyCli({
+              repositoryRoot: REPOSITORY_ROOT,
+              pinnedCommit: manifest.agentReadyCommit,
+              outputRoot:
+                typeof values["agent-ready-build-dir"] === "string"
+                  ? values["agent-ready-build-dir"]
+                  : defaultBuildRoot,
+            })
+          : await verifyAgentReadyCli({
+              cliPath:
+                typeof values["agent-ready-cli"] === "string"
+                  ? values["agent-ready-cli"]
+                  : join(defaultBuildRoot, "dist", "cli", "index.js"),
+              pinnedCommit: manifest.agentReadyCommit,
+            });
+      effectiveAgentReadyCli = resolved.cliPath;
+      console.log(
+        `agent-ready CLI ${resolved.cliPath} (commit ${resolved.buildInfo.commit}, ` +
+          `version ${resolved.buildInfo.version ?? "unknown"})`,
       );
-      return 1;
+    } catch (error) {
+      if (error instanceof AgentReadyCliError) {
+        console.error(error.message);
+        return 1;
+      }
+      throw error;
     }
   }
   if (!dryRun) {

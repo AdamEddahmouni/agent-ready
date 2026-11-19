@@ -63,6 +63,42 @@ oracle evaluation. Both captured sessions report usage through
 | Runs          | `runIndex: 0` for `raw` and for `agent-ready`                                                                                                                                                                                                                             |
 | Why this pair | It is the only task whose oracle both edits a file and runs a command, so the pilot exercises the write path, the `command-exit-zero` clause and the oracle aggregation in one trial. A real session for it is already committed, so the pilot has a known-good baseline. |
 
+## Pilot result (2026-11-19)
+
+`axios-03-add-sponsor-data-check` × run 0 × both conditions, from the committed
+manifest, through `runs/phase1-pilot-axios-03/`. The agent-ready trial queried
+the CLI built at `2a0515e` (version 0.6.1), which the runner verified by stamp.
+Both records are valid, `infrastructureFailure: false`, and the report
+reproduces from their bytes.
+
+|                                    | raw                    | agent-ready            |
+| ---------------------------------- | ---------------------- | ---------------------- |
+| Success                            | yes                    | yes                    |
+| Input tokens                       | 72,428 (67,584 cached) | 56,969 (50,816 cached) |
+| Output tokens                      | 284                    | 234                    |
+| Wall clock                         | 16.3 s                 | 11.7 s                 |
+| Time to first correct modification | 9.86 s                 | 8.38 s                 |
+| Twin queries                       | 0                      | **0**                  |
+
+Both runs added the `check:sponsor-data` script and ran it to exit 0. The
+agent-ready session never invoked the wrapper: it inspected `package.json` with
+`sed` and edited it directly. So this pilot validates the pipeline, the pinned
+artifact, the snapshot build and the fact that the tool was available — not a
+behavioural difference between conditions. The task prompt offers snapshot
+access; it does not require a query, and on this task the agent had no reason to
+ask a structure question. A later pilot on a task whose first move is a
+repository-structure question (or a description that names the snapshot query as
+the preferred source for such questions) is what would show usage.
+
+Both records report `verificationSelectionResult: false`, which is the
+fail-closed default: that metric is post-hoc and adjudicated, and no adjudication
+has been recorded. The report's `verification failure 100.0%` and its
+`noDemonstratedBenefit` decision are therefore mechanical output on one run per
+condition, not a result.
+
+Report: [`report/report.md`](../../../runs/phase1-pilot-axios-03/report/report.md),
+metrics: [`derived/metrics.json`](../../../runs/phase1-pilot-axios-03/derived/metrics.json).
+
 ## Running a trial
 
 One command per run. It prepares a fresh checkout at the pinned SHA, builds the
@@ -71,7 +107,7 @@ saves the client log and transcript, scores through `executeTrial`, and writes
 one schema-valid record to `raw/`:
 
 ```bash
-pnpm build   # once, at agentReadyCommit: agent-ready trials need a built CLI
+pnpm research:benchmark-build-agent-ready   # once: builds the pinned commit
 pnpm research:benchmark-run --out runs/pilot \
   --task axios-03-add-sponsor-data-check --runs 1
 pnpm research:benchmark-reproduce --raw runs/pilot/raw --out runs/pilot
@@ -80,7 +116,10 @@ pnpm research:benchmark-reproduce --raw runs/pilot/raw --out runs/pilot
 The run resumes by skipping trials that already have a record (`--force`
 re-runs), retries an infrastructure failure once, stops at the manifest's token
 or wall-clock cap, and refuses to run an `agent-ready` trial without snapshot
-access rather than silently recording a second raw trial.
+access rather than silently recording a second raw trial. The CLI itself is
+verified against the pinned commit (`--build-agent-ready` builds it, otherwise a
+stamp of `agentReadyCommit` and a clean tree are required), because the artifact
+under test is the pinned code, not whatever `dist/` is on the machine.
 
 `--dry-run` executes the full 78-trial order with a scripted runner and no
 model: it writes under `<out>/dry-run` citing `phase1-v1-2026-11-19-dry-run`, so
@@ -108,7 +147,6 @@ those records cannot be confused with protocol results.
    adjudication sidecar rather than the raw log.
 3. **Cost is a cap, not an estimate.** The manifest bounds tokens and wall clock;
    a dollar figure needs the pilot's measured usage first.
-4. **Client quota is unproven at 78 trials.** A single pilot session is known to
-   work; sustained rate limits, per-trial login expiry, and the wall-clock cost
-   of five repository checkouts per pass have not been measured across a full
-   run.
+4. **Client quota is unproven at 78 trials.** Two pilot sessions completed in
+   32 s, but sustained rate limits, per-trial login expiry and the wall-clock
+   cost of five repository checkouts per pass remain unmeasured at scale.
