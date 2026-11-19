@@ -7,7 +7,7 @@ Offline tooling for protocol v1. **Does not invoke models or run the benchmark.*
 - `aggregate.ts` — schema-validates raw runs, excludes infrastructure failures and forbidden actions, and computes the five predeclared summaries, sample variance, Wilson intervals, and per-task aggregates
 - `report.ts` — validates that a report accounts for every raw run and renders deterministic JSON and Markdown with per-file SHA-256 checksums
 - `adjudication.ts` — requires two reviewers for manual rubrics and a distinct third reviewer on disagreement; adjudications are stored in a separate sidecar file
-- `reproduce.ts` — one-command raw → derived → report reproduction
+- `capture.ts` — turns a saved client event log into Agent Transcript v1 (see below)
 
 Raw run records validate against `schemas/research/phase1-benchmark-raw-run-v1.schema.json`. Run manifests start from `docs/research/phase1-benchmark-protocol/v1/run-manifest.template.json` and validate against `schemas/research/phase1-benchmark-run-manifest-v1.schema.json`.
 
@@ -39,6 +39,21 @@ see the recorded state) and invokes no model and no subprocess.
 [`harness/claudeCode.ts`](harness/claudeCode.ts) converts a Claude Code
 `stream-json` session into the same document, and
 [`harness/codex.ts`](harness/codex.ts) converts `codex exec --json`.
+
+[`capture.ts`](capture.ts) is the entry point that runs an adapter over a saved
+log and writes the document. It needs the checkout the session ran in, because a
+Codex file change carries a path but no content:
+
+```bash
+pnpm research:benchmark-capture \
+  --client codex --log session.jsonl \
+  --task axios-02-add-devdep --condition raw --workspace /tmp/checkout \
+  --started-at 2026-11-17T00:00:00.000Z --model-id <model> \
+  --out transcripts/axios-02-add-devdep.json
+```
+
+`--client-version`, `--captured-at` and `--on-shell-mutation flag` are optional;
+Claude Code logs may omit `--model-id` because their init event records it.
 
 ## Reproducing metrics and reports
 

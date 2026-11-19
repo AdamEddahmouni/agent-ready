@@ -44,8 +44,10 @@ All notable changes to Agent-Ready are documented here. The project follows
   infrastructure failure. A Codex `exec --json` adapter records each reported
   file change by reading it from the session's workspace, refuses a deletion it
   cannot replay, applies the same shell-mutation rule, and records an item type
-  it does not model as `other` instead of dropping it. Research tooling
-  only: no CLI, public contract schema, or package-output change.
+  it does not model as `other` instead of dropping it. A
+  `research:benchmark-capture` command applies either adapter to a saved log and
+  writes the transcript. Research tooling only: no CLI, public contract schema,
+  or package-output change.
 - Experimental `agent-ready twin build` and `agent-ready twin query` (ADR-0049).
 
 ### Changed

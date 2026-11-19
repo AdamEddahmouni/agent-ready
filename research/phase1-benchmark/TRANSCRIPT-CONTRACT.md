@@ -129,6 +129,11 @@ notes when it sees more than one turn. Bash is classified exactly as in the
 Claude Code adapter, and a command that certainly wrote files without a
 `file_change` item is refused unless `onShellMutation: "flag"` accepts the gap.
 
+`pnpm research:benchmark-capture` ([`capture.ts`](capture.ts)) applies either
+adapter to a saved log and writes the transcript. It validates the task id
+against protocol v1, requires `--started-at` because no client stream records the
+session's start, and keeps the checkout codex ran in as `--workspace`.
+
 ## Capturing the first real transcript (pilot, #57)
 
 The environment for the pilot is not yet fixed. When it is:
