@@ -47,9 +47,10 @@ All notable changes to Agent-Ready are documented here. The project follows
   it does not model as `other` instead of dropping it. A
   `research:benchmark-capture` command applies either adapter to a saved log and
   writes the transcript. The shell-mutation rule now decides from the checkout
-  rather than the command text: it compares the paths git reports as changed
-  with the recorded writes, so a session whose `file_change` items cover every
-  change is captured without a risk flag, and an unrecorded path is what
+  rather than the command text: it verifies that every recorded write still
+  holds the recorded bytes and that every path git reports as changed is
+  recorded, so a session whose `file_change` items cover every change is
+  captured without a risk flag, and an unrecorded or later-edited path is what
   triggers the refusal. Commands wrapped as `/bin/bash -lc "…"` are classified
   by the command they carry. The first real Codex session is recorded under
   `research/phase1-benchmark/captures/` with its raw log and replay result — one

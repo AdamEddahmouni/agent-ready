@@ -253,7 +253,9 @@ export async function transcriptFromClaudeCodeStream(
 
   const assessment = await assessShellMutation({
     workspaceRoot: options.workspaceRoot,
-    recordedPaths: state.events.flatMap((event) => (event.kind === "write" ? [event.path] : [])),
+    recordedWrites: state.events.flatMap((event) =>
+      event.kind === "write" ? [{ path: event.path, content: event.content }] : [],
+    ),
     commands: state.events.flatMap((event) =>
       event.kind === "shell"
         ? [{ command: event.command, level: shellMutationRisk(event.command) }]

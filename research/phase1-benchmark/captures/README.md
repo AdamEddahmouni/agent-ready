@@ -26,9 +26,10 @@ forbidden action, or starts carrying `shellMutationRisk`.
 
 **Bash.** After its `file_change` item the session ran
 `truncate -s -1 package.json`, so the capture depends on the rule that compares
-the checkout's changed paths with the recorded writes. Every changed path is
-recorded, so the transcript carries no `shellMutationRisk` and its note records
-the classification (`1 certain, 2 possible` mutating commands). The offline
+the checkout with the transcript: every recorded write still holds the recorded
+bytes, and every path git reports as changed is recorded. Both hold here, so the
+transcript carries no `shellMutationRisk` and its note records the
+classification (`1 certain, 2 possible` mutating commands). The offline
 conversion read the file after the session finished; converting while the
 session ran would have recorded the pre-truncate content.
 

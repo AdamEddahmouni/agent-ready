@@ -103,16 +103,21 @@ refusal candidate; an interpreter (`node`, `python`, a shell) is a warning
 candidate. Commands wrapped as `/bin/bash -lc "…"` are classified by the
 command they carry, because Codex runs every shell command that way.
 
-The verdict comes from the checkout, not the text: the adapter compares the
-recorded write paths with the paths `git status --porcelain -z` reports as
-changed. When every changed path is recorded as a write, the capture is
-accepted and a note says so. When a changed path is unrecorded, a refusal
-candidate makes the adapter **refuse** — a replay would score a workspace the
-session changed — and without one it records `shellMutationRisk: true`. A
-directory git cannot answer for is never treated as coverage: a refusal
-candidate still refuses. Passing `onShellMutation: "flag"` accepts a gap the
-adapter would otherwise refuse, and the flag still records that replay may
-diverge.
+The verdict comes from the checkout, not the text. Every path
+`git status --porcelain -z` reports as changed must be covered by a recorded
+write. When the adapter read its content from the checkout — always true for
+Codex, whose stream carries no content — each recorded write must also still
+hold the bytes the transcript records, compared exactly; a file edited after
+the capture read it is refused rather than trusted, and a recorded file that
+has since disappeared is a gap too. Claude Code's Edit derives content from the
+tool input instead, so that adapter runs the path check without the byte check
+rather than pretending the two should agree. When both checks pass, the capture is accepted and a
+note says so. When a changed path is unrecorded, a refusal candidate makes the
+adapter **refuse** — a replay would score a workspace the session changed — and
+without one it records `shellMutationRisk: true`. A directory git cannot answer
+for is never treated as coverage: a refusal candidate still refuses. Passing
+`onShellMutation: "flag"` accepts a gap the adapter would otherwise refuse, and
+the flag still records that replay may diverge.
 
 **Timing.** A saved log carries no per-event timestamps. When `timing` is
 omitted, `atMs` is the event index, `timingIsSequenceDerived` is `true`, and the

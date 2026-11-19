@@ -1,7 +1,8 @@
 import { execFile as execFileCallback } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { isAbsolute, relative, sep } from "node:path";
 import { promisify } from "node:util";
-import { normalizeWorkspacePath } from "./score.js";
+import { normalizeWorkspacePath, resolveWorkspacePath } from "./score.js";
 
 const execFile = promisify(execFileCallback);
 const MAX_GIT_OUTPUT_BYTES = 16 * 1024 * 1024;
@@ -186,6 +187,11 @@ export interface ShellCommandRisk {
   readonly level: MutationRisk;
 }
 
+export interface RecordedWrite {
+  readonly path: string;
+  readonly content: string;
+}
+
 export interface ShellMutationAssessment {
   /** True when replay may not reproduce the checkout's changes. */
   readonly risk: boolean;
@@ -229,23 +235,69 @@ export async function changedWorkspacePaths(workspaceRoot: string): Promise<stri
 }
 
 /**
- * Decides whether Bash may have changed the workspace in a way the transcript
- * does not record. The classifier only says which commands to look at; the
- * verdict comes from comparing the checkout's changed paths with the recorded
- * writes, so a reported `file_change` that Bash then edited again is still
- * covered, and an unrecorded path is caught even when no command looks
- * mutating.
+ * Recorded paths whose bytes on disk no longer match the transcript. A write
+ * event is only replayable while the file still holds what was recorded, so a
+ * file edited after the capture read it is reported rather than trusted.
+ */
+async function changedAfterCapture(
+  workspaceRoot: string,
+  recordedWrites: readonly RecordedWrite[],
+): Promise<string[]> {
+  const checked = await Promise.all(
+    recordedWrites.map(async (write) => {
+      try {
+        const actual = await readFile(resolveWorkspacePath(workspaceRoot, write.path));
+        return actual.equals(Buffer.from(write.content, "utf8")) ? undefined : write.path;
+      } catch {
+        // A recorded write whose file is now missing or unreadable is a gap too.
+        return write.path;
+      }
+    }),
+  );
+  return checked.filter((path): path is string => path !== undefined);
+}
+
+/**
+ * Decides whether the checkout still matches the transcript. The path check
+ * always runs: every path git reports as changed must be covered by a recorded
+ * write. The byte check runs when the adapter read its content from the
+ * checkout. The classifier only says whether a Bash command could explain a
+ * gap; it never decides coverage itself.
  */
 export async function assessShellMutation(options: {
   readonly workspaceRoot: string;
-  readonly recordedPaths: readonly string[];
+  readonly recordedWrites: readonly RecordedWrite[];
   readonly commands: readonly ShellCommandRisk[];
+  /**
+   * Compare each recorded write with the file on disk. Only an adapter that read
+   * the content from the checkout can expect the checkout to still hold it;
+   * Claude Code's Edit derives content from the tool input instead, so it leaves
+   * this off rather than pretending the bytes should match.
+   */
+  readonly verifyWrittenBytes?: boolean;
 }): Promise<ShellMutationAssessment> {
   const mutating = options.commands.filter((risk) => risk.level !== "none");
+  const certain = mutating.some((risk) => risk.level === "certain");
+  const listed = mutating.map((risk) => JSON.stringify(risk.command)).join(", ");
+
+  const stale =
+    options.verifyWrittenBytes === true
+      ? await changedAfterCapture(options.workspaceRoot, options.recordedWrites)
+      : [];
+  if (stale.length > 0) {
+    const stalePaths = stale.map((path) => JSON.stringify(path)).join(", ");
+    return {
+      risk: true,
+      note: `the checkout no longer holds the bytes the transcript records for ${stalePaths}`,
+      refusal:
+        `the checkout no longer holds the bytes the transcript records for ${stalePaths}, ` +
+        "so replay would write content the session did not end with. " +
+        'Re-convert the log against the untouched checkout, or pass onShellMutation: "flag" to accept the gap.',
+    };
+  }
+
   if (mutating.length === 0) return { risk: false };
 
-  const listed = mutating.map((risk) => JSON.stringify(risk.command)).join(", ");
-  const certain = mutating.some((risk) => risk.level === "certain");
   const changed = await changedWorkspacePaths(options.workspaceRoot);
 
   if (changed === undefined) {
@@ -261,17 +313,20 @@ export async function assessShellMutation(options: {
     };
   }
 
-  const recorded = new Set(options.recordedPaths);
+  const recorded = new Set(options.recordedWrites.map((write) => write.path));
   const unrecorded = changed.filter((path) => !recorded.has(path));
   if (unrecorded.length === 0) {
     const certainCount = mutating.filter((risk) => risk.level === "certain").length;
     const possibleCount = mutating.length - certainCount;
+    const counted =
+      `Bash commands classified as mutations ran (${String(certainCount)} certain, ` +
+      `${String(possibleCount)} possible), but `;
     return {
       risk: false,
       note:
-        `Bash commands classified as mutations ran (${String(certainCount)} certain, ` +
-        `${String(possibleCount)} possible), but every path the checkout reports as changed ` +
-        "is recorded as a write",
+        changed.length === 0
+          ? `${counted}the checkout reports no changes`
+          : `${counted}every path the checkout reports as changed is recorded as a write`,
     };
   }
 

@@ -162,9 +162,14 @@ describe("capture entry", () => {
 
     expect(result.score.forbidden).toEqual([]);
     expect(result.record.success).toBe(true);
-    expect(await readFile(join(result.request.workspacePath, "package.json"), "utf8")).toContain(
-      '"semver": "^7.6.0"',
-    );
+
+    // Byte equality, not a substring: replay must restore exactly what the
+    // capture recorded, including the newline at the end of the file.
+    const recorded = transcript.events.find((event) => event.kind === "write");
+    if (recorded?.kind !== "write") throw new Error("the capture records no write event");
+    expect(recorded.content).toContain('"semver": "^7.6.0"');
+    const replayed = await readFile(join(result.request.workspacePath, recorded.path));
+    expect(replayed.equals(Buffer.from(recorded.content, "utf8"))).toBe(true);
   });
 
   it("refuses a Codex capture without a model and a task the protocol does not define", async () => {

@@ -227,7 +227,12 @@ export async function transcriptFromCodexStream(
   const collapsed = collapseRepeatedWrites(state.events);
   const assessment = await assessShellMutation({
     workspaceRoot: options.workspaceRoot,
-    recordedPaths: collapsed.flatMap((event) => (event.kind === "write" ? [event.path] : [])),
+    recordedWrites: collapsed.flatMap((event) =>
+      event.kind === "write" ? [{ path: event.path, content: event.content }] : [],
+    ),
+    // Codex supplies a path and no content, so every write was read from the
+    // checkout and must still be on disk exactly as recorded.
+    verifyWrittenBytes: true,
     commands: state.events.flatMap((event) =>
       event.kind === "shell"
         ? [{ command: event.command, level: shellMutationRisk(event.command) }]
