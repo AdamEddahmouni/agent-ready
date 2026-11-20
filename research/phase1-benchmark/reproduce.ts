@@ -3,7 +3,16 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { aggregateRuns, evaluateAggregateDecision, type AggregationResult } from "./aggregate.js";
+import {
+  aggregateRuns,
+  evaluateAggregateDecision,
+  type AggregationResult,
+  type RunAdjudication,
+} from "./aggregate.js";
+import {
+  readUnnecessaryReadAdjudicationFile,
+  unnecessaryReadAdjudicationMap,
+} from "./adjudication.js";
 import {
   buildBenchmarkReport,
   renderReportJson,
@@ -124,15 +133,20 @@ export async function reproduceFromRaw(options: {
   readonly rawDirectory: string;
   readonly outputDirectory: string;
   readonly rule: BenchmarkDecisionRule;
+  readonly adjudications?: Readonly<Record<string, RunAdjudication>>;
   readonly check?: boolean;
 }): Promise<ReproductionResult> {
   const files = await readRawRunFiles(options.rawDirectory);
-  const aggregation = aggregateRuns(files.map((file) => file.record));
+  const aggregation = aggregateRuns(
+    files.map((file) => file.record),
+    options.adjudications === undefined ? {} : { adjudications: options.adjudications },
+  );
   const { decision } = evaluateAggregateDecision(options.rule, aggregation);
   const report = buildBenchmarkReport({
     rawFiles: files,
     aggregation,
     decision,
+    ...(options.adjudications !== undefined && { adjudications: options.adjudications }),
   });
 
   const outputs = {
@@ -151,13 +165,14 @@ export async function reproduceFromRaw(options: {
 }
 
 const USAGE =
-  "Usage: tsx research/phase1-benchmark/reproduce.ts --raw <raw-dir> --out <run-dir> [--rule <decision-rule.json>] [--check]";
+  "Usage: tsx research/phase1-benchmark/reproduce.ts --raw <raw-dir> --out <run-dir> [--rule <decision-rule.json>] [--adjudications <unnecessary-read-adjudications.json>] [--check]";
 
 async function main(): Promise<void> {
   let values: {
     readonly raw?: string;
     readonly out?: string;
     readonly rule?: string;
+    readonly adjudications?: string;
     readonly check?: boolean;
   };
   try {
@@ -167,6 +182,7 @@ async function main(): Promise<void> {
         raw: { type: "string" },
         out: { type: "string" },
         rule: { type: "string" },
+        adjudications: { type: "string" },
         check: { type: "boolean", default: false },
       },
       strict: true,
@@ -192,10 +208,17 @@ async function main(): Promise<void> {
     rulePath = decisionRulePathFor(first.record.protocolVersion);
   }
   const rule = await readDecisionRule(rulePath);
+  const adjudications =
+    values.adjudications === undefined
+      ? undefined
+      : unnecessaryReadAdjudicationMap(
+          await readUnnecessaryReadAdjudicationFile(values.adjudications),
+        );
   const result = await reproduceFromRaw({
     rawDirectory: values.raw,
     outputDirectory: values.out,
     rule,
+    ...(adjudications !== undefined && { adjudications }),
     check: values.check ?? false,
   });
   console.log(

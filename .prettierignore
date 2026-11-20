@@ -8,3 +8,8 @@ compatibility/adapter-output/**/expected/
 conformance/
 build/
 runs/
+# Reproduction fixtures are generated output verified byte-for-byte by the
+# benchmark-protocol CI job; formatting them would defeat that check.
+research/phase1-benchmark/fixtures/**/derived/
+research/phase1-benchmark/fixtures/**/report/
+research/phase1-benchmark/fixtures/**/plan.json

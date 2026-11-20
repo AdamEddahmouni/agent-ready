@@ -68,6 +68,7 @@
     "research:benchmark-run": "tsx research/phase1-benchmark/run.ts",
     "research:benchmark-build-agent-ready": "tsx research/phase1-benchmark/buildAgentReady.ts",
     "research:benchmark-reproduce": "tsx research/phase1-benchmark/reproduce.ts",
+    "research:benchmark-pilot-dry-run": "tsx research/phase1-benchmark/pilot.ts",
     "research:benchmark-test": "vitest run tests/research",
     "test:package": "pnpm build && node scripts/package-smoke.mjs",
     "test:watch": "vitest",

@@ -1,0 +1,583 @@
+{
+  "protocolVersion": 1,
+  "runManifestId": "fixture-pilot-manifest",
+  "randomizationSeed": "fixture-seed-2026-11-17",
+  "counts": {
+    "perTaskPerCondition": 3,
+    "perCondition": 39,
+    "total": 78
+  },
+  "pilot": {
+    "repositoryId": "axios",
+    "taskId": "axios-01-identify-test-script",
+    "runIndex": 0,
+    "conditions": [
+      "raw",
+      "agent-ready"
+    ]
+  },
+  "schedule": [
+    {
+      "key": "fixture-pilot-manifest#jest-03-add-workspace-check#raw#2",
+      "repositoryId": "jest",
+      "taskId": "jest-03-add-workspace-check",
+      "condition": "raw",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-01-count-workspace-packages#raw#2",
+      "repositoryId": "jest",
+      "taskId": "jest-01-count-workspace-packages",
+      "condition": "raw",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-03-add-sample-check#raw#2",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-03-add-sample-check",
+      "condition": "raw",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-02-sample-manifests#raw#2",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-02-sample-manifests",
+      "condition": "raw",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-03-add-sponsor-data-check#raw#2",
+      "repositoryId": "axios",
+      "taskId": "axios-03-add-sponsor-data-check",
+      "condition": "raw",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#lodash-02-verification-command#agent-ready#2",
+      "repositoryId": "lodash",
+      "taskId": "lodash-02-verification-command",
+      "condition": "agent-ready",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-03-add-workspace-check#raw#0",
+      "repositoryId": "jest",
+      "taskId": "jest-03-add-workspace-check",
+      "condition": "raw",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-02-add-devdep#agent-ready#0",
+      "repositoryId": "axios",
+      "taskId": "axios-02-add-devdep",
+      "condition": "agent-ready",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#lodash-01-dist-awareness#agent-ready#2",
+      "repositoryId": "lodash",
+      "taskId": "lodash-01-dist-awareness",
+      "condition": "agent-ready",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-01-visible-packages#raw#2",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-01-visible-packages",
+      "condition": "raw",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-03-add-sponsor-data-check#raw#1",
+      "repositoryId": "axios",
+      "taskId": "axios-03-add-sponsor-data-check",
+      "condition": "raw",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-02-locate-package-scripts#raw#1",
+      "repositoryId": "jest",
+      "taskId": "jest-02-locate-package-scripts",
+      "condition": "raw",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-02-add-devdep#agent-ready#2",
+      "repositoryId": "axios",
+      "taskId": "axios-02-add-devdep",
+      "condition": "agent-ready",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#lodash-01-dist-awareness#agent-ready#1",
+      "repositoryId": "lodash",
+      "taskId": "lodash-01-dist-awareness",
+      "condition": "agent-ready",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#lodash-01-dist-awareness#raw#1",
+      "repositoryId": "lodash",
+      "taskId": "lodash-01-dist-awareness",
+      "condition": "raw",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-03-add-sample-check#raw#1",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-03-add-sample-check",
+      "condition": "raw",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-02-sample-manifests#raw#0",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-02-sample-manifests",
+      "condition": "raw",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-03-add-sponsor-data-check#raw#0",
+      "repositoryId": "axios",
+      "taskId": "axios-03-add-sponsor-data-check",
+      "condition": "raw",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-02-sample-manifests#agent-ready#1",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-02-sample-manifests",
+      "condition": "agent-ready",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#vite-02-playground-package#raw#1",
+      "repositoryId": "vite",
+      "taskId": "vite-02-playground-package",
+      "condition": "raw",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#vite-01-root-package-manager#raw#1",
+      "repositoryId": "vite",
+      "taskId": "vite-01-root-package-manager",
+      "condition": "raw",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#lodash-02-verification-command#agent-ready#1",
+      "repositoryId": "lodash",
+      "taskId": "lodash-02-verification-command",
+      "condition": "agent-ready",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-02-add-devdep#raw#1",
+      "repositoryId": "axios",
+      "taskId": "axios-02-add-devdep",
+      "condition": "raw",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-02-add-devdep#agent-ready#1",
+      "repositoryId": "axios",
+      "taskId": "axios-02-add-devdep",
+      "condition": "agent-ready",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#vite-01-root-package-manager#raw#2",
+      "repositoryId": "vite",
+      "taskId": "vite-01-root-package-manager",
+      "condition": "raw",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-02-sample-manifests#raw#1",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-02-sample-manifests",
+      "condition": "raw",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-02-locate-package-scripts#agent-ready#0",
+      "repositoryId": "jest",
+      "taskId": "jest-02-locate-package-scripts",
+      "condition": "agent-ready",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-01-identify-test-script#agent-ready#0",
+      "repositoryId": "axios",
+      "taskId": "axios-01-identify-test-script",
+      "condition": "agent-ready",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-01-identify-test-script#agent-ready#1",
+      "repositoryId": "axios",
+      "taskId": "axios-01-identify-test-script",
+      "condition": "agent-ready",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#lodash-01-dist-awareness#raw#0",
+      "repositoryId": "lodash",
+      "taskId": "lodash-01-dist-awareness",
+      "condition": "raw",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#lodash-02-verification-command#raw#1",
+      "repositoryId": "lodash",
+      "taskId": "lodash-02-verification-command",
+      "condition": "raw",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-01-count-workspace-packages#raw#0",
+      "repositoryId": "jest",
+      "taskId": "jest-01-count-workspace-packages",
+      "condition": "raw",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#vite-01-root-package-manager#agent-ready#2",
+      "repositoryId": "vite",
+      "taskId": "vite-01-root-package-manager",
+      "condition": "agent-ready",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#vite-02-playground-package#raw#0",
+      "repositoryId": "vite",
+      "taskId": "vite-02-playground-package",
+      "condition": "raw",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-01-count-workspace-packages#agent-ready#2",
+      "repositoryId": "jest",
+      "taskId": "jest-01-count-workspace-packages",
+      "condition": "agent-ready",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#vite-02-playground-package#raw#2",
+      "repositoryId": "vite",
+      "taskId": "vite-02-playground-package",
+      "condition": "raw",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#vite-02-playground-package#agent-ready#1",
+      "repositoryId": "vite",
+      "taskId": "vite-02-playground-package",
+      "condition": "agent-ready",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-02-sample-manifests#agent-ready#0",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-02-sample-manifests",
+      "condition": "agent-ready",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-03-add-sample-check#agent-ready#2",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-03-add-sample-check",
+      "condition": "agent-ready",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-03-add-sponsor-data-check#agent-ready#2",
+      "repositoryId": "axios",
+      "taskId": "axios-03-add-sponsor-data-check",
+      "condition": "agent-ready",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-03-add-workspace-check#raw#1",
+      "repositoryId": "jest",
+      "taskId": "jest-03-add-workspace-check",
+      "condition": "raw",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-02-locate-package-scripts#agent-ready#1",
+      "repositoryId": "jest",
+      "taskId": "jest-02-locate-package-scripts",
+      "condition": "agent-ready",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-02-add-devdep#raw#2",
+      "repositoryId": "axios",
+      "taskId": "axios-02-add-devdep",
+      "condition": "raw",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-01-visible-packages#agent-ready#0",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-01-visible-packages",
+      "condition": "agent-ready",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-02-locate-package-scripts#raw#2",
+      "repositoryId": "jest",
+      "taskId": "jest-02-locate-package-scripts",
+      "condition": "raw",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-01-count-workspace-packages#raw#1",
+      "repositoryId": "jest",
+      "taskId": "jest-01-count-workspace-packages",
+      "condition": "raw",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-01-count-workspace-packages#agent-ready#0",
+      "repositoryId": "jest",
+      "taskId": "jest-01-count-workspace-packages",
+      "condition": "agent-ready",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#lodash-01-dist-awareness#raw#2",
+      "repositoryId": "lodash",
+      "taskId": "lodash-01-dist-awareness",
+      "condition": "raw",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-01-identify-test-script#raw#2",
+      "repositoryId": "axios",
+      "taskId": "axios-01-identify-test-script",
+      "condition": "raw",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-02-locate-package-scripts#agent-ready#2",
+      "repositoryId": "jest",
+      "taskId": "jest-02-locate-package-scripts",
+      "condition": "agent-ready",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-03-add-sample-check#raw#0",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-03-add-sample-check",
+      "condition": "raw",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#lodash-02-verification-command#raw#2",
+      "repositoryId": "lodash",
+      "taskId": "lodash-02-verification-command",
+      "condition": "raw",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#vite-01-root-package-manager#agent-ready#0",
+      "repositoryId": "vite",
+      "taskId": "vite-01-root-package-manager",
+      "condition": "agent-ready",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-01-visible-packages#agent-ready#1",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-01-visible-packages",
+      "condition": "agent-ready",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-02-locate-package-scripts#raw#0",
+      "repositoryId": "jest",
+      "taskId": "jest-02-locate-package-scripts",
+      "condition": "raw",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#lodash-02-verification-command#agent-ready#0",
+      "repositoryId": "lodash",
+      "taskId": "lodash-02-verification-command",
+      "condition": "agent-ready",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-01-identify-test-script#raw#1",
+      "repositoryId": "axios",
+      "taskId": "axios-01-identify-test-script",
+      "condition": "raw",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-03-add-sponsor-data-check#agent-ready#1",
+      "repositoryId": "axios",
+      "taskId": "axios-03-add-sponsor-data-check",
+      "condition": "agent-ready",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#vite-01-root-package-manager#agent-ready#1",
+      "repositoryId": "vite",
+      "taskId": "vite-01-root-package-manager",
+      "condition": "agent-ready",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#vite-02-playground-package#agent-ready#0",
+      "repositoryId": "vite",
+      "taskId": "vite-02-playground-package",
+      "condition": "agent-ready",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#lodash-01-dist-awareness#agent-ready#0",
+      "repositoryId": "lodash",
+      "taskId": "lodash-01-dist-awareness",
+      "condition": "agent-ready",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-02-sample-manifests#agent-ready#2",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-02-sample-manifests",
+      "condition": "agent-ready",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-03-add-sample-check#agent-ready#1",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-03-add-sample-check",
+      "condition": "agent-ready",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-03-add-workspace-check#agent-ready#2",
+      "repositoryId": "jest",
+      "taskId": "jest-03-add-workspace-check",
+      "condition": "agent-ready",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-01-visible-packages#agent-ready#2",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-01-visible-packages",
+      "condition": "agent-ready",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#vite-01-root-package-manager#raw#0",
+      "repositoryId": "vite",
+      "taskId": "vite-01-root-package-manager",
+      "condition": "raw",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-03-add-sponsor-data-check#agent-ready#0",
+      "repositoryId": "axios",
+      "taskId": "axios-03-add-sponsor-data-check",
+      "condition": "agent-ready",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-03-add-workspace-check#agent-ready#0",
+      "repositoryId": "jest",
+      "taskId": "jest-03-add-workspace-check",
+      "condition": "agent-ready",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-01-visible-packages#raw#1",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-01-visible-packages",
+      "condition": "raw",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-01-count-workspace-packages#agent-ready#1",
+      "repositoryId": "jest",
+      "taskId": "jest-01-count-workspace-packages",
+      "condition": "agent-ready",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-01-visible-packages#raw#0",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-01-visible-packages",
+      "condition": "raw",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#lodash-02-verification-command#raw#0",
+      "repositoryId": "lodash",
+      "taskId": "lodash-02-verification-command",
+      "condition": "raw",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-01-identify-test-script#agent-ready#2",
+      "repositoryId": "axios",
+      "taskId": "axios-01-identify-test-script",
+      "condition": "agent-ready",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-02-add-devdep#raw#0",
+      "repositoryId": "axios",
+      "taskId": "axios-02-add-devdep",
+      "condition": "raw",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#jest-03-add-workspace-check#agent-ready#1",
+      "repositoryId": "jest",
+      "taskId": "jest-03-add-workspace-check",
+      "condition": "agent-ready",
+      "runIndex": 1
+    },
+    {
+      "key": "fixture-pilot-manifest#vite-02-playground-package#agent-ready#2",
+      "repositoryId": "vite",
+      "taskId": "vite-02-playground-package",
+      "condition": "agent-ready",
+      "runIndex": 2
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-01-identify-test-script#raw#0",
+      "repositoryId": "axios",
+      "taskId": "axios-01-identify-test-script",
+      "condition": "raw",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#nestjs-03-add-sample-check#agent-ready#0",
+      "repositoryId": "nestjs",
+      "taskId": "nestjs-03-add-sample-check",
+      "condition": "agent-ready",
+      "runIndex": 0
+    }
+  ],
+  "pilotSchedule": [
+    {
+      "key": "fixture-pilot-manifest#axios-01-identify-test-script#agent-ready#0",
+      "repositoryId": "axios",
+      "taskId": "axios-01-identify-test-script",
+      "condition": "agent-ready",
+      "runIndex": 0
+    },
+    {
+      "key": "fixture-pilot-manifest#axios-01-identify-test-script#raw#0",
+      "repositoryId": "axios",
+      "taskId": "axios-01-identify-test-script",
+      "condition": "raw",
+      "runIndex": 0
+    }
+  ]
+}

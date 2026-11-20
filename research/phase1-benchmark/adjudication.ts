@@ -164,3 +164,111 @@ export async function writeAdjudicationFile(
 export async function readAdjudicationFile(path: string): Promise<AdjudicationFile> {
   return parseAdjudications(await readFile(path, "utf8"));
 }
+
+export interface UnnecessaryReadAdjudication {
+  readonly runKey: string;
+  readonly unnecessaryFileReads: number;
+}
+
+export interface UnnecessaryReadAdjudicationFile {
+  readonly protocolVersion: 1;
+  readonly unnecessaryFileReads: readonly UnnecessaryReadAdjudication[];
+}
+
+function canonicalUnnecessaryReadAdjudications(
+  rows: readonly UnnecessaryReadAdjudication[],
+): UnnecessaryReadAdjudication[] {
+  const sorted = [...rows].sort((left, right) => {
+    const leftKey = left.runKey;
+    const rightKey = right.runKey;
+    return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+  });
+  const seen = new Set<string>();
+  for (const row of sorted) {
+    if (typeof row.runKey !== "string") {
+      throw new Error("unnecessary-read adjudication runKey must be a non-empty string");
+    }
+    nonEmpty(row.runKey, "runKey");
+    if (
+      typeof row.unnecessaryFileReads !== "number" ||
+      !Number.isInteger(row.unnecessaryFileReads) ||
+      row.unnecessaryFileReads < 0
+    ) {
+      throw new Error(`unnecessaryFileReads for ${row.runKey} must be a non-negative integer`);
+    }
+    if (seen.has(row.runKey)) {
+      throw new Error(`duplicate unnecessary-read adjudication for ${row.runKey}`);
+    }
+    seen.add(row.runKey);
+  }
+  return sorted;
+}
+
+/**
+ * Serializes post-hoc unnecessary-read counts. This sidecar is deliberately
+ * separate from raw tool logs and from the manual-rubric adjudication file.
+ */
+export function serializeUnnecessaryReadAdjudications(
+  rows: readonly UnnecessaryReadAdjudication[],
+): string {
+  return `${JSON.stringify(
+    {
+      protocolVersion: 1,
+      unnecessaryFileReads: canonicalUnnecessaryReadAdjudications(rows),
+    },
+    null,
+    2,
+  )}\n`;
+}
+
+export function parseUnnecessaryReadAdjudications(text: string): UnnecessaryReadAdjudicationFile {
+  const parsed = JSON.parse(text) as unknown;
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error("unnecessary-read adjudication file must be a JSON object");
+  }
+  const document = parsed as Record<string, unknown>;
+  if (document["protocolVersion"] !== 1) {
+    throw new Error("unnecessary-read adjudication file must declare protocolVersion 1");
+  }
+  if (!Array.isArray(document["unnecessaryFileReads"])) {
+    throw new Error(
+      "unnecessary-read adjudication file must contain an unnecessaryFileReads array",
+    );
+  }
+  const rows = (document["unnecessaryFileReads"] as unknown[]).map((value) => {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      throw new Error("unnecessary-read adjudication entries must be objects");
+    }
+    return value as UnnecessaryReadAdjudication;
+  });
+  return {
+    protocolVersion: 1,
+    unnecessaryFileReads: canonicalUnnecessaryReadAdjudications(rows),
+  };
+}
+
+export async function writeUnnecessaryReadAdjudicationFile(
+  path: string,
+  rows: readonly UnnecessaryReadAdjudication[],
+): Promise<void> {
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, serializeUnnecessaryReadAdjudications(rows), "utf8");
+}
+
+export async function readUnnecessaryReadAdjudicationFile(
+  path: string,
+): Promise<UnnecessaryReadAdjudicationFile> {
+  return parseUnnecessaryReadAdjudications(await readFile(path, "utf8"));
+}
+
+/** Converts the sidecar into the map consumed by aggregation and reports. */
+export function unnecessaryReadAdjudicationMap(
+  file: UnnecessaryReadAdjudicationFile,
+): Readonly<Record<string, { readonly unnecessaryFileReads: number }>> {
+  return Object.fromEntries(
+    file.unnecessaryFileReads.map((row) => [
+      row.runKey,
+      { unnecessaryFileReads: row.unnecessaryFileReads },
+    ]),
+  );
+}
