@@ -87,7 +87,7 @@ The decision rule is a **predeclared screening heuristic**, not a significance t
 | **tokenMetrics**                   | Input, output, cached, reasoning — as reported by the evaluation environment; record `null` when unavailable and treat it as a limitation.                                              |
 | **assumptions**                    | Factual claims about repository structure, each with claim, evidence and adjudication; contradicted claims are invalid assumptions.                                                     |
 | **dependencyReasoningFindings**    | Errors classifying dependency scope, internal vs external, or lockfile vs manifest, using the error classes in the runbook.                                                             |
-| **verificationSelectionResult**    | `true` if a required check ran, `false` if it was omitted, and `null` if no command-exit-zero check exists (not applicable).                                               |
+| **verificationSelectionResult**    | `true` if a required check ran, `false` if it was omitted, and `null` if no command-exit-zero check exists (not applicable).                                                            |
 | **timeToFirstCorrectModification** | Seconds from task start to the first patch passing the partial oracle; `null` if none.                                                                                                  |
 
 Secondary (exploratory only): total wall time, files modified, verification attempts, failed tool calls.
@@ -96,15 +96,15 @@ Secondary (exploratory only): total wall time, files modified, verification atte
 
 Summaries are computed only from valid runs, excluding infrastructure failures and forbidden actions.
 
-| Summary key | Definition |
-| --- | --- |
-| `taskSuccessRate` | Mean of binary success across all valid runs. |
-| `invalidAssumptionRate` | Mean number of adjudicated invalid assumptions per valid run. |
-| `incorrectDependencyReasoningRate` | Mean dependency-reasoning findings per valid run. |
-| `verificationSelectionFailureRate` | Failed applicable checks divided by applicable valid runs; `null` when there are no applicable runs. |
-| `verificationSelectionApplicableCount` | Count of valid runs with a required command check. Reported, not consumed by the decision rule. |
-| `verificationSelectionNotApplicableCount` | Count of valid runs with no required command check. Reported, not consumed by the decision rule. |
-| `unnecessaryFileReadsMedian` | Median of unnecessary file reads across valid runs in that condition. |
+| Summary key                               | Definition                                                                                           |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `taskSuccessRate`                         | Mean of binary success across all valid runs.                                                        |
+| `invalidAssumptionRate`                   | Mean number of adjudicated invalid assumptions per valid run.                                        |
+| `incorrectDependencyReasoningRate`        | Mean dependency-reasoning findings per valid run.                                                    |
+| `verificationSelectionFailureRate`        | Failed applicable checks divided by applicable valid runs; `null` when there are no applicable runs. |
+| `verificationSelectionApplicableCount`    | Count of valid runs with a required command check. Reported, not consumed by the decision rule.      |
+| `verificationSelectionNotApplicableCount` | Count of valid runs with no required command check. Reported, not consumed by the decision rule.     |
+| `unnecessaryFileReadsMedian`              | Median of unnecessary file reads across valid runs in that condition.                                |
 
 The selection denominator is **not** the total number of trials: the command requirement applies to three of thirteen tasks. V1 and v2 keep their original semantics and summaries. Missing safety metrics fail their gates closed; a missing primary task-success metric is a harness error.
 
