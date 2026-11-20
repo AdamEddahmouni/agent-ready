@@ -23,6 +23,15 @@ All notable changes to Agent-Ready are documented here. The project follows
 - Phase 1 benchmark protocol v1 (research): fixed repository and task manifests,
   decision rule, raw-run schema, and offline validators under
   `docs/research/phase1-benchmark-protocol/v1/`.
+- The Phase 1 evaluation harness (research): a fresh pinned checkout per trial,
+  both conditions under an identical prompt/model/configuration, all six oracle
+  types, post-hoc forbidden-action detection, and schema-valid raw records. A
+  scripted fake runner keeps the tests free of model and network calls. See
+  `research/phase1-benchmark/README.md`.
+- Phase 1 aggregation and reporting tooling (research): reproducible raw →
+  derived → report metrics with Wilson intervals, blinded adjudication, and
+  SHA-256 checksums (`--check` verifies byte-identical output). Research only:
+  no CLI, schema, contract, or package-output change.
 - Experimental `agent-ready twin build` and `agent-ready twin query` (ADR-0049).
 
 ### Changed

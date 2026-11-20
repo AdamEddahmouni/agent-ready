@@ -313,9 +313,6 @@ function matchSegment(pattern: string, segment: string): boolean {
   return matchesGlobText(pattern, segment);
 }
 
-/** Suppresses the unused-parameter warning for a pattern-only comparison. */
-void matchSegment;
-
 /**
  * The `*` / `**` / `?` matcher for one whole path or one segment.
  *
