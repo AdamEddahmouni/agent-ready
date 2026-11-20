@@ -3,13 +3,30 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { aggregateRuns, evaluateAggregateDecision } from "../../research/phase1-benchmark/aggregate.js";
+import {
+  aggregateRuns,
+  evaluateAggregateDecision,
+} from "../../research/phase1-benchmark/aggregate.js";
 import { loadProtocolForVersion } from "../../research/phase1-benchmark/harness/protocol.js";
-import { recordRawRun, validateRawRun, type RawRunRecord } from "../../research/phase1-benchmark/harness/record.js";
+import {
+  recordRawRun,
+  validateRawRun,
+  type RawRunRecord,
+} from "../../research/phase1-benchmark/harness/record.js";
 import { executeTrial } from "../../research/phase1-benchmark/harness/run.js";
-import { FakeAgentRunner, emptyObservations } from "../../research/phase1-benchmark/harness/fakeRunner.js";
-import { buildBenchmarkReport, renderReportMarkdown, type RawRunFile } from "../../research/phase1-benchmark/report.js";
-import { readDecisionRule, decisionRulePathFor } from "../../research/phase1-benchmark/reproduce.js";
+import {
+  FakeAgentRunner,
+  emptyObservations,
+} from "../../research/phase1-benchmark/harness/fakeRunner.js";
+import {
+  buildBenchmarkReport,
+  renderReportMarkdown,
+  type RawRunFile,
+} from "../../research/phase1-benchmark/report.js";
+import {
+  readDecisionRule,
+  decisionRulePathFor,
+} from "../../research/phase1-benchmark/reproduce.js";
 
 function raw(overrides: Partial<RawRunRecord> = {}): RawRunRecord {
   return {
@@ -42,7 +59,7 @@ function file(record: RawRunRecord, path: string): RawRunFile {
 }
 
 describe("protocol v3 applicability without retroactive v1/v2 rewriting", () => {
-  it("loads v3 with the same repository/task set as v2 and the same decision threshold", async () => {
+  it("loads v3 with the same tasks, repositories and decision thresholds as v2", async () => {
     const v2 = await loadProtocolForVersion(2);
     const v3 = await loadProtocolForVersion(3);
     expect(v3.repositories).toEqual(v2.repositories);
@@ -90,7 +107,9 @@ describe("protocol v3 applicability without retroactive v1/v2 rewriting", () => 
     const markdown = renderReportMarkdown(report);
     expect(markdown).toContain("## Verification applicability (v3 only)");
     expect(markdown).toContain("| Overall | raw | 2 | 1 | 3 |");
-    expect(report.validRuns.filter((run) => run.verificationSelectionFailure === null)).toHaveLength(2);
+    expect(
+      report.validRuns.filter((run) => run.verificationSelectionFailure === null),
+    ).toHaveLength(2);
     expect(markdown).toContain("| n/a |");
     expect(report.limitations.join(" ")).toContain("applicable and not-applicable counts");
   });
