@@ -42,6 +42,7 @@ function main() {
   }
 
   let range = options.range;
+  let tipOnly = false;
   if (range === undefined) {
     if (options.base !== undefined) {
       range = `${options.base}..${options.head}`;
@@ -51,12 +52,17 @@ function main() {
       range = `main..${options.head}`;
     } else {
       // No base branch to compare against: check the tip only rather than
-      // claiming the whole history is clean.
+      // claiming the whole history is clean. `range` is a revision here, not a
+      // range, so the log has to be limited explicitly.
       range = options.head;
+      tipOnly = true;
     }
   }
 
-  const log = git(["log", "--reverse", "--format=%H%x09%s", range]);
+  const format = "--format=%H%x09%s";
+  const log = tipOnly
+    ? git(["log", "--max-count=1", format, range])
+    : git(["log", "--reverse", format, range]);
   if (log.error !== undefined || log.status !== 0) {
     fail(2, `Could not list commits in ${range}:\n${log.error?.message ?? log.stderr.trim()}\n`);
     return;

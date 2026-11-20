@@ -289,7 +289,21 @@ jobs:
       - name: CLI smoke test - discover commands and verification
         shell: bash
         run: |
+          # This workflow runs under `bash -eo pipefail`, and the discover
+          # snapshot can exceed a pipe buffer. Piping it into `grep -q` kills
+          # the writer with SIGPIPE as soon as grep matches, so assertions
+          # match in the shell instead of through a pipe.
           set -e
+          contains() {
+            case "$1" in
+              *"$2"*) return 0 ;;
+              *)
+                echo "expected output to contain: $2" >&2
+                return 1
+                ;;
+            esac
+          }
+
           tmp="$(mktemp -d)"
           cat > "$tmp/package.json" <<'JSON'
           {
@@ -319,37 +333,39 @@ jobs:
 
           output="$(node dist/cli/index.js discover --root "$tmp" --json)"
           echo "$output"
-          echo "$output" | grep -q '"repository.commands"'
-          echo "$output" | grep -q '"repository.verificationEntrypoints"'
-          echo "$output" | grep -q '"pointer": "/scripts/test"'
+          contains "$output" '"repository.commands"'
+          contains "$output" '"repository.verificationEntrypoints"'
+          contains "$output" '"pointer": "/scripts/test"'
 
           commands="$(echo "$output" | sed -n '/"repository.commands"/,/"repository.contract.present"/p')"
           # A script whose body mentions a test runner is still a declared command
           # with no role: roles come from names, never from what the body looks like.
-          echo "$commands" | grep -q '"name": "deploy"'
+          contains "$commands" '"name": "deploy"'
           # A lifecycle hook is a declared script too.
-          echo "$commands" | grep -q '"name": "pretest"'
+          contains "$commands" '"name": "pretest"'
           # An alias outside the grammar is reported, not a failure.
-          echo "$commands" | grep -q '"name": "check:types"'
+          contains "$commands" '"name": "check:types"'
 
           entrypoints="$(echo "$output" | sed -n '/"repository.verificationEntrypoints"/,/"repository.workspace.candidates"/p')"
           # Commands are scoped to the package that declares them: the root and the
           # workspace member both declare tests, and neither is deduplicated.
-          echo "$entrypoints" | grep -q '"packagePath": "packages/api"'
-          echo "$entrypoints" | grep -q '"executable": "pnpm"'
+          contains "$entrypoints" '"packagePath": "packages/api"'
+          contains "$entrypoints" '"executable": "pnpm"'
           # `test:unit` and `test:integration` both carry the test role, and
           # neither is primary - choosing one would be a guess.
-          echo "$entrypoints" | grep -q '"role": "test"'
-          echo "$entrypoints" | grep -q '"primary": false'
+          contains "$entrypoints" '"role": "test"'
+          contains "$entrypoints" '"primary": false'
           # The load-bearing negative: the body says vitest, the name says deploy.
-          if echo "$entrypoints" | grep -q '"script": "deploy"'; then
-            echo "a script body was used to assign a test role to a script named deploy" >&2
-            exit 1
-          fi
+          case "$entrypoints" in
+            *'"script": "deploy"'*)
+              echo "a script body was used to assign a test role to a script named deploy" >&2
+              exit 1
+              ;;
+          esac
 
           # The agent-ready contract is optional; this fixture has none, and the
           # repository-derived facts must not depend on it.
-          echo "$output" | grep -q '"repository.contract.present": {'
+          contains "$output" '"repository.contract.present": {'
 
           # A contested package manager must leave the invocation unresolved with
           # a named reason, and must never fall back to a default executable.
@@ -360,11 +376,13 @@ jobs:
           git -C "$conflict" init --quiet
           contested="$(node dist/cli/index.js discover --root "$conflict" --json)"
           echo "$contested"
-          echo "$contested" | grep -q '"invocationStatus": "package-manager-incomplete"'
-          if echo "$contested" | grep -q '"executable"'; then
-            echo "a contested package manager produced a canonical executable" >&2
-            exit 1
-          fi
+          contains "$contested" '"invocationStatus": "package-manager-incomplete"'
+          case "$contested" in
+            *'"executable"'*)
+              echo "a contested package manager produced a canonical executable" >&2
+              exit 1
+              ;;
+          esac
 
           human="$(node dist/cli/index.js discover --root "$conflict")"
           echo "$human"
