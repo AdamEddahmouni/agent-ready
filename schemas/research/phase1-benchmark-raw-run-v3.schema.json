@@ -35,10 +35,7 @@
       "minLength": 1
     },
     "condition": {
-      "enum": [
-        "raw",
-        "agent-ready"
-      ]
+      "enum": ["raw", "agent-ready"]
     },
     "runIndex": {
       "type": "integer",
@@ -53,10 +50,7 @@
       "format": "date-time"
     },
     "timeToFirstCorrectModification": {
-      "type": [
-        "number",
-        "null"
-      ]
+      "type": ["number", "null"]
     },
     "success": {
       "type": "boolean"
@@ -83,28 +77,16 @@
       "type": "object",
       "properties": {
         "input": {
-          "type": [
-            "integer",
-            "null"
-          ]
+          "type": ["integer", "null"]
         },
         "output": {
-          "type": [
-            "integer",
-            "null"
-          ]
+          "type": ["integer", "null"]
         },
         "cached": {
-          "type": [
-            "integer",
-            "null"
-          ]
+          "type": ["integer", "null"]
         },
         "reasoning": {
-          "type": [
-            "integer",
-            "null"
-          ]
+          "type": ["integer", "null"]
         }
       }
     },
@@ -127,16 +109,10 @@
       }
     },
     "verificationSelectionResult": {
-      "type": [
-        "boolean",
-        "null"
-      ]
+      "type": ["boolean", "null"]
     },
     "finalPatch": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     },
     "verificationResults": {
       "type": "array",
