@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { HarnessAbortError } from "./errors.js";
 import type { CommandExecutor } from "./score.js";
 import {
   createWorkspaceReader,
@@ -8,7 +9,14 @@ import {
 } from "./score.js";
 import { recordRawRun, type RawRunRecord } from "./record.js";
 import type { PreparedConditionWorkspace } from "./prepare.js";
-import type { AgentObservations, Condition, TaskDefinition, TokenMetrics } from "./types.js";
+import type {
+  AgentObservations,
+  Condition,
+  ProtocolVersion,
+  TaskDefinition,
+  TokenMetrics,
+} from "./types.js";
+import { selectedVerificationFor } from "./verificationSelection.js";
 
 export interface RunConfiguration {
   readonly modelId: string;
@@ -156,6 +164,7 @@ function failedObservations(error: unknown): AgentObservations {
  */
 export async function executeTrial(options: {
   readonly runManifestId: string;
+  readonly protocolVersion: ProtocolVersion;
   readonly task: TaskDefinition;
   readonly repositoryId: string;
   readonly condition: Condition;
@@ -177,6 +186,9 @@ export async function executeTrial(options: {
   try {
     observations = await options.runner.run(request);
   } catch (error) {
+    // A mismatch or unusable input is a harness defect: abort instead of
+    // recording a trial that was never actually run.
+    if (error instanceof HarnessAbortError) throw error;
     observations = failedObservations(error);
   }
   const endTime = new Date(now()).toISOString();
@@ -207,7 +219,7 @@ export async function executeTrial(options: {
 
   const infrastructureFailure = observations.infrastructureFailure === true;
   const raw: RawRunRecord = {
-    protocolVersion: 1,
+    protocolVersion: options.protocolVersion,
     runManifestId: options.runManifestId,
     taskId: options.task.id,
     condition: options.condition,
@@ -223,7 +235,9 @@ export async function executeTrial(options: {
     assumptions: [...(observations.assumptions ?? [])],
     dependencyReasoningFindings: [...(observations.dependencyReasoningFindings ?? [])],
     verificationAttempts: [...(observations.verificationAttempts ?? [])],
-    verificationSelectionResult: observations.verificationSelectionResult ?? false,
+    verificationSelectionResult:
+      observations.verificationSelectionResult === true ||
+      selectedVerificationFor(options.task, observations.toolCalls) === true,
     finalPatch: observations.finalPatch ?? null,
     verificationResults: [...(observations.verificationResults ?? [])],
     infrastructureFailure,

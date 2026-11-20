@@ -10,13 +10,30 @@ import type {
 import { exclusionReason, runKey, runMetricValues } from "./aggregate.js";
 import type { BenchmarkDecision } from "./evaluate-decision.mjs";
 import type { RawRunRecord } from "./harness/record.js";
-import type { Condition } from "./harness/types.js";
+import type { Condition, ProtocolVersion } from "./harness/types.js";
 
 export interface RawRunFile {
   /** Path relative to the raw run directory. */
   readonly file: string;
   readonly sha256: string;
   readonly record: RawRunRecord;
+}
+
+/**
+ * One report covers one protocol version. A v1 record and a v2 record answer
+ * the same task under different frozen oracles, so mixing them in a single
+ * aggregate would silently blend two measurements.
+ */
+export function uniformProtocolVersion(files: readonly RawRunFile[]): ProtocolVersion {
+  const versions = new Set<ProtocolVersion>(files.map((file) => file.record.protocolVersion));
+  if (versions.size !== 1) {
+    throw new Error(
+      `cannot report mixed protocol versions: ${[...versions].map(String).sort().join(", ")}`,
+    );
+  }
+  const [version] = versions;
+  if (version === undefined) throw new Error("no raw runs to report");
+  return version;
 }
 
 export interface ReportChecksums {
@@ -39,7 +56,7 @@ export interface ReportRun {
 }
 
 export interface BenchmarkReport {
-  readonly protocolVersion: 1;
+  readonly protocolVersion: ProtocolVersion;
   readonly runManifestIds: readonly string[];
   readonly decision: BenchmarkDecision;
   readonly summaries: Readonly<Record<Condition, ConditionAggregate>>;
@@ -142,7 +159,7 @@ export function buildBenchmarkReport(options: {
   validRuns.sort((left, right) => compareKeys(left.key, right.key));
 
   const report: BenchmarkReport = {
-    protocolVersion: 1,
+    protocolVersion: uniformProtocolVersion(options.rawFiles),
     runManifestIds: sortedKeys(options.rawFiles.map((file) => file.record.runManifestId)),
     decision: options.decision,
     summaries: options.aggregation.summaries,

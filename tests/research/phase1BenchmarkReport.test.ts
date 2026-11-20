@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { removeTree } from "../../src/filesystem/removeTree.js";
 import {
   aggregateRuns,
   evaluateAggregateDecision,
@@ -12,6 +13,7 @@ import {
   renderReportJson,
   renderReportMarkdown,
   ReportCompletenessError,
+  uniformProtocolVersion,
   validateReportCompleteness,
   type RawRunFile,
 } from "../../research/phase1-benchmark/report.js";
@@ -83,7 +85,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await rm(baseDirectory, { recursive: true, force: true });
+  await removeTree(baseDirectory);
 });
 
 describe("benchmark report", () => {
@@ -161,5 +163,26 @@ describe("benchmark report", () => {
     await expect(readRawRunFiles(rawDirectory)).rejects.toThrow(
       /raw run record failed schema validation/,
     );
+  });
+});
+
+describe("protocol version isolation", () => {
+  it("reports the version every record cites", () => {
+    const files = [rawFile(makeRun(), "a.json"), rawFile(makeRun({ runIndex: 1 }), "b.json")];
+    expect(uniformProtocolVersion(files)).toBe(1);
+
+    const v2Files = [
+      rawFile(makeRun({ protocolVersion: 2 }), "a.json"),
+      rawFile(makeRun({ protocolVersion: 2, runIndex: 1 }), "b.json"),
+    ];
+    expect(uniformProtocolVersion(v2Files)).toBe(2);
+  });
+
+  it("refuses to blend records from two protocol versions", () => {
+    const files = [
+      rawFile(makeRun(), "a.json"),
+      rawFile(makeRun({ protocolVersion: 2, runIndex: 1 }), "b.json"),
+    ];
+    expect(() => uniformProtocolVersion(files)).toThrow(/mixed protocol versions/);
   });
 });

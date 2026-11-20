@@ -1,0 +1,35 @@
+{
+  "protocolVersion": 1,
+  "runManifestId": "phase1-v1-2026-11-19",
+  "taskId": "axios-01-identify-test-script",
+  "condition": "raw",
+  "runIndex": 0,
+  "startTime": "2026-11-19T21:47:22.755Z",
+  "endTime": "2026-11-19T21:47:29.091Z",
+  "timeToFirstCorrectModification": null,
+  "success": false,
+  "toolCalls": [
+    {
+      "name": "shell",
+      "command": "/bin/bash -lc \"rg -n '\\\"test:vitest:unit\\\"' package.json\"",
+      "atMs": 3887,
+      "exitCode": 0
+    }
+  ],
+  "fileReads": [],
+  "fileWrites": [],
+  "tokenMetrics": {
+    "input": 35854,
+    "output": 58,
+    "cached": 31488,
+    "reasoning": 0
+  },
+  "assumptions": [],
+  "dependencyReasoningFindings": [],
+  "verificationAttempts": [],
+  "verificationSelectionResult": false,
+  "finalPatch": null,
+  "verificationResults": [],
+  "infrastructureFailure": false,
+  "notes": "client stderr: Reading additional input from stdin...\noracle: response path \"script\" did not equal \"test\""
+}

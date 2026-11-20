@@ -3,7 +3,16 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { aggregateRuns, evaluateAggregateDecision, type AggregationResult } from "./aggregate.js";
+import {
+  aggregateRuns,
+  evaluateAggregateDecision,
+  type AggregationResult,
+  type RunAdjudication,
+} from "./aggregate.js";
+import {
+  readUnnecessaryReadAdjudicationFile,
+  unnecessaryReadAdjudicationMap,
+} from "./adjudication.js";
 import {
   buildBenchmarkReport,
   renderReportJson,
@@ -12,11 +21,22 @@ import {
   type RawRunFile,
 } from "./report.js";
 import { recordRawRun } from "./harness/record.js";
+import type { ProtocolVersion } from "./harness/types.js";
 import type { BenchmarkDecisionRule } from "./evaluate-decision.mjs";
 
 export const DEFAULT_DECISION_RULE_PATH = fileURLToPath(
   new URL("../../docs/research/phase1-benchmark-protocol/v1/decision-rule.json", import.meta.url),
 );
+
+/** Decision rule of a frozen protocol version, which is the one its records cite. */
+export function decisionRulePathFor(version: ProtocolVersion): string {
+  return fileURLToPath(
+    new URL(
+      `../../docs/research/phase1-benchmark-protocol/v${String(version)}/decision-rule.json`,
+      import.meta.url,
+    ),
+  );
+}
 
 export interface ReproductionResult {
   readonly files: readonly RawRunFile[];
@@ -70,7 +90,7 @@ export async function readRawRunFiles(rawDirectory: string): Promise<RawRunFile[
 function metricsDocument(report: BenchmarkReport): string {
   return `${JSON.stringify(
     {
-      protocolVersion: 1,
+      protocolVersion: report.protocolVersion,
       runManifestIds: report.runManifestIds,
       decision: report.decision,
       summaries: report.summaries,
@@ -113,15 +133,20 @@ export async function reproduceFromRaw(options: {
   readonly rawDirectory: string;
   readonly outputDirectory: string;
   readonly rule: BenchmarkDecisionRule;
+  readonly adjudications?: Readonly<Record<string, RunAdjudication>>;
   readonly check?: boolean;
 }): Promise<ReproductionResult> {
   const files = await readRawRunFiles(options.rawDirectory);
-  const aggregation = aggregateRuns(files.map((file) => file.record));
+  const aggregation = aggregateRuns(
+    files.map((file) => file.record),
+    options.adjudications === undefined ? {} : { adjudications: options.adjudications },
+  );
   const { decision } = evaluateAggregateDecision(options.rule, aggregation);
   const report = buildBenchmarkReport({
     rawFiles: files,
     aggregation,
     decision,
+    ...(options.adjudications !== undefined && { adjudications: options.adjudications }),
   });
 
   const outputs = {
@@ -140,13 +165,14 @@ export async function reproduceFromRaw(options: {
 }
 
 const USAGE =
-  "Usage: tsx research/phase1-benchmark/reproduce.ts --raw <raw-dir> --out <run-dir> [--rule <decision-rule.json>] [--check]";
+  "Usage: tsx research/phase1-benchmark/reproduce.ts --raw <raw-dir> --out <run-dir> [--rule <decision-rule.json>] [--adjudications <unnecessary-read-adjudications.json>] [--check]";
 
 async function main(): Promise<void> {
   let values: {
     readonly raw?: string;
     readonly out?: string;
     readonly rule?: string;
+    readonly adjudications?: string;
     readonly check?: boolean;
   };
   try {
@@ -156,6 +182,7 @@ async function main(): Promise<void> {
         raw: { type: "string" },
         out: { type: "string" },
         rule: { type: "string" },
+        adjudications: { type: "string" },
         check: { type: "boolean", default: false },
       },
       strict: true,
@@ -172,11 +199,26 @@ async function main(): Promise<void> {
     return;
   }
 
-  const rule = await readDecisionRule(values.rule);
+  // The rule belongs to the protocol version the records cite, so it is chosen
+  // from the raw directory unless the caller names one explicitly.
+  let rulePath = values.rule;
+  if (rulePath === undefined) {
+    const [first] = await readRawRunFiles(values.raw);
+    if (first === undefined) throw new Error(`no raw JSON run records found in ${values.raw}`);
+    rulePath = decisionRulePathFor(first.record.protocolVersion);
+  }
+  const rule = await readDecisionRule(rulePath);
+  const adjudications =
+    values.adjudications === undefined
+      ? undefined
+      : unnecessaryReadAdjudicationMap(
+          await readUnnecessaryReadAdjudicationFile(values.adjudications),
+        );
   const result = await reproduceFromRaw({
     rawDirectory: values.raw,
     outputDirectory: values.out,
     rule,
+    ...(adjudications !== undefined && { adjudications }),
     check: values.check ?? false,
   });
   console.log(

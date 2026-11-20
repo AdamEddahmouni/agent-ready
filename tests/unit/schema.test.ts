@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
+import { mkdtemp, writeFile, mkdir } from "node:fs/promises";
+import { removeTree } from "../../src/filesystem/removeTree.js";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { runSchema } from "../../src/cli/commands/schema.js";
@@ -15,7 +16,7 @@ async function writeSchemaFixture(content: string, relativeDir = "schemas/v1"): 
   const path = join(root, relativeDir, "agent-ready.schema.json");
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, content, "utf8");
-  return { path, cleanup: () => rm(root, { recursive: true, force: true }) };
+  return { path, cleanup: () => removeTree(root) };
 }
 
 const sample = JSON.stringify(
@@ -128,7 +129,7 @@ describe("runSchema (unit)", () => {
       const root = await mkdtemp(join(tmpdir(), "agent-ready-schema-test-"));
       const path = join(root, "schema.json");
       await writeFile(path, JSON.stringify({ title: "no-version-segment" }), "utf8");
-      fixture = { path, cleanup: () => rm(root, { recursive: true, force: true }) };
+      fixture = { path, cleanup: () => removeTree(root) };
       const outcome = await runSchema({ json: true, content: false }, { schemaPath: fixture.path });
       expect(JSON.parse(outcome.stdout)).toMatchObject({
         ok: true,

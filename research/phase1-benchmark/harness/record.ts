@@ -2,14 +2,29 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import type { ValidateFunction } from "ajv";
-import type { Condition, TokenMetrics } from "./types.js";
+import type { Condition, ProtocolVersion, TokenMetrics } from "./types.js";
 
-export const RAW_RUN_SCHEMA_PATH = fileURLToPath(
-  new URL("../../../schemas/research/phase1-benchmark-raw-run-v1.schema.json", import.meta.url),
-);
+/**
+ * Raw records are validated against the schema of the protocol version they
+ * cite. v1 and v2 differ only in the frozen `axios-01` oracle, but a record
+ * from one version must never be silently accepted as a record of the other, so
+ * the version is read from the document and its own schema is applied.
+ */
+
+const RAW_RUN_SCHEMA_PATHS: Readonly<Record<ProtocolVersion, string>> = {
+  1: fileURLToPath(
+    new URL("../../../schemas/research/phase1-benchmark-raw-run-v1.schema.json", import.meta.url),
+  ),
+  2: fileURLToPath(
+    new URL("../../../schemas/research/phase1-benchmark-raw-run-v2.schema.json", import.meta.url),
+  ),
+};
+
+/** The v1 schema path, kept for callers that predate v2. */
+export const RAW_RUN_SCHEMA_PATH = RAW_RUN_SCHEMA_PATHS[1];
 
 export interface RawRunRecord {
-  readonly protocolVersion: 1;
+  readonly protocolVersion: ProtocolVersion;
   readonly runManifestId: string;
   readonly taskId: string;
   readonly condition: Condition;
@@ -36,32 +51,44 @@ export type RawRunValidationResult =
   | { readonly ok: true; readonly record: RawRunRecord }
   | { readonly ok: false; readonly errors: readonly string[] };
 
-let compiled: ValidateFunction | undefined;
+const compiled = new Map<ProtocolVersion, ValidateFunction>();
 
-function rawRunValidator(): ValidateFunction {
-  if (compiled === undefined) {
-    const schema = JSON.parse(readFileSync(RAW_RUN_SCHEMA_PATH, "utf8")) as object;
-    const ajv = new Ajv2020({ allErrors: true, strict: true });
-    // The schema uses `format: "date-time"` without pulling in ajv-formats.
-    // A strict ISO check is enough for the harness's own timestamps and avoids
-    // adding a runtime dependency for one format.
-    ajv.addFormat("date-time", {
-      type: "string",
-      validate: (value: string) => {
-        if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) {
-          return false;
-        }
-        return !Number.isNaN(Date.parse(value));
-      },
-    });
-    compiled = ajv.compile(schema);
-  }
-  return compiled;
+function rawRunValidator(version: ProtocolVersion): ValidateFunction {
+  const cached = compiled.get(version);
+  if (cached !== undefined) return cached;
+
+  const schema = JSON.parse(readFileSync(RAW_RUN_SCHEMA_PATHS[version], "utf8")) as object;
+  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  // The schema uses `format: "date-time"` without pulling in ajv-formats.
+  // A strict ISO check is enough for the harness's own timestamps and avoids
+  // adding a runtime dependency for one format.
+  ajv.addFormat("date-time", {
+    type: "string",
+    validate: (value: string) => {
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) {
+        return false;
+      }
+      return !Number.isNaN(Date.parse(value));
+    },
+  });
+  const validate = ajv.compile(schema);
+  compiled.set(version, validate);
+  return validate;
 }
 
-/** Validates one raw run record against the frozen protocol schema. */
+function declaredVersion(input: unknown): ProtocolVersion | undefined {
+  if (typeof input !== "object" || input === null) return undefined;
+  const version = (input as Record<string, unknown>)["protocolVersion"];
+  return version === 1 || version === 2 ? version : undefined;
+}
+
+/** Validates one raw run record against the frozen schema of its own version. */
 export function validateRawRun(input: unknown): RawRunValidationResult {
-  const validate = rawRunValidator();
+  const version = declaredVersion(input);
+  if (version === undefined) {
+    return { ok: false, errors: ["/protocolVersion: must be 1 or 2"] };
+  }
+  const validate = rawRunValidator(version);
   if (!validate(input)) {
     const errors = (validate.errors ?? []).map((error) => {
       const path = error.instancePath.length > 0 ? error.instancePath : "/";

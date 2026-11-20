@@ -1,0 +1,54 @@
+{
+  "protocolVersion": 2,
+  "id": "REPLACE_WITH_RUN_MANIFEST_ID",
+  "createdAt": "2026-11-19T00:00:00Z",
+  "model": {
+    "id": "REPLACE_WITH_MODEL_ID",
+    "configuration": {
+      "temperature": 0,
+      "maxOutputTokens": 0
+    }
+  },
+  "agentClient": {
+    "name": "REPLACE_WITH_AGENT_CLIENT",
+    "version": "REPLACE_WITH_AGENT_CLIENT_VERSION"
+  },
+  "environment": {
+    "os": "REPLACE_WITH_OS",
+    "node": "REPLACE_WITH_NODE_VERSION"
+  },
+  "agentReadyCommit": "0000000000000000000000000000000000000000",
+  "repositories": [
+    {
+      "id": "axios",
+      "commit": "2426e03ba9020be31ed013873423cea6b7cd2e67"
+    },
+    {
+      "id": "jest",
+      "commit": "202dd8a14777c270607c2416bd5034c3c0abc984"
+    },
+    {
+      "id": "vite",
+      "commit": "9944fa6033873f13ae88f59e023ab642c50fee2b"
+    },
+    {
+      "id": "lodash",
+      "commit": "2b5e6f7399a7b48005140b5d5c6bc6c0e62919a8"
+    },
+    {
+      "id": "nestjs",
+      "commit": "b58554ea5857445841674963211e4f3f41b0a3a4"
+    }
+  ],
+  "runs": {
+    "perTaskPerCondition": 3,
+    "perCondition": 39,
+    "total": 78
+  },
+  "budgets": {
+    "maxTotalTokens": 0,
+    "maxTotalCostUsd": 0
+  },
+  "randomizationSeed": "REPLACE_WITH_RANDOMIZATION_SEED",
+  "notes": "Template only. Replace every REPLACE_WITH_* value, the zero agentReadyCommit, and the date before committing the actual run manifest (#57)."
+}

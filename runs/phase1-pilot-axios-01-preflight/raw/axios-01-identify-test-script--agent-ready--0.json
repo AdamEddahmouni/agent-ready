@@ -1,0 +1,47 @@
+{
+  "protocolVersion": 1,
+  "runManifestId": "phase1-v1-2026-11-19",
+  "taskId": "axios-01-identify-test-script",
+  "condition": "agent-ready",
+  "runIndex": 0,
+  "startTime": "2026-11-19T21:44:29.282Z",
+  "endTime": "2026-11-19T21:44:44.021Z",
+  "timeToFirstCorrectModification": null,
+  "success": false,
+  "toolCalls": [
+    {
+      "name": "shell",
+      "command": "/bin/bash -lc 'agent-ready twin query --kind commands-for-package --package . --json'",
+      "atMs": 6182,
+      "exitCode": 1
+    },
+    {
+      "name": "shell",
+      "command": "/bin/bash -lc 'agent-ready twin query --help'",
+      "atMs": 8449,
+      "exitCode": 0
+    },
+    {
+      "name": "shell",
+      "command": "/bin/bash -lc \"agent-ready twin query --snapshot /tmp/agent-ready-phase1-BNiPwA/snapshot.json --kind commands-for-package --parameter . --json | rg -C 3 'test:vitest:unit'\"",
+      "atMs": 11658,
+      "exitCode": 0
+    }
+  ],
+  "fileReads": [],
+  "fileWrites": [],
+  "tokenMetrics": {
+    "input": 73296,
+    "output": 167,
+    "cached": 63488,
+    "reasoning": 0
+  },
+  "assumptions": [],
+  "dependencyReasoningFindings": [],
+  "verificationAttempts": [],
+  "verificationSelectionResult": false,
+  "finalPatch": null,
+  "verificationResults": [],
+  "infrastructureFailure": false,
+  "notes": "Bash commands classified as mutations ran (0 certain, 3 possible), but the checkout reports no changes; client stderr: Reading additional input from stdin...\noracle: response path \"script\" did not equal \"test\""
+}

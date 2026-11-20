@@ -1,0 +1,57 @@
+{
+  "protocolVersion": 1,
+  "id": "phase1-v1-2026-11-19",
+  "createdAt": "2026-11-19T20:56:06Z",
+  "model": {
+    "id": "gpt-6.2-sol",
+    "configuration": {
+      "temperature": null,
+      "maxOutputTokens": null,
+      "clientSandbox": "workspace-write",
+      "transport": "codex exec --json"
+    }
+  },
+  "agentClient": {
+    "name": "codex-cli",
+    "version": "0.166.0"
+  },
+  "environment": {
+    "os": "Ubuntu 24.04.5 LTS, Linux 6.1.102 x86_64",
+    "node": "26.13.0"
+  },
+  "agentReadyCommit": "2a0515e1f01af61d1379dfe8149b30227769d533",
+  "repositories": [
+    {
+      "id": "axios",
+      "commit": "2426e03ba9020be31ed013873423cea6b7cd2e67"
+    },
+    {
+      "id": "jest",
+      "commit": "202dd8a14777c270607c2416bd5034c3c0abc984"
+    },
+    {
+      "id": "vite",
+      "commit": "9944fa6033873f13ae88f59e023ab642c50fee2b"
+    },
+    {
+      "id": "lodash",
+      "commit": "2b5e6f7399a7b48005140b5d5c6bc6c0e62919a8"
+    },
+    {
+      "id": "nestjs",
+      "commit": "b58554ea5857445841674963211e4f3f41b0a3a4"
+    }
+  ],
+  "runs": {
+    "perTaskPerCondition": 3,
+    "perCondition": 39,
+    "total": 78
+  },
+  "budgets": {
+    "maxTotalTokens": 20000000,
+    "maxTotalWallClockMinutes": 2880,
+    "maxInfrastructureRetriesPerTrial": 1
+  },
+  "randomizationSeed": "phase1-v1-2026-11-19-codex-gpt-6.2-sol-8f3c1a",
+  "notes": "Frozen before the first trial; any edit needs a new run manifest and a new id, which existing raw records keep citing. agentReadyCommit is the main-branch commit that produces snapshots (v0.7.0 does not exist yet; per #64 an immutable SHA stands in for the tag). temperature and maxOutputTokens are null because codex exec --json exposes no sampling or output-length flag: the values are the client defaults, recorded as null rather than invented. maxTotalTokens is 20,000,000, about 2.8x the 78 x 92,038 input tokens implied by the largest measured session (axios-02, 92,038 input / 378 output) and roughly 256,000 tokens per trial. maxTotalWallClockMinutes is 2,880, twice the 6 x 240 minutes the thirteen declared task timeouts imply for three runs in each of two conditions, leaving room for checkout, snapshot and scoring overhead. Pilot trials cite this id but are published separately and are excluded from protocol results."
+}

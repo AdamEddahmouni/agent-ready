@@ -1,0 +1,174 @@
+{
+  "protocolVersion": 2,
+  "runManifestIds": [
+    "phase1-v2-2026-11-19"
+  ],
+  "decision": "noDemonstratedBenefit",
+  "summaries": {
+    "raw": {
+      "condition": "raw",
+      "n": 1,
+      "taskSuccessRate": 1,
+      "invalidAssumptionRate": 0,
+      "incorrectDependencyReasoningRate": 0,
+      "verificationSelectionFailureRate": 1,
+      "unnecessaryFileReadsMedian": 0,
+      "variance": {
+        "taskSuccessRate": null,
+        "invalidAssumptionRate": null,
+        "incorrectDependencyReasoningRate": null,
+        "verificationSelectionFailureRate": null,
+        "unnecessaryFileReads": null
+      },
+      "wilson": {
+        "taskSuccessRate": {
+          "lower": 0.20654329147389294,
+          "upper": 1,
+          "center": 0.6032716457369465
+        },
+        "verificationSelectionFailureRate": {
+          "lower": 0.20654329147389294,
+          "upper": 1,
+          "center": 0.6032716457369465
+        }
+      }
+    },
+    "agent-ready": {
+      "condition": "agent-ready",
+      "n": 1,
+      "taskSuccessRate": 1,
+      "invalidAssumptionRate": 0,
+      "incorrectDependencyReasoningRate": 0,
+      "verificationSelectionFailureRate": 1,
+      "unnecessaryFileReadsMedian": 0,
+      "variance": {
+        "taskSuccessRate": null,
+        "invalidAssumptionRate": null,
+        "incorrectDependencyReasoningRate": null,
+        "verificationSelectionFailureRate": null,
+        "unnecessaryFileReads": null
+      },
+      "wilson": {
+        "taskSuccessRate": {
+          "lower": 0.20654329147389294,
+          "upper": 1,
+          "center": 0.6032716457369465
+        },
+        "verificationSelectionFailureRate": {
+          "lower": 0.20654329147389294,
+          "upper": 1,
+          "center": 0.6032716457369465
+        }
+      }
+    }
+  },
+  "perTask": [
+    {
+      "taskId": "axios-01-identify-test-script",
+      "condition": "raw",
+      "n": 1,
+      "taskSuccessRate": 1,
+      "invalidAssumptionRate": 0,
+      "incorrectDependencyReasoningRate": 0,
+      "verificationSelectionFailureRate": 1,
+      "unnecessaryFileReadsMedian": 0,
+      "variance": {
+        "taskSuccessRate": null,
+        "invalidAssumptionRate": null,
+        "incorrectDependencyReasoningRate": null,
+        "verificationSelectionFailureRate": null,
+        "unnecessaryFileReads": null
+      },
+      "wilson": {
+        "taskSuccessRate": {
+          "lower": 0.20654329147389294,
+          "upper": 1,
+          "center": 0.6032716457369465
+        },
+        "verificationSelectionFailureRate": {
+          "lower": 0.20654329147389294,
+          "upper": 1,
+          "center": 0.6032716457369465
+        }
+      }
+    },
+    {
+      "taskId": "axios-01-identify-test-script",
+      "condition": "agent-ready",
+      "n": 1,
+      "taskSuccessRate": 1,
+      "invalidAssumptionRate": 0,
+      "incorrectDependencyReasoningRate": 0,
+      "verificationSelectionFailureRate": 1,
+      "unnecessaryFileReadsMedian": 0,
+      "variance": {
+        "taskSuccessRate": null,
+        "invalidAssumptionRate": null,
+        "incorrectDependencyReasoningRate": null,
+        "verificationSelectionFailureRate": null,
+        "unnecessaryFileReads": null
+      },
+      "wilson": {
+        "taskSuccessRate": {
+          "lower": 0.20654329147389294,
+          "upper": 1,
+          "center": 0.6032716457369465
+        },
+        "verificationSelectionFailureRate": {
+          "lower": 0.20654329147389294,
+          "upper": 1,
+          "center": 0.6032716457369465
+        }
+      }
+    }
+  ],
+  "validRuns": [
+    {
+      "key": "phase1-v2-2026-11-19#axios-01-identify-test-script#agent-ready#0",
+      "taskId": "axios-01-identify-test-script",
+      "condition": "agent-ready",
+      "runIndex": 0,
+      "success": true,
+      "timeToFirstCorrectModification": null,
+      "invalidAssumptions": 0,
+      "dependencyReasoningFindings": 0,
+      "verificationSelectionFailure": true,
+      "unnecessaryFileReads": 0
+    },
+    {
+      "key": "phase1-v2-2026-11-19#axios-01-identify-test-script#raw#0",
+      "taskId": "axios-01-identify-test-script",
+      "condition": "raw",
+      "runIndex": 0,
+      "success": true,
+      "timeToFirstCorrectModification": null,
+      "invalidAssumptions": 0,
+      "dependencyReasoningFindings": 0,
+      "verificationSelectionFailure": true,
+      "unnecessaryFileReads": 0
+    }
+  ],
+  "excludedRuns": [],
+  "checksums": {
+    "algorithm": "sha256",
+    "combined": "b279ff90c54f32a7b02dbd4be436e1cd69e6560b9be1fd481d77fd96a9b2a9b7",
+    "files": [
+      {
+        "file": "axios-01-identify-test-script--agent-ready--0.json",
+        "sha256": "e957290d94a13aa6c049b1cfb25f328ed2f766f8916bf3cd5466c3857a5b040e"
+      },
+      {
+        "file": "axios-01-identify-test-script--raw--0.json",
+        "sha256": "69232939fe21f1b2ef6793f49b386344ee95bc9464a72225d456465092db2f68"
+      }
+    ]
+  },
+  "limitations": [
+    "Results are screened with the predeclared decision rule; this is not a significance test.",
+    "All valid runs are reported. No best-of-N selection or task cherry-picking is applied.",
+    "Wilson intervals apply to binary rates; variance is sample variance (n - 1) and is null for n < 2.",
+    "Unnecessary-read counts depend on post-hoc adjudication; unadjudicated runs count only reads explicitly marked unnecessary.",
+    "Manual-rubric outcomes require two reviewers and a third reviewer for disagreement; adjudications live outside raw logs.",
+    "Token metrics may be null where the evaluation environment did not report them."
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "protocolVersion": 1,
+  "runManifestId": "fixture-reproduction-2026-11-17",
+  "taskId": "fixture-task-alpha",
+  "condition": "raw",
+  "runIndex": 0,
+  "startTime": "2026-11-17T00:00:00.000Z",
+  "endTime": "2026-11-17T00:02:00.000Z",
+  "timeToFirstCorrectModification": 12.5,
+  "success": true,
+  "toolCalls": [
+    { "name": "read_file", "path": "package.json" },
+    { "name": "read_file", "path": "src/index.ts" },
+    { "name": "read_file", "path": "README.md" },
+    { "name": "read_file", "path": "docs/setup.md" }
+  ],
+  "fileReads": [
+    { "path": "package.json", "atMs": 100 },
+    { "path": "src/index.ts", "atMs": 200, "unnecessary": true },
+    { "path": "README.md", "atMs": 300, "unnecessary": true },
+    { "path": "docs/setup.md", "atMs": 400, "unnecessary": true }
+  ],
+  "fileWrites": [],
+  "tokenMetrics": { "input": 1000, "output": 200, "cached": 0, "reasoning": 0 },
+  "assumptions": [
+    { "claim": "the root package declares the test script", "adjudication": "valid" }
+  ],
+  "dependencyReasoningFindings": [],
+  "verificationSelectionResult": true,
+  "finalPatch": null,
+  "infrastructureFailure": false
+}
