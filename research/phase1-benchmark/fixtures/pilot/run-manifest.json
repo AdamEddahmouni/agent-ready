@@ -1,0 +1,54 @@
+{
+  "protocolVersion": 1,
+  "id": "fixture-pilot-manifest",
+  "createdAt": "2026-11-17T00:00:00Z",
+  "model": {
+    "id": "fixture-model",
+    "configuration": {
+      "temperature": 0,
+      "maxOutputTokens": 4096
+    }
+  },
+  "agentClient": {
+    "name": "fixture-client",
+    "version": "1.0.0"
+  },
+  "environment": {
+    "os": "fixture-linux",
+    "node": "22.0.0"
+  },
+  "agentReadyCommit": "1111111111111111111111111111111111111111",
+  "repositories": [
+    {
+      "id": "axios",
+      "commit": "2426e03ba9020be31ed013873423cea6b7cd2e67"
+    },
+    {
+      "id": "jest",
+      "commit": "202dd8a14777c270607c2416bd5034c3c0abc984"
+    },
+    {
+      "id": "vite",
+      "commit": "9944fa6033873f13ae88f59e023ab642c50fee2b"
+    },
+    {
+      "id": "lodash",
+      "commit": "2b5e6f7399a7b48005140b5d5c6bc6c0e62919a8"
+    },
+    {
+      "id": "nestjs",
+      "commit": "b58554ea5857445841674963211e4f3f41b0a3a4"
+    }
+  ],
+  "runs": {
+    "perTaskPerCondition": 3,
+    "perCondition": 39,
+    "total": 78
+  },
+  "budgets": {
+    "maxTotalTokens": 1000000,
+    "maxTotalCostUsd": 0
+  },
+  "randomizationSeed": "fixture-seed-2026-11-17",
+  "notes": "Synthetic fixture only; not a benchmark result. The actual #57 manifest must pin release #64 and the selected model, client, environment, budgets, and date."
+}

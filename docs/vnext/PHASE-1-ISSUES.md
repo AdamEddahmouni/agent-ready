@@ -226,10 +226,11 @@ conformance corpus.
 
 ### Issue #6 — Experimental query interface and evaluation harness
 
-**Status**: the `twin build`/`twin query` surface is shipped on `main`
-(unreleased as of v0.6.1); the evaluation harness and benchmark have not run.
-Tracked by milestone [#1](https://github.com/AdamEddahmouni/agent-ready/milestone/1)
-and issues #59–#62.
+**Status**: the `twin build`/`twin query` surface and the evaluation harness
+with its aggregate/adjudication/report/reproduce tooling are shipped on `main`
+(unreleased as of v0.6.1). No evaluation run has occurred. Tracked by milestone
+[#1](https://github.com/AdamEddahmouni/agent-ready/milestone/1); the pilot, the
+78-trial run, and publication are #57, #61, and #62.
 
 **Depends on:** #3, #5, **and the protocol in #7**.
 

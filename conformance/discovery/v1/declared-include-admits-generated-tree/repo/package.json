@@ -1,0 +1,5 @@
+{
+  "name": "declared",
+  "private": true,
+  "main": "lib/index.js"
+}

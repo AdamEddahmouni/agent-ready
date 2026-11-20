@@ -202,10 +202,14 @@ independent routes, which is the part the trigger did not anticipate:
 - _The fallback walk._ lodash has no `tsconfig.json`, so the deliberately blind
   bounded traversal runs, and **7 of its 55 modules are in `dist/`**. This is the
   exact scenario ADR-0047 named.
-- _A `tsconfig.json` with the default include._ webpack states no `files` and no
-  `include`, so the reproduction of TypeScript's own default (`**/*`) applies,
-  and **640 of 765 modules are in `lib/`** — a tree generated from `schemas/` and
-  `tooling/` and committed. No fallback was involved.
+- ~~_A `tsconfig.json` with the default include._~~ **Correction (2026-11-20):**
+  webpack's pinned `tsconfig.json` explicitly lists `lib/**/*.js` in `include`
+  (with `allowJs`/`checkJs`), so `lib/` was declared as part of its TypeScript
+  program, not admitted by TypeScript's default `**/*`. Its **640 of 765**
+  modules in `lib/` are therefore a **declared** universe. The corpus now pins
+  that inclusion as correct behaviour (`declared-include-admits-generated-tree`)
+  rather than as a second route to the same inaccuracy. The fallback walk is the
+  one real route, and remains pinned as known-inaccurate.
 
 The honest answer is not a `"dist"`-shaped heuristic. It is that
 `sourceUniverse.files` is a _lower bound_ on what a consumer should treat as

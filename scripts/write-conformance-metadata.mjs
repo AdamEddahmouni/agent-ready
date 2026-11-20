@@ -119,7 +119,7 @@ const metadata = {
       "Pins a known limitation so that fixing it cannot happen silently. A package with no `tsconfig.json` gets the deliberately blind bounded traversal, which cannot tell source from build output, so committed `dist/` enters the module universe.",
     exercises: [
       "bounded-traversal strategy is published, not inferred",
-      "generated output is admitted as source — deliberately, and wrongly",
+      "committed build output is admitted as a lower bound — deliberately, and without a guess",
       "CommonJS require is reported as unsupported-syntax rather than resolved",
     ],
     snapshotVersion: 1,
@@ -127,12 +127,31 @@ const metadata = {
     knownLimitation:
       'With no `tsconfig.json`, the fallback walk excludes only `node_modules` and `.git`, because "this directory looks like build output" is a guess and a guess that silently drops files produces a graph that is quietly incomplete. The cost is that committed `dist/` and `lib/` are treated as source, so `graph.sourceUniverse.files` is not the repository\'s source and `graph.nodes` contains generated code.',
     correctFutureBehaviour:
-      "A documented exclusion rule for build output, with its own decision and its own diagnostics — not a growing list of directory names that look like build output. The corpus study also found a second route to the same inaccuracy: a `tsconfig.json` that states no `files` and no `include` reproduces TypeScript's own `**/*` default and admits generated trees just as well, so a fix has to cover both.",
+      "A documented exclusion rule for build output, with its own decision and its own diagnostics — not a growing list of directory names that look like build output. An explicit `tsconfig.json` include is not this case: a repository that lists a generated tree declares it, so the tool must not second-guess it (see `declared-include-admits-generated-tree`).",
     inspiredBy: {
       repository: "https://github.com/lodash/lodash",
       commit: "2b5e6f7399a7b48005140b5d5c6bc6c0e62919a8",
       originalBehaviour:
-        "7 of 55 modules are in `dist/`. The same inaccuracy reached webpack at e95be18b465117b38d4f260b608d4f084a500bdc through a `tsconfig.json` default include rather than the fallback walk, where 640 of 765 modules are in a committed, generated `lib/`.",
+        "7 of 55 modules are in `dist/`. webpack (e95be18b4651) is not a second route to this limitation: its `tsconfig.json` explicitly includes `lib/**/*.js`, so its 640 modules are a declared source universe, pinned separately as correct behaviour.",
+    },
+  },
+
+  "declared-include-admits-generated-tree": {
+    name: "declared-include-admits-generated-tree",
+    purpose:
+      "A package whose tsconfig explicitly includes a generated-looking `lib/**/*.js` tree and excludes `src/`. The declaration decides the universe: lib is source and src is not.",
+    exercises: [
+      "an explicit tsconfig include is authoritative over what a path looks like",
+      "a generated-looking tree is admitted because the repository declared it, not because the directory name was guessed",
+      "files outside the declared include are excluded",
+    ],
+    snapshotVersion: 1,
+    status: "normative",
+    inspiredBy: {
+      repository: "https://github.com/webpack/webpack",
+      commit: "e95be18b465117b38d4f260b608d4f084a500bdc",
+      originalBehaviour:
+        "`tsconfig.json` lists `lib/**/*.js` in `include` with `allowJs`/`checkJs`, and 640 of 765 modules live in that committed, generated tree. A repository that names a tree in its own TypeScript program has declared it; withholding it would be the silent narrowing ADR-0047 forbids.",
     },
   },
 

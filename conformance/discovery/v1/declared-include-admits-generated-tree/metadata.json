@@ -1,0 +1,16 @@
+{
+  "name": "declared-include-admits-generated-tree",
+  "purpose": "A package whose tsconfig explicitly includes a generated-looking `lib/**/*.js` tree and excludes `src/`. The declaration decides the universe: lib is source and src is not.",
+  "exercises": [
+    "an explicit tsconfig include is authoritative over what a path looks like",
+    "a generated-looking tree is admitted because the repository declared it, not because the directory name was guessed",
+    "files outside the declared include are excluded"
+  ],
+  "snapshotVersion": 1,
+  "status": "normative",
+  "inspiredBy": {
+    "repository": "https://github.com/webpack/webpack",
+    "commit": "e95be18b465117b38d4f260b608d4f084a500bdc",
+    "originalBehaviour": "`tsconfig.json` lists `lib/**/*.js` in `include` with `allowJs`/`checkJs`, and 640 of 765 modules live in that committed, generated tree. A repository that names a tree in its own TypeScript program has declared it; withholding it would be the silent narrowing ADR-0047 forbids."
+  }
+}

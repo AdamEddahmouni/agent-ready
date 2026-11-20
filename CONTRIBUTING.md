@@ -105,9 +105,8 @@ Guidelines:
 
 ### Commit signing is required
 
-`main` requires verified commit signatures. An unsigned pull request can pass
-every other check and still cannot be merged, so configure signing before your
-first commit:
+`main` requires verified commit signatures on the commits it receives, so
+configure signing before your first commit:
 
 ```bash
 git config --global gpg.format ssh
@@ -123,7 +122,14 @@ guide.
 The `commit signing` CI job checks every commit in the pull request, and
 `pnpm check:commit-signing` runs the same check locally against
 `origin/main..HEAD`. It verifies that a signature is present, not that GitHub
-can verify it — a key that is not on your GitHub account still blocks the merge.
+can verify it — a key that is not on your GitHub account still blocks a merge
+commit or rebase merge.
+
+**Squash merging is signed by GitHub.** A squash merge creates one new commit on
+`main`, and GitHub signs it, so a pull request whose branch commits are unsigned
+can still land with **Squash and merge**; the commit on `main` is verified even
+though the `commit signing` job is red on the branch. Merge commits and rebase
+merges are not signed this way and stay blocked.
 
 If an unsigned commit is already pushed, re-sign the branch and update it with a
 lease:

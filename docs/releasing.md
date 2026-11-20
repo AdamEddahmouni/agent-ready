@@ -26,10 +26,12 @@ Release steps:
 3. Run `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and
    `pnpm test:package` on Node 20 and 22 where practical. Also run
    `pnpm check:action-pins`.
-4. Open a PR, confirm the GitHub Actions OS matrix, the `commit signing` job,
-   and the composite-action dogfood job pass, then merge. Every commit in the
-   pull request must carry a verified signature: `main` rejects unsigned commits
-   and the merge button stays blocked otherwise.
+4. Open a PR and confirm the GitHub Actions OS matrix and the composite-action
+   dogfood job pass, then merge. `main` requires verified signatures on the
+   commits it receives. A squash merge is signed by GitHub and satisfies that
+   rule even when the branch commits are unsigned; merge commits and rebase
+   merges stay blocked, and the `commit signing` job reports the unsigned
+   branch commits either way.
 5. Create a cryptographically signed annotated `v<version>` tag at the merge
    commit: `git tag -s v<version> -m "v<version>"`. GitHub must show the tag as
    verified.

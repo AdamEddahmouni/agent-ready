@@ -1,0 +1,38 @@
+{
+  "transcriptVersion": 1,
+  "taskId": "axios-01-identify-test-script",
+  "condition": "agent-ready",
+  "agent": {
+    "client": "codex-cli",
+    "version": "0.166.0",
+    "modelId": "gpt-6.2-sol"
+  },
+  "provenance": {
+    "captured": true,
+    "clientLogFormat": "jsonl",
+    "capturedAt": "2026-11-19T22:21:09.050Z"
+  },
+  "startedAt": "2026-11-19T22:20:58.618Z",
+  "events": [
+    {
+      "kind": "shell",
+      "command": "/bin/bash -lc 'agent-ready twin query --kind commands-for-package --parameter axios --json'",
+      "atMs": 4904,
+      "exitCode": 1
+    },
+    {
+      "kind": "shell",
+      "command": "/bin/bash -lc 'agent-ready twin query --kind commands-for-package --parameter . --json'",
+      "atMs": 7990,
+      "exitCode": 0
+    }
+  ],
+  "finalResponse": "{\"script\":\"test:vitest:unit\",\"body\":\"vitest run --project unit\"}",
+  "usage": {
+    "input": 55974,
+    "output": 103,
+    "cached": 39040,
+    "reasoning": 0
+  },
+  "notes": "Bash commands classified as mutations ran (0 certain, 2 possible), but the checkout reports no changes"
+}

@@ -1,0 +1,30 @@
+{
+  "transcriptVersion": 1,
+  "taskId": "axios-01-identify-test-script",
+  "condition": "raw",
+  "agent": {
+    "client": "claude-code",
+    "version": "2.1.316 (Claude Code)",
+    "modelId": "claude-sonnet-4-5"
+  },
+  "provenance": {
+    "captured": false,
+    "clientLogFormat": "stream-json",
+    "note": "Authored fixture: session-shaped events, not a captured session. The first pilot trial replaces this file with a real capture."
+  },
+  "startedAt": "2026-11-17T00:00:00.000Z",
+  "events": [
+    { "kind": "read", "path": "package.json", "atMs": 1200 },
+    { "kind": "search", "query": "scripts.test", "atMs": 2400 },
+    {
+      "kind": "shell",
+      "command": "node -p \"require('./package.json').scripts.test\"",
+      "atMs": 3600,
+      "exitCode": 0
+    },
+    { "kind": "other", "name": "thinking", "atMs": 4100, "detail": "confirmed the root script" }
+  ],
+  "finalResponse": "{\"script\":\"test\",\"body\":\"node ./node_modules/.bin/mocha --require esm \\\"test/unit/**/*.js\\\"\"}",
+  "usage": { "input": 18420, "output": 312, "cached": 8192, "reasoning": null },
+  "verificationSelectionResult": true
+}

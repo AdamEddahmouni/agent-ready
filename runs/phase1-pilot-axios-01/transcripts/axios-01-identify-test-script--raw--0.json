@@ -1,0 +1,31 @@
+{
+  "transcriptVersion": 1,
+  "taskId": "axios-01-identify-test-script",
+  "condition": "raw",
+  "agent": {
+    "client": "codex-cli",
+    "version": "0.166.0",
+    "modelId": "gpt-6.2-sol"
+  },
+  "provenance": {
+    "captured": true,
+    "clientLogFormat": "jsonl",
+    "capturedAt": "2026-11-19T21:47:29.059Z"
+  },
+  "startedAt": "2026-11-19T21:47:22.755Z",
+  "events": [
+    {
+      "kind": "shell",
+      "command": "/bin/bash -lc \"rg -n '\\\"test:vitest:unit\\\"' package.json\"",
+      "atMs": 3887,
+      "exitCode": 0
+    }
+  ],
+  "finalResponse": "{\"script\":\"test:vitest:unit\",\"body\":\"vitest run --project unit\"}",
+  "usage": {
+    "input": 35854,
+    "output": 58,
+    "cached": 31488,
+    "reasoning": 0
+  }
+}

@@ -368,7 +368,7 @@ releasing** ([ADR-0042](docs/decisions/0042-v1-freeze-and-parallel-vnext-surface
 vNext work lands beside them as additive, independently versioned surface. No
 control-plane capability exists in code today.
 
-CI runs 1,037 automated tests across 64 test files, exercising the full pipeline
+CI runs 1,145 automated tests across 78 test files, exercising the full pipeline
 on Ubuntu, Windows, and macOS. Release tags are cut only from a green quality
 gate.
 

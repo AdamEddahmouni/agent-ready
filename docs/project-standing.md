@@ -43,9 +43,14 @@ TypeScript package, not just a specification document:
   embedding the validation pipeline in another tool — see
   [docs/specification/api-stability.md](specification/api-stability.md).
 - Unit and integration tests, a CI pipeline
-  (`.github/workflows/ci.yml`), 48 Architecture Decision Records
+  (`.github/workflows/ci.yml`), 49 Architecture Decision Records
   (`docs/decisions/`), a threat model, and a stated pre-1.0
   compatibility policy.
+- Offline Phase 1 research tooling on `main` under
+  `research/phase1-benchmark/`: the evaluation harness and the
+  aggregate/adjudication/report/reproduce pipeline, exercised by
+  `pnpm research:benchmark-test` in CI. It invokes no model and has run no
+  benchmark.
 
 None of this is aspirational. Run `agent-ready --help` after `pnpm
 install && pnpm build` and every command above is real.
@@ -56,8 +61,9 @@ install && pnpm build` and every command above is real.
   facts, the graph, commands, and verification; CI workflow and exported-API
   discovery are deferred by
   [ADR-0051](decisions/0051-defer-ci-api-discovery-from-format-1.md).
-- **No Phase 1 benchmark result.** Protocol v1 is a draft and no evaluation run
-  has occurred; the harness, pilot, and 78-trial run are tracked in milestone
+- **No Phase 1 benchmark result.** Protocol v1 is frozen (2026-11-17) and the
+  harness and reporting tooling are on `main`, but no evaluation run has
+  occurred; the pilot, the 78-trial run, and publication are tracked in milestone
   [#1](https://github.com/AdamEddahmouni/agent-ready/milestone/1).
 - **No v1.0 compatibility commitment.** `0.6.1` is the stable npm package
   and Git tag, published with a GitHub-verified signed tag, while the project

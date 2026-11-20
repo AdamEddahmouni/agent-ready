@@ -12,3 +12,5 @@ Thumbs.db
 agent-ready-verify-result.json
 .claude/
 artifacts/
+.agent-ready-build.json
+build/

@@ -5,7 +5,7 @@
  * serialization, and the real filesystem path must match what consumers run.
  */
 
-import { cpSync, existsSync, mkdtempSync, mkdirSync, rmSync, readFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { environmentLeaks } from "../../src/conformance/discovery.js";
+import { removeTree } from "../../src/filesystem/removeTree.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const cli = join(repoRoot, "dist/cli/index.js");
@@ -42,7 +43,7 @@ describe("built CLI discover --json", () => {
     expect(stdout).not.toContain(repoRoot.replace(/\\/g, "/"));
   });
 
-  it.skipIf(!existsSync(cli))("matches the minimal-package corpus case on disk", () => {
+  it.skipIf(!existsSync(cli))("matches the minimal-package corpus case on disk", async () => {
     const fixture = join(repoRoot, "conformance/discovery/v1/minimal-package/repo");
     const temporary = mkdtempSync(join(tmpdir(), "agent-ready-cli-conformance-"));
     try {
@@ -56,11 +57,11 @@ describe("built CLI discover --json", () => {
       const { stdout } = runDiscoverJson(root);
       expect(stdout).toBe(expected);
     } finally {
-      rmSync(temporary, { recursive: true, force: true });
+      await removeTree(temporary);
     }
   });
 
-  it.skipIf(!existsSync(cli))("matches the unresolved-import corpus case on disk", () => {
+  it.skipIf(!existsSync(cli))("matches the unresolved-import corpus case on disk", async () => {
     const fixture = join(repoRoot, "conformance/discovery/v1/unresolved-import/repo");
     const temporary = mkdtempSync(join(tmpdir(), "agent-ready-cli-conformance-"));
     try {
@@ -74,7 +75,7 @@ describe("built CLI discover --json", () => {
       const { stdout } = runDiscoverJson(root);
       expect(stdout).toBe(expected);
     } finally {
-      rmSync(temporary, { recursive: true, force: true });
+      await removeTree(temporary);
     }
   });
 });

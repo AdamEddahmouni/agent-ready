@@ -1,0 +1,19 @@
+{
+  "protocolVersion": 2,
+  "title": "Phase 1 repository-intelligence benchmark",
+  "conditions": [
+    {
+      "id": "raw",
+      "description": "Agent receives the pinned repository checkout and ordinary shell/file tools only. No Agent-Ready snapshot or twin query."
+    },
+    {
+      "id": "agent-ready",
+      "description": "Same environment, model, agent configuration, task prompt, and repository SHA as raw, plus Discovery Snapshot Format 1 produced by agent-ready discover (or twin build) and bounded twin query over that snapshot."
+    }
+  ],
+  "repositoriesFile": "repositories.json",
+  "tasksFile": "tasks.json",
+  "decisionRuleFile": "decision-rule.json",
+  "runsPerTaskPerCondition": 3,
+  "immutability": "Protocol v2 is frozen for evaluation. Changes require a sibling v3 directory and protocolVersion 3; v2 artifacts, v1 artifacts and all results remain."
+}

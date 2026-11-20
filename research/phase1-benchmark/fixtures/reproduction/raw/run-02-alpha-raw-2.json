@@ -1,0 +1,27 @@
+{
+  "protocolVersion": 1,
+  "runManifestId": "fixture-reproduction-2026-11-17",
+  "taskId": "fixture-task-alpha",
+  "condition": "raw",
+  "runIndex": 2,
+  "startTime": "2026-11-17T00:20:00.000Z",
+  "endTime": "2026-11-17T00:22:00.000Z",
+  "timeToFirstCorrectModification": null,
+  "success": false,
+  "toolCalls": [
+    { "name": "read_file", "path": "package.json" },
+    { "name": "write_file", "path": "package.json" }
+  ],
+  "fileReads": [
+    { "path": "package.json", "atMs": 100, "unnecessary": true },
+    { "path": "src/index.ts", "atMs": 200, "unnecessary": true }
+  ],
+  "fileWrites": [{ "path": "package.json", "atMs": 900, "content": "{}" }],
+  "tokenMetrics": { "input": 900, "output": 80, "cached": 0, "reasoning": 0 },
+  "assumptions": [],
+  "dependencyReasoningFindings": [],
+  "verificationSelectionResult": false,
+  "finalPatch": "changed package.json",
+  "infrastructureFailure": false,
+  "notes": "forbidden modifying any file (forbidden-action): package.json was modified"
+}
