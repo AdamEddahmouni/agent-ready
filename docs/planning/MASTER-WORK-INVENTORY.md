@@ -46,7 +46,7 @@ These steps can be audited and improved in parallel where independent, but **the
 ### P0-B: protocol integrity and pilot [#57](https://github.com/AdamEddahmouni/agent-ready/issues/57)
 
 - [x] Frozen protocol v1; corrected frozen v2, raw record schemas, trial manifests and separate pilot captures.
-- [ ] **Decide proposal 0002 before official official-run selection.** Ten of 13 v2 tasks have no `command-exit-zero` clause, yet record `verificationSelectionResult: false`. A 10/13 apparent failure-rate floor is not an honest applicability denominator. Preferred *proposed* v3: `true`/`false`/`null` and an explicit applicable-run count; leave v1/v2 untouched.
+- [ ] **Decide proposal 0002 before official official-run selection.** Ten of 13 v2 tasks have no `command-exit-zero` clause, yet record `verificationSelectionResult: false`. A 10/13 apparent failure-rate floor is not an honest applicability denominator. Preferred _proposed_ v3: `true`/`false`/`null` and an explicit applicable-run count; leave v1/v2 untouched.
 - [ ] Select and document one official protocol version and manifest; ensure issue/ADR references are consistent.
 - [ ] Ensure the selected version's freeze checksums and rules are immutable before official runs.
 - [ ] Validate oracle semantics and genuine tool/condition parity; preserve prior failed pilots and corrected protocol as separate evidence.
