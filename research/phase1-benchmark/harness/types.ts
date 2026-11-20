@@ -19,11 +19,11 @@ export interface RepositoryPin {
 }
 
 /**
- * A frozen protocol version. v1 and v2 are both readable: v2 supersedes v1 by
- * correcting one task oracle, and records from different versions are never
- * aggregated together.
+ * A frozen protocol version. v1 and v2 remain readable; v3 is an additive
+ * scoring revision for verification applicability. Versions never aggregate
+ * together.
  */
-export type ProtocolVersion = 1 | 2;
+export type ProtocolVersion = 1 | 2 | 3;
 
 export interface ProtocolManifest {
   readonly protocolVersion: ProtocolVersion;
