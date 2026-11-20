@@ -5,7 +5,11 @@ This document is the honest, current-state entry point for anyone asking
 because Agent-Ready's direction is easy to over- or under-state: the
 project is neither a documentation-only proposal nor a finished product.
 
-## What exists today (v0.6.1 stable line, plus unreleased vNext discovery)
+The [master work inventory](planning/MASTER-WORK-INVENTORY.md) separates active
+acceptance criteria, conditional vNext phases, deferred historical proposals
+and research hypotheses. It does not override accepted ADRs or research gates.
+
+## What exists today (v0.6.1 published, plus the 0.7.0 source tree on main)
 
 Agent-Ready already ships a real, installable-from-source CLI and
 TypeScript package, not just a specification document:
@@ -21,8 +25,8 @@ TypeScript package, not just a specification document:
   experimental `twin build` and `twin query` subcommands. See
   [docs/specification/cli-reference.md](specification/cli-reference.md)
   for exact behavior, flags, exit codes, and JSON output shapes.
-- An experimental vNext discovery surface on `main`, not yet in the `0.6.1`
-  npm package: Discovery Snapshot Format 1, a provenance-carrying repository
+- An experimental vNext discovery surface on `main` (the source tree declares
+  `0.7.0`, while `0.6.1` is the last independently verified public release): Discovery Snapshot Format 1, a provenance-carrying repository
   graph, and `twin build`/`twin query` over a saved snapshot. See
   [ADR-0048](decisions/0048-discovery-snapshot-stability-and-conformance.md)
   and [ADR-0049](decisions/0049-snapshot-build-and-bounded-query.md).
@@ -61,11 +65,13 @@ install && pnpm build` and every command above is real.
   facts, the graph, commands, and verification; CI workflow and exported-API
   discovery are deferred by
   [ADR-0051](decisions/0051-defer-ci-api-discovery-from-format-1.md).
-- **No Phase 1 benchmark result.** Protocol v1 is frozen (2026-11-17) and the
-  harness and reporting tooling are on `main`, but no evaluation run has
-  occurred; the pilot, the 78-trial run, and publication are tracked in milestone
+- **No Phase 1 full benchmark result.** Protocols v1 and v2 are frozen and the
+  harness and reporting tooling are on `main`. Pilot runs and real captures
+  exist under `runs/` and `research/phase1-benchmark/captures/`, but no official
+  78-trial study or Phase 2 decision has been published. The pilot, full run,
+  and publication are tracked in milestone
   [#1](https://github.com/AdamEddahmouni/agent-ready/milestone/1).
-- **No v1.0 compatibility commitment.** `0.6.1` is the stable npm package
+- **No v1.0 compatibility commitment.** At this review `0.6.1` is the stable npm package
   and Git tag, published with a GitHub-verified signed tag, while the project
   remains pre-1.0 under the documented compatibility policy.
   The composite GitHub Action remains build-from-source and does not depend on
