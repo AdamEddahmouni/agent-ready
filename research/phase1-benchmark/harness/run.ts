@@ -218,6 +218,7 @@ export async function executeTrial(options: {
   }
 
   const infrastructureFailure = observations.infrastructureFailure === true;
+  const selectedVerification = selectedVerificationFor(options.task, observations.toolCalls);
   const raw: RawRunRecord = {
     protocolVersion: options.protocolVersion,
     runManifestId: options.runManifestId,
@@ -236,8 +237,9 @@ export async function executeTrial(options: {
     dependencyReasoningFindings: [...(observations.dependencyReasoningFindings ?? [])],
     verificationAttempts: [...(observations.verificationAttempts ?? [])],
     verificationSelectionResult:
-      observations.verificationSelectionResult === true ||
-      selectedVerificationFor(options.task, observations.toolCalls) === true,
+      options.protocolVersion === 3 && selectedVerification === undefined
+        ? null
+        : observations.verificationSelectionResult === true || selectedVerification === true,
     finalPatch: observations.finalPatch ?? null,
     verificationResults: [...(observations.verificationResults ?? [])],
     infrastructureFailure,

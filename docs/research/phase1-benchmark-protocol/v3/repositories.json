@@ -1,0 +1,35 @@
+{
+  "protocolVersion": 3,
+  "repositories": [
+    {
+      "id": "axios",
+      "url": "https://github.com/axios/axios",
+      "commit": "2426e03ba9020be31ed013873423cea6b7cd2e67",
+      "rationale": "Single package, npm lockfile, CODEOWNERS, moderate graph."
+    },
+    {
+      "id": "jest",
+      "url": "https://github.com/jestjs/jest",
+      "commit": "202dd8a14777c270607c2416bd5034c3c0abc984",
+      "rationale": "Large Yarn workspace, many packages, no CODEOWNERS."
+    },
+    {
+      "id": "vite",
+      "url": "https://github.com/vitejs/vite",
+      "commit": "9944fa6033873f13ae88f59e023ab642c50fee2b",
+      "rationale": "pnpm monorepo, playground tree, high package count."
+    },
+    {
+      "id": "lodash",
+      "url": "https://github.com/lodash/lodash",
+      "commit": "2b5e6f7399a7b48005140b5d5c6bc6c0e62919a8",
+      "rationale": "No tsconfig, committed dist/ in source universe (known inaccuracy)."
+    },
+    {
+      "id": "nestjs",
+      "url": "https://github.com/nestjs/nest",
+      "commit": "b58554ea5857445841674963211e4f3f41b0a3a4",
+      "rationale": "Closed-world package scope; sample manifests outside declaration."
+    }
+  ]
+}

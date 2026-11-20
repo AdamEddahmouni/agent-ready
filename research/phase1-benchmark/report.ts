@@ -51,7 +51,7 @@ export interface ReportRun {
   readonly timeToFirstCorrectModification: number | null;
   readonly invalidAssumptions: number;
   readonly dependencyReasoningFindings: number;
-  readonly verificationSelectionFailure: boolean;
+  readonly verificationSelectionFailure: boolean | null;
   readonly unnecessaryFileReads: number;
 }
 
@@ -169,7 +169,14 @@ export function buildBenchmarkReport(options: {
       compareKeys(left.key, right.key),
     ),
     checksums: reportChecksums(options.rawFiles),
-    limitations: options.limitations ?? DEFAULT_LIMITATIONS,
+    limitations:
+      options.limitations ??
+      (uniformProtocolVersion(options.rawFiles) === 3
+        ? [
+            ...DEFAULT_LIMITATIONS,
+            "Verification failure rate for v3 excludes tasks with no required verification command; applicable and not-applicable counts are reported separately.",
+          ]
+        : DEFAULT_LIMITATIONS),
   };
 
   validateReportCompleteness(report, options.rawFiles);
@@ -278,7 +285,7 @@ function runsTable(report: BenchmarkReport): string[] {
   ];
   for (const run of report.validRuns) {
     lines.push(
-      `| ${escapeCell(run.key)} | ${escapeCell(run.taskId)} | ${run.condition} | ${run.runIndex} | ${run.success ? "yes" : "no"} | ${run.timeToFirstCorrectModification === null ? "n/a" : run.timeToFirstCorrectModification.toFixed(2)} | ${run.invalidAssumptions} | ${run.dependencyReasoningFindings} | ${run.verificationSelectionFailure ? "yes" : "no"} | ${run.unnecessaryFileReads} |`,
+      `| ${escapeCell(run.key)} | ${escapeCell(run.taskId)} | ${run.condition} | ${run.runIndex} | ${run.success ? "yes" : "no"} | ${run.timeToFirstCorrectModification === null ? "n/a" : run.timeToFirstCorrectModification.toFixed(2)} | ${run.invalidAssumptions} | ${run.dependencyReasoningFindings} | ${run.verificationSelectionFailure === null ? "n/a" : run.verificationSelectionFailure ? "yes" : "no"} | ${run.unnecessaryFileReads} |`,
     );
   }
   return lines;
@@ -312,6 +319,23 @@ export function renderReportMarkdown(report: BenchmarkReport): string {
     "",
     ...summaryTable(report),
     "",
+    ...(report.protocolVersion === 3
+      ? [
+          "## Verification applicability (v3 only)",
+          "",
+          "| Scope | Condition | Applicable | Not applicable | Valid runs |",
+          "| --- | --- | ---: | ---: | ---: |",
+          ...(["raw", "agent-ready"] as const).map((condition) => {
+            const value = report.summaries[condition];
+            return `| Overall | ${condition} | ${String(value.verificationSelectionApplicableCount ?? 0)} | ${String(value.verificationSelectionNotApplicableCount ?? 0)} | ${String(value.n)} |`;
+          }),
+          ...report.perTask.map(
+            (task) =>
+              `| ${escapeCell(task.taskId)} | ${task.condition} | ${String(task.verificationSelectionApplicableCount ?? 0)} | ${String(task.verificationSelectionNotApplicableCount ?? 0)} | ${String(task.n)} |`,
+          ),
+          "",
+        ]
+      : []),
     "## Variance",
     "",
     ...varianceTable(report),

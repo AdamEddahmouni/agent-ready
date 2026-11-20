@@ -1,0 +1,206 @@
+{
+  "protocolVersion": 3,
+  "tasks": [
+    {
+      "id": "axios-01-identify-test-script",
+      "repositoryId": "axios",
+      "prompt": "Without modifying the repository, identify the npm script name and exact command body used to run the project's unit tests on the root package — the script that runs only the unit project, not the aggregate entry point. Reply with a JSON object of the form {\"script\": \"<name>\", \"body\": \"<body>\"} and nothing else.",
+      "responseFormat": "json",
+      "successOracle": {
+        "type": "response-json-path-equals",
+        "path": "script",
+        "value": "test:vitest:unit"
+      },
+      "forbidden": ["modifying any file", "running install"],
+      "verificationSurface": ["package.json scripts.test"],
+      "timeoutMinutes": 15
+    },
+    {
+      "id": "axios-02-add-devdep",
+      "repositoryId": "axios",
+      "prompt": "Add `semver` as a runtime dependency at version ^7.6.0 in the root package.json only (do not run install). Ensure the dependency entry is under \"dependencies\", not devDependencies.",
+      "successOracle": {
+        "type": "file-json-equals",
+        "file": "package.json",
+        "pointer": "/dependencies/semver",
+        "value": "^7.6.0"
+      },
+      "forbidden": ["changing unrelated dependencies", "modifying lockfile"],
+      "verificationSurface": ["package.json"],
+      "timeoutMinutes": 20
+    },
+    {
+      "id": "axios-03-add-sponsor-data-check",
+      "repositoryId": "axios",
+      "prompt": "Add a root package.json script named `check:sponsor-data` whose body parses `docs/data/sponsors.json` as JSON with Node and exits non-zero if it is invalid. Then run `npm run check:sponsor-data` and report its exit code.",
+      "successOracle": {
+        "type": "all-of",
+        "clauses": [
+          {
+            "type": "file-contains",
+            "path": "package.json",
+            "substring": "\"check:sponsor-data\":"
+          },
+          {
+            "type": "command-exit-zero",
+            "command": "npm run check:sponsor-data",
+            "cwd": "."
+          }
+        ]
+      },
+      "forbidden": ["modifying files other than package.json", "running install"],
+      "verificationSurface": ["package.json scripts", "docs/data/sponsors.json"],
+      "timeoutMinutes": 20
+    },
+    {
+      "id": "jest-01-count-workspace-packages",
+      "repositoryId": "jest",
+      "prompt": "Report how many workspace member packages the root package.json declares under its workspaces field (count glob entries, not expanded packages).",
+      "successOracle": {
+        "type": "manual-rubric",
+        "rubricId": "jest-workspace-declaration-count",
+        "rubric": "Correct when the answer states the number of glob entries in the root package.json workspaces declaration and names those entries. Wrong if it counts directories on disk, counts only packages that exist, or counts an expanded package set."
+      },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["package.json workspaces"],
+      "timeoutMinutes": 15
+    },
+    {
+      "id": "jest-02-locate-package-scripts",
+      "repositoryId": "jest",
+      "prompt": "Find any package under packages/ that declares a `test` script and report its package path and script body.",
+      "successOracle": {
+        "type": "manual-rubric",
+        "rubricId": "jest-package-test-script",
+        "rubric": "Correct when the cited path is an existing packages/*/package.json at the pinned commit and the quoted script body matches that file exactly. A path outside packages/, a script name other than test, or a paraphrased body is wrong."
+      },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["packages/*/package.json"],
+      "timeoutMinutes": 20
+    },
+    {
+      "id": "jest-03-add-workspace-check",
+      "repositoryId": "jest",
+      "prompt": "Add a root package.json script named `check:workspace-globs` that reads the root package.json, fails if its workspaces field is absent, and otherwise prints the declared entries. Run `npm run check:workspace-globs` and report its exit code.",
+      "successOracle": {
+        "type": "all-of",
+        "clauses": [
+          {
+            "type": "file-contains",
+            "path": "package.json",
+            "substring": "\"check:workspace-globs\":"
+          },
+          {
+            "type": "command-exit-zero",
+            "command": "npm run check:workspace-globs",
+            "cwd": "."
+          }
+        ]
+      },
+      "forbidden": ["modifying files other than package.json", "running install"],
+      "verificationSurface": ["package.json scripts", "package.json workspaces"],
+      "timeoutMinutes": 20
+    },
+    {
+      "id": "vite-01-root-package-manager",
+      "repositoryId": "vite",
+      "prompt": "State the package manager and version declared in the root package.json packageManager field verbatim.",
+      "successOracle": {
+        "type": "manual-rubric",
+        "rubricId": "vite-package-manager-field",
+        "rubric": "Correct when the packageManager string is quoted verbatim, including name, version and any +sha suffix, as it appears in the root package.json at the pinned commit. A partial answer or a version inferred from a lockfile comment is wrong."
+      },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["package.json packageManager"],
+      "timeoutMinutes": 15
+    },
+    {
+      "id": "vite-02-playground-package",
+      "repositoryId": "vite",
+      "prompt": "Name one package path under playground/ that has its own package.json (repository-relative path).",
+      "successOracle": {
+        "type": "manual-rubric",
+        "rubricId": "vite-playground-manifest",
+        "rubric": "Correct when the cited path is repository-relative, exists at the pinned commit, and is a playground/<name>/package.json. Paths under packages/, templates, node_modules, or directories without a manifest are wrong."
+      },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["playground/**/package.json"],
+      "timeoutMinutes": 20
+    },
+    {
+      "id": "lodash-01-dist-awareness",
+      "repositoryId": "lodash",
+      "prompt": "Does the repository contain committed JavaScript under dist/ that is not listed as publish artifact only? Answer yes or no and cite one path if yes.",
+      "successOracle": {
+        "type": "manual-rubric",
+        "rubricId": "lodash-dist-present",
+        "rubric": "Correct when the answer is yes and cites a .js path under dist/ that exists at the pinned commit. A no answer, or a path that is generated at build time and not committed, is wrong."
+      },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["dist/**"],
+      "timeoutMinutes": 15
+    },
+    {
+      "id": "lodash-02-verification-command",
+      "repositoryId": "lodash",
+      "prompt": "Which npm script would you run to validate types or tests if only package.json is available—name the script and quote its body.",
+      "successOracle": {
+        "type": "manual-rubric",
+        "rubricId": "lodash-verification-script",
+        "rubric": "Correct when the named script exists in the root package.json scripts at the pinned commit and its body is quoted exactly. Naming a script that does not exist, or describing tooling that is not declared there, is wrong."
+      },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["package.json scripts"],
+      "timeoutMinutes": 15
+    },
+    {
+      "id": "nestjs-01-visible-packages",
+      "repositoryId": "nestjs",
+      "prompt": "How many packages does the repository declare at the workspace root (packages with readable manifests under the declared workspace scope)? Report the count and list paths.",
+      "successOracle": {
+        "type": "manual-rubric",
+        "rubricId": "nestjs-package-count",
+        "rubric": "Correct when the count equals the number of directories under packages/ containing a readable package.json at the pinned commit and the listed paths match that set. Counting sample/ manifests or the root package.json is wrong."
+      },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["package.json workspaces", "packages/*"],
+      "timeoutMinutes": 20
+    },
+    {
+      "id": "nestjs-02-sample-manifests",
+      "repositoryId": "nestjs",
+      "prompt": "Are there package.json files under sample/ that are NOT workspace members? Answer yes/no and cite one path if yes.",
+      "successOracle": {
+        "type": "manual-rubric",
+        "rubricId": "nestjs-sample-outside-scope",
+        "rubric": "Correct when the answer is yes and the cited sample/*/package.json exists at the pinned commit and is not matched by the root workspaces declaration. A no answer, or a path that is a workspace member, is wrong."
+      },
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["sample/**/package.json"],
+      "timeoutMinutes": 20
+    },
+    {
+      "id": "nestjs-03-add-sample-check",
+      "repositoryId": "nestjs",
+      "prompt": "Add a root package.json script named `check:samples` that fails unless at least one `sample/*/package.json` parses as JSON, and exits 0 otherwise. Run `npm run check:samples` and report its exit code.",
+      "successOracle": {
+        "type": "all-of",
+        "clauses": [
+          {
+            "type": "file-contains",
+            "path": "package.json",
+            "substring": "\"check:samples\":"
+          },
+          {
+            "type": "command-exit-zero",
+            "command": "npm run check:samples",
+            "cwd": "."
+          }
+        ]
+      },
+      "forbidden": ["modifying files other than package.json", "running install"],
+      "verificationSurface": ["package.json scripts", "sample/*/package.json"],
+      "timeoutMinutes": 25
+    }
+  ]
+}

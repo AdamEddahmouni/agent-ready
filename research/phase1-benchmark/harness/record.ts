@@ -6,9 +6,8 @@ import type { Condition, ProtocolVersion, TokenMetrics } from "./types.js";
 
 /**
  * Raw records are validated against the schema of the protocol version they
- * cite. v1 and v2 differ only in the frozen `axios-01` oracle, but a record
- * from one version must never be silently accepted as a record of the other, so
- * the version is read from the document and its own schema is applied.
+ * cite. v1 and v2 preserve a boolean verification-selection result; v3 adds
+ * null for genuinely inapplicable tasks. Versions are never pooled together.
  */
 
 const RAW_RUN_SCHEMA_PATHS: Readonly<Record<ProtocolVersion, string>> = {
@@ -17,6 +16,9 @@ const RAW_RUN_SCHEMA_PATHS: Readonly<Record<ProtocolVersion, string>> = {
   ),
   2: fileURLToPath(
     new URL("../../../schemas/research/phase1-benchmark-raw-run-v2.schema.json", import.meta.url),
+  ),
+  3: fileURLToPath(
+    new URL("../../../schemas/research/phase1-benchmark-raw-run-v3.schema.json", import.meta.url),
   ),
 };
 
@@ -40,7 +42,7 @@ export interface RawRunRecord {
   readonly assumptions: readonly Record<string, unknown>[];
   readonly dependencyReasoningFindings: readonly Record<string, unknown>[];
   readonly verificationAttempts?: readonly Record<string, unknown>[];
-  readonly verificationSelectionResult: boolean;
+  readonly verificationSelectionResult: boolean | null;
   readonly finalPatch?: string | null;
   readonly verificationResults?: readonly Record<string, unknown>[];
   readonly infrastructureFailure: boolean;
@@ -79,14 +81,14 @@ function rawRunValidator(version: ProtocolVersion): ValidateFunction {
 function declaredVersion(input: unknown): ProtocolVersion | undefined {
   if (typeof input !== "object" || input === null) return undefined;
   const version = (input as Record<string, unknown>)["protocolVersion"];
-  return version === 1 || version === 2 ? version : undefined;
+  return version === 1 || version === 2 || version === 3 ? version : undefined;
 }
 
 /** Validates one raw run record against the frozen schema of its own version. */
 export function validateRawRun(input: unknown): RawRunValidationResult {
   const version = declaredVersion(input);
   if (version === undefined) {
-    return { ok: false, errors: ["/protocolVersion: must be 1 or 2"] };
+    return { ok: false, errors: ["/protocolVersion: must be 1, 2 or 3"] };
   }
   const validate = rawRunValidator(version);
   if (!validate(input)) {
