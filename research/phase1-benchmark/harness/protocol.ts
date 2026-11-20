@@ -10,7 +10,7 @@ import type {
   TaskDefinition,
 } from "./types.js";
 
-export const PROTOCOL_VERSIONS: readonly ProtocolVersion[] = [1, 2];
+export const PROTOCOL_VERSIONS: readonly ProtocolVersion[] = [1, 2, 3];
 
 function protocolDir(version: ProtocolVersion): string {
   return fileURLToPath(
@@ -51,7 +51,7 @@ export async function loadProtocol(
   };
 
   const manifestVersion: unknown = manifest.protocolVersion;
-  if (manifestVersion !== 1 && manifestVersion !== 2) {
+  if (manifestVersion !== 1 && manifestVersion !== 2 && manifestVersion !== 3) {
     throw new Error(`unsupported protocol version: ${String(manifestVersion)}`);
   }
   if (repositorySet.repositories.length !== 5) {
