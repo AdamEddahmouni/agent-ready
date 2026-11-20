@@ -1,0 +1,26 @@
+{
+  "protocolVersion": 1,
+  "runManifestId": "fixture-reproduction-2026-11-17",
+  "taskId": "fixture-task-alpha",
+  "condition": "raw",
+  "runIndex": 1,
+  "startTime": "2026-11-17T00:10:00.000Z",
+  "endTime": "2026-11-17T00:12:00.000Z",
+  "timeToFirstCorrectModification": 20,
+  "success": true,
+  "toolCalls": [
+    { "name": "read_file", "path": "package.json" },
+    { "name": "read_file", "path": "src/index.ts" }
+  ],
+  "fileReads": [
+    { "path": "package.json", "atMs": 100, "unnecessary": true },
+    { "path": "src/index.ts", "atMs": 200, "unnecessary": true }
+  ],
+  "fileWrites": [],
+  "tokenMetrics": { "input": 800, "output": 150, "cached": 100, "reasoning": 0 },
+  "assumptions": [],
+  "dependencyReasoningFindings": [],
+  "verificationSelectionResult": true,
+  "finalPatch": null,
+  "infrastructureFailure": false
+}

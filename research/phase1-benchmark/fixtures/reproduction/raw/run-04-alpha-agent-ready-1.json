@@ -1,0 +1,20 @@
+{
+  "protocolVersion": 1,
+  "runManifestId": "fixture-reproduction-2026-11-17",
+  "taskId": "fixture-task-alpha",
+  "condition": "agent-ready",
+  "runIndex": 1,
+  "startTime": "2026-11-17T00:40:00.000Z",
+  "endTime": "2026-11-17T00:42:00.000Z",
+  "timeToFirstCorrectModification": 15,
+  "success": true,
+  "toolCalls": [{ "name": "read_file", "path": "package.json" }],
+  "fileReads": [{ "path": "package.json", "atMs": 100, "unnecessary": true }],
+  "fileWrites": [],
+  "tokenMetrics": { "input": 650, "output": 100, "cached": 40, "reasoning": 0 },
+  "assumptions": [],
+  "dependencyReasoningFindings": [],
+  "verificationSelectionResult": true,
+  "finalPatch": null,
+  "infrastructureFailure": false
+}

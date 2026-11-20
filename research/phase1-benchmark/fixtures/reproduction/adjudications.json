@@ -1,0 +1,9 @@
+{
+  "protocolVersion": 1,
+  "unnecessaryFileReads": [
+    {
+      "runKey": "fixture-reproduction-2026-11-17#fixture-task-alpha#raw#0",
+      "unnecessaryFileReads": 1
+    }
+  ]
+}
