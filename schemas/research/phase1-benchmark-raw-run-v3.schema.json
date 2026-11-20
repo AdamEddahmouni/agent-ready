@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready.dev/schemas/research/phase1-benchmark-raw-run-v3.schema.json",
+  "title": "Phase 1 benchmark raw run record v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolVersion",
+    "runManifestId",
+    "taskId",
+    "condition",
+    "runIndex",
+    "startTime",
+    "endTime",
+    "success",
+    "toolCalls",
+    "fileReads",
+    "fileWrites",
+    "tokenMetrics",
+    "assumptions",
+    "dependencyReasoningFindings",
+    "verificationSelectionResult",
+    "infrastructureFailure"
+  ],
+  "properties": {
+    "protocolVersion": {
+      "const": 3
+    },
+    "runManifestId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "taskId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "condition": {
+      "enum": [
+        "raw",
+        "agent-ready"
+      ]
+    },
+    "runIndex": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "startTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "endTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "timeToFirstCorrectModification": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "success": {
+      "type": "boolean"
+    },
+    "toolCalls": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "fileReads": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "fileWrites": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "tokenMetrics": {
+      "type": "object",
+      "properties": {
+        "input": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "output": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "cached": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "reasoning": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "dependencyReasoningFindings": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "verificationAttempts": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "verificationSelectionResult": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "finalPatch": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "verificationResults": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "infrastructureFailure": {
+      "type": "boolean"
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}
