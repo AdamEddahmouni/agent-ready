@@ -63,6 +63,7 @@ succeeds:
 ```bash
 pnpm format:check
 pnpm check:action-pins
+pnpm check:commit-signing
 pnpm lint
 pnpm typecheck
 pnpm test
@@ -97,10 +98,40 @@ Guidelines:
 ## Commit and PR style
 
 - Keep commits focused; prefer a few well-described commits over one huge
-  one.
+  one, and sign each one (see below).
 - Describe _why_ in the PR description, not just _what_ — link the issue
   it addresses.
 - Update `CHANGELOG.md` for any user-visible change.
+
+### Commit signing is required
+
+`main` requires verified commit signatures. An unsigned pull request can pass
+every other check and still cannot be merged, so configure signing before your
+first commit:
+
+```bash
+git config --global gpg.format ssh
+git config --global user.signingkey ~/.ssh/id_ed25519.pub
+git config --global commit.gpgsign true
+```
+
+Add the same public key to GitHub under **Settings → SSH and GPG keys → New SSH
+key**, choosing **Signing key** as the key type. GPG signing works too; see
+GitHub's [commit signature verification](https://docs.github.com/authentication/managing-commit-signature-verification)
+guide.
+
+The `commit signing` CI job checks every commit in the pull request, and
+`pnpm check:commit-signing` runs the same check locally against
+`origin/main..HEAD`. It verifies that a signature is present, not that GitHub
+can verify it — a key that is not on your GitHub account still blocks the merge.
+
+If an unsigned commit is already pushed, re-sign the branch and update it with a
+lease:
+
+```bash
+git rebase --exec 'git commit --amend --no-edit -S' origin/main
+git push --force-with-lease
+```
 
 ## Reporting bugs
 

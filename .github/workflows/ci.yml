@@ -562,6 +562,23 @@ jobs:
           grep -q '"recordedAt"' "$evidence"
           grep -q '"status": "passed"' "$evidence"
 
+  commit-signing:
+    name: commit signing
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Signature headers live in the commit objects, so the base and head
+          # commits both have to be fetched rather than only the merge ref tip.
+          fetch-depth: 0
+
+      - name: Verify pull request commits are signed
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/check-commit-signing.mjs --base "$BASE_SHA" --head "$HEAD_SHA"
+
   node-versions:
     name: node ${{ matrix.node-version }} (ubuntu-latest)
     runs-on: ubuntu-latest

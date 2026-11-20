@@ -58,6 +58,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:action-pins": "node scripts/check-action-pins.mjs",
+    "check:commit-signing": "node scripts/check-commit-signing.mjs",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
