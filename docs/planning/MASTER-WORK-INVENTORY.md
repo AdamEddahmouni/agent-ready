@@ -15,18 +15,16 @@ Non-negotiable: the deterministic core has no network, credentials, or model inv
 
 ## Current product and evidence baseline
 
-| Area                                                                                               | Status                     | Evidence / caveat                                                                                                        |
-| -------------------------------------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Version 1 repository contract, validation, instruction adapters, Git protection, verification, CLI | DONE                       | [Project standing](../project-standing.md), [CLI reference](../specification/cli-reference.md)                           |
-| Reusable CI action, publish and release workflows                                                  | DONE                       | `action.yml`, `.github/workflows/`                                                                                       |
-| Repository discovery, graph, Snapshot Format 1, experimental twin build/query                      | DONE on main, experimental | ADR-0044–0049; CI/API discovery explicitly absent (ADR-0051)                                                             |
-| Git main version string                                                                            | DONE                       | `package.json` declares 0.7.0 after #77                                                                                  |
-| Public v0.7.0 release                                                                              | OPEN                       | [#64](https://github.com/AdamEddahmouni/agent-ready/issues/64); no tag or publication was verified during this inventory |
-| Phase 1 transcript capture, fake-runner harness, raw scoring, reporting and pilots                 | DONE as tooling            | `research/phase1-benchmark/` and pilot evidence under `runs/`; a pilot is not the official benchmark                     |
-| Official full 78-trial result                                                                      | OPEN                       | [#61](https://github.com/AdamEddahmouni/agent-ready/issues/61)                                                           |
-| Phase 2 go/no-go decision                                                                          | OPEN                       | [#62](https://github.com/AdamEddahmouni/agent-ready/issues/62); ADR-0052 remains pre-registered draft                    |
-| Autonomous Evolution runtime, Constitution, proof, identity and agent fabric                       | CONDITIONAL                | Vision and RFC only, not implemented                                                                                     |
-| Hosted control plane and commercial organization product                                           | DEFERRED                   | No hosted system currently exists                                                                                        |
+- **Version 1 repository contract, validation, instruction adapters, Git protection, verification, CLI** — DONE; [Project standing](../project-standing.md), [CLI reference](../specification/cli-reference.md)
+- **Reusable CI action, publish and release workflows** — DONE; `action.yml`, `.github/workflows/`
+- **Repository discovery, graph, Snapshot Format 1, experimental twin build/query** — DONE on main, experimental; ADR-0044–0049; CI/API discovery explicitly absent (ADR-0051)
+- **Git main version string** — DONE; `package.json` declares 0.7.0 after #77
+- **Public v0.7.0 release** — OPEN; [#64](https://github.com/AdamEddahmouni/agent-ready/issues/64); no tag or publication was verified during this inventory
+- **Phase 1 transcript capture, fake-runner harness, raw scoring, reporting and pilots** — DONE as tooling; `research/phase1-benchmark/` and pilot evidence under `runs/`; a pilot is not the official benchmark
+- **Official full 78-trial result** — OPEN; [#61](https://github.com/AdamEddahmouni/agent-ready/issues/61)
+- **Phase 2 go/no-go decision** — OPEN; [#62](https://github.com/AdamEddahmouni/agent-ready/issues/62); ADR-0052 remains pre-registered draft
+- **Autonomous Evolution runtime, Constitution, proof, identity and agent fabric** — CONDITIONAL; Vision and RFC only, not implemented
+- **Hosted control plane and commercial organization product** — DEFERRED; No hosted system currently exists
 
 Release prep #77 reports 1,145 passing tests, 9 conformance cases, and successful production-only package smoke tests; these are results reported in [#64](https://github.com/AdamEddahmouni/agent-ready/issues/64), not a new test execution by this inventory. Older prose contains obsolete 1,037/1,137 counts. Prefer commit- and date-bound measurements.
 
@@ -108,19 +106,17 @@ Dependency order: #64 publication/immutable pin → #57 valid pilot/protocol cho
 
 Each successor phase has a research question and exit criterion; completion of a previous phase is not automatic implementation authorization.
 
-| Phase                       | Proposed deliverable                                                                                                   | Research/exit question                                        |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| 2 — Evolution + transaction | Evolution object, isolated Git worktree/container transactions, immutable base, budgets, scopes, checkpoints, receipts | Can changes be portable across agent vendors?                 |
-| 3 — Independent proof       | Verification profiles, independent verifiers, hash-bound receipts, public defect dataset                               | Which evidence predicts actual correctness?                   |
-| 4 — Constitution            | Human-ratified policies, risk classes, immutable approval requirements, explicit escalation                            | What is the minimum enforceable governance model?             |
-| 5 — Identity/capabilities   | Delegated grants, short-lived credentials, expiry, revocation, auditable attenuation                                   | Can agents operate without ambient authority?                 |
-| 6 — Agent Fabric            | Adapters, capability negotiation, scheduling, handoff and resource accounting                                          | Which delegation strategies improve outcomes?                 |
-| 7 — Verification Arena      | Competing candidates, blind evaluation, Pareto selection                                                               | When does multi-agent competition repay its cost?             |
-| 8 — Deployment/observation  | Preview/staging, canaries, rollback, OpenTelemetry and postconditions                                                  | Does observing reality improve correctness judgments?         |
-| 9 — Reconciliation          | Observe→compare→open→prove→deploy→observe loop on low-risk work                                                        | Can bounded maintenance operate without each-cycle approval?  |
-| 10 — Evolution Memory       | Evidence-linked findings, failure/causal history, retractable claims                                                   | Does validated memory help without accumulating drift?        |
-| 11 — Organization Twin      | Cross-repo/service/infrastructure graph and multi-repo Evolutions                                                      | Does the model generalize beyond one repository?              |
-| 12 — Meta-Evolution         | Bounded improvements to planners, verifiers, routing and kernel components                                             | Can the system improve itself without circular certification? |
+- **2 — Evolution + transaction** — Evolution object, isolated Git worktree/container transactions, immutable base, budgets, scopes, checkpoints, receipts; Can changes be portable across agent vendors?
+- **3 — Independent proof** — Verification profiles, independent verifiers, hash-bound receipts, public defect dataset; Which evidence predicts actual correctness?
+- **4 — Constitution** — Human-ratified policies, risk classes, immutable approval requirements, explicit escalation; What is the minimum enforceable governance model?
+- **5 — Identity/capabilities** — Delegated grants, short-lived credentials, expiry, revocation, auditable attenuation; Can agents operate without ambient authority?
+- **6 — Agent Fabric** — Adapters, capability negotiation, scheduling, handoff and resource accounting; Which delegation strategies improve outcomes?
+- **7 — Verification Arena** — Competing candidates, blind evaluation, Pareto selection; When does multi-agent competition repay its cost?
+- **8 — Deployment/observation** — Preview/staging, canaries, rollback, OpenTelemetry and postconditions; Does observing reality improve correctness judgments?
+- **9 — Reconciliation** — Observe→compare→open→prove→deploy→observe loop on low-risk work; Can bounded maintenance operate without each-cycle approval?
+- **10 — Evolution Memory** — Evidence-linked findings, failure/causal history, retractable claims; Does validated memory help without accumulating drift?
+- **11 — Organization Twin** — Cross-repo/service/infrastructure graph and multi-repo Evolutions; Does the model generalize beyond one repository?
+- **12 — Meta-Evolution** — Bounded improvements to planners, verifiers, routing and kernel components; Can the system improve itself without circular certification?
 
 Reference details: [Vision phases 49–61](../../VISION.md), [RFC phases](../vnext/RFC-0001-autonomous-software-evolution.md).
 
