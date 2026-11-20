@@ -48,7 +48,7 @@ decision.
   schema field, or diagnostic code. The design decision comes first; the issues
   below are sequenced so that decision is made explicitly and early.
 - [ADR-0042](../decisions/0042-v1-freeze-and-parallel-vnext-surface.md): Phase 1
-  adds new additive CLI surface only. The v1 contract, the eleven shipped commands,
+  adds new additive CLI surface only. The v1 contract, the eleven v1 commands,
   and the adapter-output corpus are untouched.
 - [ADR-0043](../decisions/0043-core-posture-and-integration-quarantine.md): Phase 1
   is entirely offline. Every command must work with networking disabled, no API key,

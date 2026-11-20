@@ -118,7 +118,7 @@ shipped line. The distinction is the single most important thing on this page,
 because the vNext documents mix surfaces that now exist on `main` with
 capabilities that remain design.
 
-- The v1 contract, the eleven shipped commands, and the adapter-output corpus are
+- The v1 contract, the eleven v1 commands, and the adapter-output corpus are
   **frozen and still releasing** as v0.6.x, per
   [ADR-0042](decisions/0042-v1-freeze-and-parallel-vnext-surface.md).
 - The vNext direction — a control plane for constitutionally governed autonomous

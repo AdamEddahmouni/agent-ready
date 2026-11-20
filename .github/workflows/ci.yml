@@ -59,6 +59,11 @@ jobs:
       - name: Package smoke test
         run: node scripts/package-smoke.mjs
 
+      # These suites skip when `dist/` is absent, so running them here (after
+      # Build) is what actually exercises the built CLI in CI.
+      - name: Built CLI integration tests
+        run: pnpm vitest run tests/integration/discoverCliBinary.test.ts tests/integration/twinCliBinary.test.ts
+
       - name: CLI smoke test - help and version
         shell: bash
         run: |
@@ -637,6 +642,31 @@ jobs:
           command: ${{ matrix.command }}
           config: ${{ matrix.command != 'schema' && matrix.command != 'discover' && 'examples/complete-phase-1/agent-ready.yaml' || '' }}
           code: ${{ matrix.command == 'explain' && 'CONTRACT_NOT_FOUND' || '' }}
+          json: "true"
+
+  # `twin` is the only accepted action subcommand that needs two invocations
+  # (build, then query), so it cannot be a single matrix entry like the others.
+  # This job proves the composite action's twin wiring end to end.
+  dogfood-action-twin:
+    name: dogfood composite action (twin build + query)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: agent-ready twin build (via ./action.yml)
+        uses: ./
+        with:
+          command: twin
+          twin-command: build
+          output: ${{ runner.temp }}/agent-ready-twin.json
+
+      - name: agent-ready twin query (via ./action.yml)
+        uses: ./
+        with:
+          command: twin
+          twin-command: query
+          snapshot: ${{ runner.temp }}/agent-ready-twin.json
+          query-kind: summary
           json: "true"
 
   audit:

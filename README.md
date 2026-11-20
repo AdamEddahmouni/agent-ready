@@ -36,7 +36,7 @@ No API keys. No LLM calls. No network access. Zero cost per run.
 
 The project is in a **design phase**. Everything below this point describes what
 ships today: the v0.6.x repository-contract CLI, which keeps releasing unchanged
-with its v1 contract, eleven commands, and pre-1.0 compatibility policy frozen.
+with its v1 contract, eleven v1 commands, and pre-1.0 compatibility policy frozen.
 
 The next chapter is one level deeper than instruction files. Agent-Ready aims to
 become a control plane for autonomous software evolution — software that
@@ -362,13 +362,13 @@ the parallel vNext track, alongside the experimental `twin build` and `twin
 query` subcommands; none of the three is in the `0.6.1` npm package.
 
 **Direction.** In September 2026 the project selected a vNext design phase — see
-[Direction: vNext](#direction-vnext). The v1 contract, the eleven shipped
+[Direction: vNext](#direction-vnext). The v1 contract, the eleven v1
 commands, and the adapter-output compatibility corpus are **frozen and still
 releasing** ([ADR-0042](docs/decisions/0042-v1-freeze-and-parallel-vnext-surface.md)).
 vNext work lands beside them as additive, independently versioned surface. No
 control-plane capability exists in code today.
 
-CI runs 993 automated tests across 58 test files, exercising the full pipeline
+CI runs 1,037 automated tests across 64 test files, exercising the full pipeline
 on Ubuntu, Windows, and macOS. Release tags are cut only from a green quality
 gate.
 

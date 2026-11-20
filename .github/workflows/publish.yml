@@ -125,3 +125,13 @@ jobs:
             exit 1
           fi
           npx --no-install agent-ready validate --config agent-ready.yaml
+
+          # The discovery surface must work from the consumer's directory, not
+          # the package root: this is where a schema resolved from
+          # `process.cwd()` fails. See tests/integration/twinCliBinary.test.ts.
+          npx --no-install agent-ready discover --json > discover.json
+          node -e 'const s = require("./discover.json"); if (s.ok !== true || s.snapshotVersion !== 1) process.exit(1)'
+
+          npx --no-install agent-ready twin build --output twin.json
+          npx --no-install agent-ready twin query --snapshot twin.json --kind summary --json > twin-query.json
+          node -e 'const q = require("./twin-query.json"); if (q.queryVersion !== 1 || q.kind !== "summary") process.exit(1)'

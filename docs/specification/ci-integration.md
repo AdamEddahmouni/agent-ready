@@ -117,7 +117,7 @@ Path A note further down in this section.
 | `json`            | `--json`                                                                  | `false`                  |
 | `write`           | (generate/init/upgrade) `--write`                                         | `false`                  |
 | `check`           | (generate) `--check`                                                      | `false`                  |
-| `force`           | (generate --write) `--force`                                              | `false`                  |
+| `force`           | (generate --write, twin build) `--force`                                  | `false`                  |
 | `staged`          | (check) `--staged`                                                        | `false`                  |
 | `against`         | (check) `--against <ref>`                                                 | unset                    |
 | `execute`         | (verify) `--execute`                                                      | `false`                  |
@@ -141,7 +141,10 @@ yourself. New CLI commands widen the action's accepted `command` values and
 required inputs in the same PR, so the composite action does not advertise a
 subcommand it cannot invoke. The
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) `dogfood-action`
-matrix grows the same way; if a future command does not accept `--config` (since `agent-ready schema` does not, per
+matrix grows the same way, and the separate `dogfood-action-twin` job exercises
+`twin build` followed by `twin query` because that command needs two
+invocations; `init` is not dogfooded at the repository root because a contract
+already exists there, so `init` is expected to refuse. If a future command does not accept `--config` (since `agent-ready schema` does not, per
 [ADR-0022](../decisions/0022-agent-ready-schema-command.md), and neither does
 `agent-ready discover`, which takes `--root` instead — see
 [ADR-0044](../decisions/0044-repository-discovery-model.md)),
