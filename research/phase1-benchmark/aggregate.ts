@@ -29,6 +29,10 @@ export interface ConditionAggregate {
   readonly invalidAssumptionRate: number | null;
   readonly incorrectDependencyReasoningRate: number | null;
   readonly verificationSelectionFailureRate: number | null;
+  /** Only present in v3: records with applicable command checks. */
+  readonly verificationSelectionApplicableCount?: number;
+  /** Only present in v3: records with no command check. */
+  readonly verificationSelectionNotApplicableCount?: number;
   readonly unnecessaryFileReadsMedian: number | null;
   readonly variance: MetricVariance;
   readonly wilson: {
@@ -70,7 +74,7 @@ export interface RunMetricValues {
   readonly success: boolean;
   readonly invalidAssumptions: number;
   readonly dependencyReasoningFindings: number;
-  readonly verificationSelectionFailure: boolean;
+  readonly verificationSelectionFailure: boolean | null;
   readonly unnecessaryFileReads: number;
   readonly timeToFirstCorrectModification: number | null;
 }
@@ -153,7 +157,8 @@ export function runMetricValues(
     success: record.success,
     invalidAssumptions: invalidAssumptionCount(record),
     dependencyReasoningFindings: record.dependencyReasoningFindings.length,
-    verificationSelectionFailure: !record.verificationSelectionResult,
+    verificationSelectionFailure:
+      record.verificationSelectionResult === null ? null : !record.verificationSelectionResult,
     unnecessaryFileReads: adjudicatedUnnecessaryReads(record, adjudication),
     timeToFirstCorrectModification: record.timeToFirstCorrectModification ?? null,
   };
@@ -212,9 +217,9 @@ function aggregateCondition(
   const successValues = values.map((value) => (value.success ? 1 : 0));
   const invalidAssumptionValues = values.map((value) => value.invalidAssumptions);
   const dependencyValues = values.map((value) => value.dependencyReasoningFindings);
-  const verificationFailureValues = values.map((value) =>
-    value.verificationSelectionFailure ? 1 : 0,
-  );
+  const verificationFailureValues = values
+    .filter((value) => value.verificationSelectionFailure !== null)
+    .map((value) => (value.verificationSelectionFailure ? 1 : 0));
   const readValues = values.map((value) => value.unnecessaryFileReads);
 
   return {
@@ -224,6 +229,10 @@ function aggregateCondition(
     invalidAssumptionRate: mean(invalidAssumptionValues),
     incorrectDependencyReasoningRate: mean(dependencyValues),
     verificationSelectionFailureRate: mean(verificationFailureValues),
+    ...(records.some((record) => record.protocolVersion === 3) && {
+      verificationSelectionApplicableCount: verificationFailureValues.length,
+      verificationSelectionNotApplicableCount: values.length - verificationFailureValues.length,
+    }),
     unnecessaryFileReadsMedian: median(readValues),
     variance: {
       taskSuccessRate: sampleVariance(successValues),
