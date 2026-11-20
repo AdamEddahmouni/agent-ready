@@ -122,13 +122,13 @@ function valuedFact(
   body: SnapshotBody,
   id: string,
 ): Exclude<Fact, { kind: "unknown" }> & {
-  value: NonNullable<unknown>;
+  value: unknown;
 } {
   const found = knownFact(body, id);
   if (!("value" in found)) {
     throw new Error(`expected ${id} to carry a value; it is a conflict with no winner`);
   }
-  return found as Exclude<Fact, { kind: "unknown" }> & { value: NonNullable<unknown> };
+  return found;
 }
 
 describe("one snapshot, every outcome the fact model has to distinguish", () => {
