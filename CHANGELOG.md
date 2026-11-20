@@ -3,7 +3,7 @@
 All notable changes to Agent-Ready are documented here. The project follows
 [Semantic Versioning](https://semver.org/) while remaining pre-1.0.
 
-## Unreleased
+## 0.7.0 - 2026-11-20
 
 ### Added
 
@@ -367,6 +367,20 @@ any of them.
 - `DISCOVERY_ROOT_UNREADABLE` resolved to the generic validation-failure exit
   code. It now resolves to exit `2`, alongside `CONTRACT_READ_FAILED` and
   `GIT_REPOSITORY_NOT_FOUND`.
+
+### Known limitations
+
+- `twin build` and `twin query` remain experimental. They carry no
+  compatibility promise and may change in a minor release.
+- Discovery Snapshot Format 1 covers facts, the graph, commands, and
+  verification. CI workflow and exported-API discovery are deferred; see
+  [ADR-0051](docs/decisions/0051-defer-ci-api-discovery-from-format-1.md).
+- One conformance case is deliberately **known inaccurate**
+  (`known-inaccurate-fallback-source-universe`). It records current behaviour
+  rather than a supported result, and the corpus keeps the limitation visible.
+- The Phase 1 benchmark protocol is frozen but no benchmark has been run. This
+  release ships the evaluation tooling and the pinned artifact a run manifest
+  can cite, not a result.
 
 ## 0.6.1 - 2026-07-12
 
