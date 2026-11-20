@@ -149,7 +149,7 @@ describe("protocol v3 applicability without retroactive v1/v2 rewriting", () => 
       );
       const commandExecutor = {
         async run() {
-          return { exitCode: 0, timedOut: false, stdout: "", stderr: "" };
+          return await Promise.resolve({ exitCode: 0, timedOut: false, stdout: "", stderr: "" });
         },
       };
       const common = {
