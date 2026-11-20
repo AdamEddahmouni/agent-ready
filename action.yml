@@ -31,7 +31,7 @@ inputs:
     required: false
     default: "false"
   force:
-    description: "(generate --write) Overwrite existing files that lack the managed-file marker."
+    description: "(generate --write, twin build) Overwrite existing files that lack the managed-file marker or an existing snapshot."
     required: false
     default: "false"
   staged:

@@ -116,6 +116,15 @@ All notable changes to Agent-Ready are documented here. The project follows
 - `discover --json` now emits `snapshotVersion: 1` (was `0`). Version `0`
   promised nothing; there is no migration path from `0` snapshots.
 
+### Fixed
+
+- `twin build` and `twin query` resolve the bundled Discovery Snapshot Format 1
+  schema relative to the installed package, so both commands work from any
+  working directory rather than only the repository root.
+- The package declares `typescript` as a runtime dependency. The discovery
+  graph parses TypeScript with the compiler API, so a clean install previously
+  failed to load the CLI at all with `ERR_MODULE_NOT_FOUND`.
+
 Adds `agent-ready discover` as the twelfth command, on the parallel vNext
 track. It ships the discovery _substrate_ — provenance, explicit uncertainty,
 the absence-versus-failure distinction, contradiction preservation, and a

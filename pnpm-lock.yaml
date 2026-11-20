@@ -17,6 +17,9 @@ importers:
       semver:
         specifier: ^7.8.6
         version: 7.8.6
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
       yaml:
         specifier: ^2.9.1
         version: 2.9.1
@@ -45,9 +48,6 @@ importers:
       tsx:
         specifier: ^4.23.15
         version: 4.23.15
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
       typescript-eslint:
         specifier: ^8.73.0
         version: 8.73.0(eslint@10.15.0)(typescript@5.9.3)

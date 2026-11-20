@@ -3,14 +3,20 @@ import { Ajv2020 } from "ajv/dist/2020.js";
 import type { ValidateFunction } from "ajv";
 import { DISCOVERY_SNAPSHOT_VERSION } from "./types.js";
 
-const SCHEMA_PATH = "schemas/discovery/snapshot-v1.schema.json";
+/**
+ * Resolved relative to this module, never `process.cwd()`: the CLI is run from
+ * the consumer's project directory, while the schema ships beside `dist/`.
+ * Source (`src/discover/`) and build (`dist/discover/`) are the same depth, so
+ * one relative URL serves both.
+ */
+const SCHEMA_URL = new URL("../../schemas/discovery/snapshot-v1.schema.json", import.meta.url);
 
 let compiled: ValidateFunction | undefined;
 
 /** Loads and compiles the published Discovery Snapshot Format 1 schema once. */
 export function snapshotFormat1Validator(): ValidateFunction {
   if (compiled === undefined) {
-    const schema = JSON.parse(readFileSync(SCHEMA_PATH, "utf8")) as object;
+    const schema = JSON.parse(readFileSync(SCHEMA_URL, "utf8")) as object;
     const ajv = new Ajv2020({ allErrors: true, strict: true });
     compiled = ajv.compile(schema);
   }
