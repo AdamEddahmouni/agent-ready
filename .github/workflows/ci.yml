@@ -210,7 +210,19 @@ jobs:
       - name: CLI smoke test - discover packages and workspaces
         shell: bash
         run: |
+          # Large snapshots must not be piped into `grep -q` under `pipefail`:
+          # an early match kills the writer with SIGPIPE and fails the step.
           set -e
+          contains() {
+            case "$1" in
+              *"$2"*) return 0 ;;
+              *)
+                echo "expected output to contain: $2" >&2
+                return 1
+                ;;
+            esac
+          }
+
           tmp="$(mktemp -d)"
           cat > "$tmp/package.json" <<'JSON'
           {
@@ -228,25 +240,27 @@ jobs:
 
           output="$(node dist/cli/index.js discover --root "$tmp" --json)"
           echo "$output"
-          echo "$output" | grep -q '"repository.packages"'
-          echo "$output" | grep -q '"repository.workspace.declarations"'
-          echo "$output" | grep -q '"repository.workspace.candidates"'
-          echo "$output" | grep -q '"repository.workspace.members"'
+          contains "$output" '"repository.packages"'
+          contains "$output" '"repository.workspace.declarations"'
+          contains "$output" '"repository.workspace.candidates"'
+          contains "$output" '"repository.workspace.members"'
           # The declared-but-absent path survives as an explicit absence.
-          echo "$output" | grep -q '"apps/site"'
+          contains "$output" '"apps/site"'
           # Two managers' artifacts beside a pnpm declaration is contested, not
           # resolved: the snapshot must carry both codes and no winner.
-          echo "$output" | grep -q 'DISCOVERY_FACT_INCOMPLETE'
-          echo "$output" | grep -q '"contradictedBy"'
+          contains "$output" 'DISCOVERY_FACT_INCOMPLETE'
+          contains "$output" '"contradictedBy"'
           # `apps/site` was declared and is absent, which is a successful
           # observation, not a failure.
-          echo "$output" | grep -q '"complete": true'
+          contains "$output" '"complete": true'
           # The path is canonical: repository-relative, never the temp absolute
           # root the fixture happens to live under.
-          if echo "$output" | grep -q "$tmp"; then
-            echo "discover --json leaked the fixture's absolute path" >&2
-            exit 1
-          fi
+          case "$output" in
+            *"$tmp"*)
+              echo "discover --json leaked the fixture's absolute path" >&2
+              exit 1
+              ;;
+          esac
 
           # Human output must describe the same facts without inventing
           # certainty about the contested one.
@@ -264,13 +278,13 @@ jobs:
           git -C "$escape" init --quiet
           escaped="$(node dist/cli/index.js discover --root "$escape" --json)"
           echo "$escaped"
-          echo "$escaped" | grep -q 'DISCOVERY_WORKSPACE_UNSUPPORTED'
+          contains "$escaped" 'DISCOVERY_WORKSPACE_UNSUPPORTED'
           # The declaration is still reported verbatim - the repository did write
           # `"../*"` - but nothing was derived from it, and no path above the
           # root was read. Both collections being empty is the observable form
           # of "the refusal happened before any read".
-          echo "$escaped" | grep -q '"repository.workspace.candidates": {'
-          echo "$escaped" | grep -q '"repository.workspace.members": {'
+          contains "$escaped" '"repository.workspace.candidates": {'
+          contains "$escaped" '"repository.workspace.members": {'
           derived="$(echo "$escaped" | sed -n '/"repository.workspace.candidates"/,/"repository.workspace.declarations"/p')"
           echo "$derived" | grep -q '"value": \[\]'
           members="$(echo "$escaped" | sed -n '/"repository.workspace.members"/,/"repository.workspace.root"/p')"
