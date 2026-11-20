@@ -34,9 +34,15 @@ No API keys. No LLM calls. No network access. Zero cost per run.
 
 ## Direction: vNext
 
-The project is in a **design phase**. Everything below this point describes what
-ships today: the v0.6.x repository-contract CLI, which keeps releasing unchanged
-with its v1 contract, eleven v1 commands, and pre-1.0 compatibility policy frozen.
+For a classified inventory of committed work, blockers, conditional phases and
+research hypotheses, see the [master work inventory](docs/planning/MASTER-WORK-INVENTORY.md).
+
+The project is in a **Phase 1 repository-intelligence research phase**. As of
+2026-11-20, `main` declares version `0.7.0` with experimental discovery and
+Twin commands; the latest verified publicly published release is `v0.6.1`.
+The eleven legacy commands and version-1 repository contract remain frozen
+under the pre-1.0 compatibility policy. Source code on `main` is not evidence
+that an npm or GitHub release has been published.
 
 The next chapter is one level deeper than instruction files. Agent-Ready aims to
 become a control plane for autonomous software evolution — software that
