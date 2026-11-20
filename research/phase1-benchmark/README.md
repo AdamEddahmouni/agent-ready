@@ -67,7 +67,41 @@ pnpm research:benchmark-pilot-dry-run --manifest <run-manifest.json> --out <plan
 
 The planner validates the manifest against the frozen schema, cross-checks all five repository pins, the 3 × 13 × 2 = 78 arithmetic, and the required budgets, then orders trials by `SHA-256(randomizationSeed, runKey)`. The default pilot is the first protocol repository and its first task at run index 0; `--repository`, `--task`, and `--index` select a different pilot. Selecting a manual-rubric task exercises the adjudication path.
 
-`fixtures/pilot/` is a synthetic manifest and committed expected plan used by CI. It is not the #57 manifest: the real manifest must pin release #64 and the selected model, client, environment, budgets, and date before the first official trial.
+`fixtures/pilot/` is a synthetic manifest and committed expected plan used by CI. It is not the #57 manifest; no model, client, environment, budget, or date is selected for the real pilot here.
+
+### Run-manifest checklist for #57
+
+Fill every open row from the actual pilot plan before the first trial, and do not copy the synthetic fixture values. This checklist selects nothing; each open row records a decision that has not been made yet. `validateRunManifestAgainstProtocol` rejects `REPLACE_WITH_` placeholders, the all-zero commit, stale repository pins, run-arithmetic drift, and missing or negative budgets.
+
+| Field                      | Must record                                                                                                                                                                            | Basis                                | Status                       |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ---------------------------- |
+| `protocolVersion`          | `1`.                                                                                                                                                                                   | Schema constant                      | Fixed by protocol            |
+| `id`                       | A unique manifest id. Every raw run cites it as `runManifestId`, so never reuse a fixture id.                                                                                          | Schema and raw-run records           | Open                         |
+| `createdAt`                | The actual UTC timestamp at which the manifest is frozen, before the first trial. The template date is the protocol freeze date, not a run date.                                       | `YYYY-MM-DDTHH:MM:SSZ`               | Open                         |
+| `agentReadyCommit`         | Full 40-character commit SHA of the Agent-Ready artifact under test from the #64 release. A tag, branch, abbreviated SHA, dirty worktree, or the all-zero template value is not a pin. | Release #64                          | Blocked on #64               |
+| `model.id`                 | The evaluation model, identical in both conditions.                                                                                                                                    | Selected model                       | Open                         |
+| `model.configuration`      | The exact inference configuration the harness applies to both conditions (for example temperature and output-token limit), not assumed defaults.                                       | Harness configuration                | Open                         |
+| `agentClient.name`         | The agent client used for both conditions.                                                                                                                                             | Selected client                      | Open                         |
+| `agentClient.version`      | The exact client version, not a range.                                                                                                                                                 | Selected client                      | Open                         |
+| `environment.os`           | The actual OS or runner image used for every trial.                                                                                                                                    | Execution environment                | Open                         |
+| `environment.node`         | The exact Node.js version; the project requires `>= 20`.                                                                                                                               | Execution environment                | Open                         |
+| `repositories[]`           | All five protocol repositories (`axios`, `jest`, `vite`, `lodash`, `nestjs`), each at the full commit in `repositories.json`. No substitutions, additions, or abbreviated SHAs.        | Frozen protocol v1                   | Fixed; planner rejects drift |
+| `runs.perTaskPerCondition` | `3`.                                                                                                                                                                                   | Frozen protocol v1                   | Fixed                        |
+| `runs.perCondition`        | `39`.                                                                                                                                                                                  | 13 tasks × 3 runs                    | Fixed                        |
+| `runs.total`               | `78`.                                                                                                                                                                                  | 39 × 2 conditions                    | Fixed                        |
+| `budgets.maxTotalTokens`   | The approved total token ceiling, as a finite non-negative number. The template's `0` is a placeholder, not an approved budget.                                                        | Pilot budget decision                | Open                         |
+| `budgets.maxTotalCostUsd`  | The approved total cost ceiling in USD.                                                                                                                                                | Pilot budget decision                | Open                         |
+| `budgets.*` (additional)   | Any other pre-declared allowance that affects execution, such as spare capacity for an infrastructure replacement; the protocol default is no replacement run.                         | Protocol infrastructure-failure rule | Open                         |
+| `randomizationSeed`        | A non-empty seed fixed before the first trial. It determines the `SHA-256(seed, runKey)` trial order; changing it changes the plan.                                                    | Pilot planner                        | Open                         |
+| `notes`                    | Optional free text. State that this is the #57 pilot manifest and cite #64.                                                                                                            | Schema                               | Optional                     |
+
+After every open row is resolved, validate the manifest and materialize the plan before starting any trial:
+
+```bash
+pnpm research:benchmark-pilot-dry-run --manifest <run-manifest.json> --out <run-dir>/plan.json
+```
+
+Commit the manifest and plan, and do not mutate the manifest after the first trial starts.
 
 Directory convention for future runs:
 
