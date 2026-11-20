@@ -119,10 +119,7 @@ describe("protocol v3 applicability without retroactive v1/v2 rewriting", () => 
     expect(result.summaries.raw.verificationSelectionFailureRate).toBeNull();
     expect(result.summaries.raw.verificationSelectionApplicableCount).toBe(0);
     expect(
-      evaluateAggregateDecision(
-        await readDecisionRule(decisionRulePathFor(3)),
-        result,
-      ).decision,
+      evaluateAggregateDecision(await readDecisionRule(decisionRulePathFor(3)), result).decision,
     ).toBe("mixed");
   });
 
