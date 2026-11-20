@@ -1,0 +1,35 @@
+{
+  "protocolVersion": 2,
+  "runManifestId": "phase1-v2-2026-11-19",
+  "taskId": "axios-01-identify-test-script",
+  "condition": "raw",
+  "runIndex": 0,
+  "startTime": "2026-11-19T22:20:47.754Z",
+  "endTime": "2026-11-19T22:20:56.415Z",
+  "timeToFirstCorrectModification": null,
+  "success": true,
+  "toolCalls": [
+    {
+      "name": "shell",
+      "command": "/bin/bash -lc \"rg '\\\"test:vitest:unit\\\"' package.json\"",
+      "atMs": 6121,
+      "exitCode": 0
+    }
+  ],
+  "fileReads": [],
+  "fileWrites": [],
+  "tokenMetrics": {
+    "input": 55469,
+    "output": 74,
+    "cached": 41216,
+    "reasoning": 0
+  },
+  "assumptions": [],
+  "dependencyReasoningFindings": [],
+  "verificationAttempts": [],
+  "verificationSelectionResult": false,
+  "finalPatch": null,
+  "verificationResults": [],
+  "infrastructureFailure": false,
+  "notes": "client stderr: Reading additional input from stdin..."
+}

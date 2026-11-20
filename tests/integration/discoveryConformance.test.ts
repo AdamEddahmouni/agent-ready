@@ -24,20 +24,13 @@
  *   prose, and a provisional change does not break it while a stable one does.
  */
 
-import {
-  cpSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  statSync,
-} from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { runDiscover } from "../../src/cli/commands/discover.js";
+import { removeTree } from "../../src/filesystem/removeTree.js";
 import { NodeFileSystem } from "../../src/filesystem/nodeFileSystem.js";
 import {
   CORPUS_SNAPSHOT_VERSION,
@@ -157,7 +150,7 @@ describe("A. every case conforms", () => {
           `${entry.metadata.name}: ${firstDifference(entry.expected, outcome.stdout)}`,
         ).toBe(entry.expected);
       } finally {
-        rmSync(temporary, { recursive: true, force: true });
+        await removeTree(temporary);
       }
     }
   });

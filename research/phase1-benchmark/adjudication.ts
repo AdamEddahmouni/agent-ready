@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+import type { ProtocolVersion } from "./harness/types.js";
 
 export interface ManualRubricReview {
   readonly reviewerId: string;
@@ -19,7 +20,7 @@ export interface ManualRubricAdjudication {
 }
 
 export interface AdjudicationFile {
-  readonly protocolVersion: 1;
+  readonly protocolVersion: ProtocolVersion;
   readonly adjudications: readonly ManualRubricAdjudication[];
 }
 
@@ -121,9 +122,12 @@ function canonicalAdjudications(
   return sorted;
 }
 
-export function serializeAdjudications(rows: readonly ManualRubricAdjudication[]): string {
+export function serializeAdjudications(
+  rows: readonly ManualRubricAdjudication[],
+  protocolVersion: ProtocolVersion = 1,
+): string {
   const adjudications = canonicalAdjudications(rows);
-  return `${JSON.stringify({ protocolVersion: 1, adjudications }, null, 2)}\n`;
+  return `${JSON.stringify({ protocolVersion, adjudications }, null, 2)}\n`;
 }
 
 export function parseAdjudications(text: string): AdjudicationFile {
@@ -132,8 +136,9 @@ export function parseAdjudications(text: string): AdjudicationFile {
     throw new Error("adjudication file must be a JSON object");
   }
   const document = parsed as Record<string, unknown>;
-  if (document["protocolVersion"] !== 1) {
-    throw new Error("adjudication file must declare protocolVersion 1");
+  const version = document["protocolVersion"];
+  if (version !== 1 && version !== 2) {
+    throw new Error("adjudication file must declare protocolVersion 1 or 2");
   }
   if (!Array.isArray(document["adjudications"])) {
     throw new Error("adjudication file must contain an adjudications array");
@@ -145,7 +150,7 @@ export function parseAdjudications(text: string): AdjudicationFile {
     }
     return value as ManualRubricAdjudication;
   });
-  return { protocolVersion: 1, adjudications: canonicalAdjudications(rows) };
+  return { protocolVersion: version, adjudications: canonicalAdjudications(rows) };
 }
 
 export async function writeAdjudicationFile(

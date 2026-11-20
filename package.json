@@ -53,7 +53,7 @@
     "compatibility"
   ],
   "scripts": {
-    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && node scripts/write-build-info.mjs",
     "clean": "node scripts/clean-dist.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -64,6 +64,9 @@
     "conformance:check": "tsx scripts/conformance.ts check",
     "conformance:update": "tsx scripts/conformance.ts update",
     "research:benchmark-validate-protocol": "node research/phase1-benchmark/validate-protocol.mjs",
+    "research:benchmark-capture": "tsx research/phase1-benchmark/capture.ts",
+    "research:benchmark-run": "tsx research/phase1-benchmark/run.ts",
+    "research:benchmark-build-agent-ready": "tsx research/phase1-benchmark/buildAgentReady.ts",
     "research:benchmark-reproduce": "tsx research/phase1-benchmark/reproduce.ts",
     "research:benchmark-pilot-dry-run": "tsx research/phase1-benchmark/pilot.ts",
     "research:benchmark-test": "vitest run tests/research",

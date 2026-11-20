@@ -214,7 +214,8 @@ describe("Phase 1 benchmark protocol v1", () => {
         encoding: "utf8",
       },
     );
-    expect(output).toContain("protocol v1 ok");
+    expect(output).toContain("protocol ok — v1: 5 repos, 13 tasks, 78 trials");
+    expect(output).toContain("v2: 5 repos, 13 tasks, 78 trials");
   });
 
   it("compares primary and safety gates as absolute proportion differences", () => {
@@ -340,6 +341,90 @@ describe("Phase 1 benchmark protocol v1", () => {
     for (const entry of entries) {
       const digest = createHash("sha256").update(readFileSync(entry.path)).digest("hex");
       expect(digest, `${entry.path} changed after freeze; create v2 instead`).toBe(entry.hash);
+    }
+  });
+});
+
+function readFreezeEntries(path: string): { hash: string; path: string }[] {
+  const entries: { hash: string; path: string }[] = [];
+  for (const line of readFileSync(join(process.cwd(), path), "utf8").split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0 || trimmed.startsWith("#")) continue;
+    const match = /^([0-9a-f]{64}) {2}(.+)$/.exec(trimmed);
+    if (!match) throw new Error(`invalid freeze record line: ${line}`);
+    const [, hash, artifactPath] = match;
+    if (hash === undefined || artifactPath === undefined) {
+      throw new Error(`invalid freeze record line: ${line}`);
+    }
+    entries.push({ hash, path: artifactPath });
+  }
+  return entries;
+}
+
+function readV2(name: string): unknown {
+  return JSON.parse(
+    readFileSync(join(process.cwd(), "docs/research/phase1-benchmark-protocol/v2", name), "utf8"),
+  ) as unknown;
+}
+
+describe("Phase 1 benchmark protocol v2", () => {
+  it("supersedes v1 without changing the shape of the run", () => {
+    const manifest = readV2("manifest.json") as ProtocolManifest;
+    const repos = readV2("repositories.json") as RepositorySet;
+    const tasks = readV2("tasks.json") as TaskSet;
+
+    expect(manifest.protocolVersion).toBe(2);
+    expect(repos.protocolVersion).toBe(2);
+    expect(tasks.protocolVersion).toBe(2);
+    expect(repos.repositories).toHaveLength(5);
+    expect(tasks.tasks).toHaveLength(13);
+    expect(tasks.tasks.length * manifest.runsPerTaskPerCondition * 2).toBe(78);
+
+    const v1Tasks = readProtocolJson("tasks.json") as TaskSet;
+    expect(new Set(tasks.tasks.map((task) => task.id))).toEqual(
+      new Set(v1Tasks.tasks.map((task) => task.id)),
+    );
+    expect(repos.repositories).toEqual(
+      (readProtocolJson("repositories.json") as RepositorySet).repositories,
+    );
+  });
+
+  it("corrects only the axios-01 script oracle, per proposal 0001", () => {
+    const v2Tasks = readV2("tasks.json") as TaskSet;
+    const v1Tasks = readProtocolJson("tasks.json") as TaskSet;
+    const v2 = v2Tasks.tasks.find((task) => task.id === "axios-01-identify-test-script");
+    const v1 = v1Tasks.tasks.find((task) => task.id === "axios-01-identify-test-script");
+
+    expect(v2?.successOracle).toEqual({
+      type: "response-json-path-equals",
+      path: "script",
+      value: "test:vitest:unit",
+    });
+    expect(v2?.prompt).toContain("not the aggregate entry point");
+    expect(v1?.successOracle).toEqual({
+      type: "response-json-path-equals",
+      path: "script",
+      value: "test",
+    });
+
+    const changed = v2Tasks.tasks.filter((task) => {
+      const before = v1Tasks.tasks.find((candidate) => candidate.id === task.id);
+      return JSON.stringify(before) !== JSON.stringify(task);
+    });
+    expect(changed.map((task) => task.id)).toEqual(["axios-01-identify-test-script"]);
+  });
+
+  it("freezes the v2 artifacts and the v2 schemas by digest", () => {
+    const entries = readFreezeEntries("docs/research/phase1-benchmark-protocol/v2/FROZEN.sha256");
+    expect(entries).toHaveLength(8);
+    for (const entry of entries) {
+      const frozenV2 = entry.path.startsWith("docs/research/phase1-benchmark-protocol/v2/");
+      const frozenSchema = /^schemas\/research\/.*-v2\.schema\.json$/.test(entry.path);
+      expect(frozenV2 || frozenSchema, entry.path).toBe(true);
+      const actual = createHash("sha256")
+        .update(readFileSync(join(process.cwd(), entry.path)))
+        .digest("hex");
+      expect(actual, entry.path).toBe(entry.hash);
     }
   });
 });

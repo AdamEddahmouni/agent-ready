@@ -32,10 +32,83 @@ All notable changes to Agent-Ready are documented here. The project follows
   derived → report metrics with Wilson intervals, blinded adjudication, and
   SHA-256 checksums (`--check` verifies byte-identical output). Research only:
   no CLI, schema, contract, or package-output change.
+- The Phase 1 runner adapter contract (research): Agent Transcript v1 with a
+  JSON Schema; a replay runner that applies recorded writes to the prepared
+  workspace (so edit-task oracles see the recorded state) and refuses a
+  transcript which is not a real capture or which disagrees with the run's
+  task, condition, model, or client; and a Claude Code `stream-json` capture
+  adapter that grounds `Read`/`Write`/`Edit`/`MultiEdit`/`Bash`/`Grep`/`Glob`
+  tools, with replay tests through the scorer. The adapter refuses a Bash
+  command that certainly changed files and flags an ambiguous interpreter, and
+  a replay mismatch now aborts the trial instead of being recorded as an
+  infrastructure failure. A Codex `exec --json` adapter records each reported
+  file change by reading it from the session's workspace, refuses a deletion it
+  cannot replay, applies the same shell-mutation rule, and records an item type
+  it does not model as `other` instead of dropping it. A
+  `research:benchmark-capture` command applies either adapter to a saved log and
+  writes the transcript. The shell-mutation rule now decides from the checkout
+  rather than the command text: it verifies that every recorded write still
+  holds the recorded bytes and that every path git reports as changed is
+  recorded, so a session whose `file_change` items cover every change is
+  captured without a risk flag, and an unrecorded or later-edited path is what
+  triggers the refusal. Commands wrapped as `/bin/bash -lc "…"` are classified
+  by the command they carry, and paths are resolved against the workspace even
+  when it is a subdirectory of the checkout. Real Codex sessions on
+  `axios-02-add-devdep` and `axios-03-add-sponsor-data-check` are recorded under
+  `research/phase1-benchmark/captures/` with their raw logs and replay results —
+  individual sessions, not protocol runs. Every temporary tree in the harness
+  and the test suite is removed through one retrying delete, because Windows
+  reports a transient `EBUSY` when a tree is removed while a `git` child or a
+  scanner still holds a handle inside it. Research tooling only: no CLI, public
+  contract schema, or package-output change.
 - Experimental `agent-ready twin build` and `agent-ready twin query` (ADR-0049).
+- The Phase 1 trial runner (research): `pnpm research:benchmark-run` prepares a fresh
+  pinned checkout, invokes `codex exec --json`, writes the client log, converts
+  it through the same capture adapter, scores it with the protocol oracles, and
+  writes one schema-valid raw record per trial, with one retry for an
+  infrastructure failure and the manifest's token and wall-clock caps. Trial
+  order comes from the manifest seed, and `--dry-run` replays the full 78-trial
+  order with a scripted runner. The `agent-ready` condition gets a fixed tool
+  description plus an `agent-ready twin query` wrapper bound to the trial's
+  snapshot on PATH, so it is not a second raw trial. The agent-ready CLI is
+  built at the manifest's pinned commit (`research:benchmark-build-agent-ready`,
+  exported with `git archive`) or verified against a build stamp recording that
+  commit, so a stale or locally edited `dist/` is refused. Research tooling only.
+
+### Added
+
+- Phase 1 benchmark protocol **v2** (research), applying proposal 0001:
+  `axios-01-identify-test-script` now asks for the script that runs only the
+  unit project and scores `test:vitest:unit` instead of the aggregate `test`
+  entry point that also runs the browser projects. A sibling
+  `docs/research/phase1-benchmark-protocol/v2/` carries the artifacts, a v2
+  freeze record, and `-v2` schemas; v1 stays frozen with its results. Raw
+  records are validated against their own version's schema, the runner writes
+  the manifest's version, aggregation refuses mixed versions, and
+  `research:benchmark-reproduce` picks the decision rule the records cite. A v2
+  run manifest (`phase1-v2-2026-11-19`) reuses the v1 seed so the 78-trial order
+  is unchanged.
 
 ### Changed
 
+- Phase 1 research: `verificationSelectionResult` counts only a check the
+  session actually executed. Recorded shell calls are tokenized with quote
+  awareness and compared word for word, so a command that is echoed, grepped, or
+  written to a log no longer reads as verification, and a script merely named in
+  `verificationSurface` still does not count.
+- Phase 1 research: `verificationSelectionResult` is now derived from the
+  task's `command-exit-zero` oracle clauses rather than left to adjudication, so
+  a run that executes the task's own check is not reported as a verification
+  failure. A script named only in `verificationSurface` does not count, so a
+  read-only task cannot score as verified by running the suite; a task with no
+  command clause keeps its recorded value.
+- Phase 1 research: the `agent-ready` condition's description steers
+  repository-structure questions to the snapshot query, and its `PATH` wrapper
+  refuses a caller-supplied `--snapshot`, so a trial cannot query another
+  artifact.
+- Pre-register [ADR-0052](docs/decisions/0052-phase-1-outcome.md): the Phase 1
+  outcome is measured by the frozen protocol, and the consequence of each of the
+  four outcomes is fixed before the pilot runs.
 - CI and API discovery are deferred from Discovery Snapshot Format 1 rather than
   added before the Phase 1 benchmark; public Phase 1 status now reflects the
   shipped discovery and twin surface. See

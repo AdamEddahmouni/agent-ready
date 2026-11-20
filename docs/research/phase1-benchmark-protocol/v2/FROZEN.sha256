@@ -1,0 +1,11 @@
+# Phase 1 benchmark protocol v2 freeze record (2026-11-19).
+# Re-frozen the same day for copied v1 wording; see PROTOCOL.md, Freeze history.
+# Any edit to a listed artifact requires protocol v3.
+b9e8cf470beee0d80e4e486ad221cbdd21f5f3354ae0975f996b08f54b944ec0  docs/research/phase1-benchmark-protocol/v2/PROTOCOL.md
+6da4f4c647db84c0b8d32c03ae591719b1dce4c252d2eddb3e4f0d450c1b983b  docs/research/phase1-benchmark-protocol/v2/decision-rule.json
+1d55223d7145c687ca5b7e006abcdca6a5ca4aeae56a42deb1e40733ff19a9f8  docs/research/phase1-benchmark-protocol/v2/manifest.json
+2b2e5d2ff6173873cecb3fe00d899b7c71942eb7443d1159449f5ca8d5717a32  docs/research/phase1-benchmark-protocol/v2/repositories.json
+095c29b6ed11c13da38995bf91d6197e526d29e582b46350cb3932933b2f9aa4  docs/research/phase1-benchmark-protocol/v2/run-manifest.template.json
+867f47cb7a9a6c35d277f20fdf77da6fdd204adae357e98723739b57a78556df  docs/research/phase1-benchmark-protocol/v2/tasks.json
+5fd045eb7d21ae8bedf2691ad280aea798a1a082fd4d6d3139b440feb4974edf  schemas/research/phase1-benchmark-raw-run-v2.schema.json
+3bf4feaf929a7560c16299af6b98badd1580e47acc4e14e35863e358097c4aed  schemas/research/phase1-benchmark-run-manifest-v2.schema.json

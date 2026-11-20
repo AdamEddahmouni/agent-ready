@@ -21,11 +21,22 @@ import {
   type RawRunFile,
 } from "./report.js";
 import { recordRawRun } from "./harness/record.js";
+import type { ProtocolVersion } from "./harness/types.js";
 import type { BenchmarkDecisionRule } from "./evaluate-decision.mjs";
 
 export const DEFAULT_DECISION_RULE_PATH = fileURLToPath(
   new URL("../../docs/research/phase1-benchmark-protocol/v1/decision-rule.json", import.meta.url),
 );
+
+/** Decision rule of a frozen protocol version, which is the one its records cite. */
+export function decisionRulePathFor(version: ProtocolVersion): string {
+  return fileURLToPath(
+    new URL(
+      `../../docs/research/phase1-benchmark-protocol/v${String(version)}/decision-rule.json`,
+      import.meta.url,
+    ),
+  );
+}
 
 export interface ReproductionResult {
   readonly files: readonly RawRunFile[];
@@ -79,7 +90,7 @@ export async function readRawRunFiles(rawDirectory: string): Promise<RawRunFile[
 function metricsDocument(report: BenchmarkReport): string {
   return `${JSON.stringify(
     {
-      protocolVersion: 1,
+      protocolVersion: report.protocolVersion,
       runManifestIds: report.runManifestIds,
       decision: report.decision,
       summaries: report.summaries,
@@ -188,7 +199,15 @@ async function main(): Promise<void> {
     return;
   }
 
-  const rule = await readDecisionRule(values.rule);
+  // The rule belongs to the protocol version the records cite, so it is chosen
+  // from the raw directory unless the caller names one explicitly.
+  let rulePath = values.rule;
+  if (rulePath === undefined) {
+    const [first] = await readRawRunFiles(values.raw);
+    if (first === undefined) throw new Error(`no raw JSON run records found in ${values.raw}`);
+    rulePath = decisionRulePathFor(first.record.protocolVersion);
+  }
+  const rule = await readDecisionRule(rulePath);
   const adjudications =
     values.adjudications === undefined
       ? undefined

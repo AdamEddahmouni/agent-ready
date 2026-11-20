@@ -1,8 +1,9 @@
 import { execFile as execFileCallback } from "node:child_process";
-import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
+import { mkdtemp, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
+import { removeTree } from "../../src/filesystem/removeTree.js";
 
 const execFile = promisify(execFileCallback);
 
@@ -22,18 +23,10 @@ export async function createTestRepo(
   }
   return {
     root,
-    // Windows can keep a just-terminated process's working directory busy
-    // briefly after the process tree has closed. fs.rm's bounded retry support
-    // handles that normal release race without hiding a persistent cleanup
-    // failure: EBUSY/EPERM/ENOTEMPTY are retried with linear backoff, then the
-    // original error is still surfaced.
-    cleanup: () =>
-      rm(root, {
-        recursive: true,
-        force: true,
-        maxRetries: 5,
-        retryDelay: 100,
-      }),
+    // A just-terminated process can keep its working directory busy briefly on
+    // Windows; removeTree retries that release race without hiding a
+    // persistent cleanup failure.
+    cleanup: () => removeTree(root),
   };
 }
 

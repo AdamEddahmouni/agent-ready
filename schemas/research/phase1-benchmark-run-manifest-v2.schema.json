@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready.dev/schemas/research/phase1-benchmark-run-manifest-v2.schema.json",
+  "title": "Phase 1 benchmark run manifest v2",
+  "description": "The manifest committed before the first Phase 1 benchmark trial. It pins the model, client, environment, Agent-Ready commit, and repository commits; records the predeclared run arithmetic and budgets; and supplies the randomization seed. Raw run records cite its id as runManifestId.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolVersion",
+    "id",
+    "createdAt",
+    "model",
+    "agentClient",
+    "environment",
+    "agentReadyCommit",
+    "repositories",
+    "runs",
+    "budgets",
+    "randomizationSeed"
+  ],
+  "properties": {
+    "protocolVersion": {
+      "const": 2
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "createdAt": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$"
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "configuration"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration": {
+          "type": "object"
+        }
+      }
+    },
+    "agentClient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "node"],
+      "properties": {
+        "os": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "agentReadyCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "repositories": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "commit"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commit": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          }
+        }
+      }
+    },
+    "runs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["perTaskPerCondition", "perCondition", "total"],
+      "properties": {
+        "perTaskPerCondition": {
+          "const": 3
+        },
+        "perCondition": {
+          "const": 39
+        },
+        "total": {
+          "const": 78
+        }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "randomizationSeed": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

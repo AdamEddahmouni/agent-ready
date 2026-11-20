@@ -48,7 +48,21 @@ jobs:
         run: pnpm typecheck
 
       - name: Unit and integration tests
-        run: pnpm test
+        shell: bash
+        run: pnpm test 2>&1 | tee vitest-output.log
+
+      # The job log is the only place a failing test is named, and it is gated
+      # for anyone reading without the repository, so surface vitest's FAIL
+      # lines as annotations, which the checks API does expose.
+      - name: Report failing tests
+        if: failure()
+        shell: bash
+        run: |
+          grep -aF " FAIL " vitest-output.log \
+            | head -40 \
+            | while IFS= read -r line; do
+                echo "::error title=failing test::$line"
+              done
 
       - name: Discovery snapshot conformance
         run: pnpm conformance:check
