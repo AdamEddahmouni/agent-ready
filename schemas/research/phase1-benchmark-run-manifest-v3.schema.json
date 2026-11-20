@@ -33,10 +33,7 @@
     "model": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "configuration"
-      ],
+      "required": ["id", "configuration"],
       "properties": {
         "id": {
           "type": "string",
@@ -50,10 +47,7 @@
     "agentClient": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "name",
-        "version"
-      ],
+      "required": ["name", "version"],
       "properties": {
         "name": {
           "type": "string",
@@ -68,10 +62,7 @@
     "environment": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "os",
-        "node"
-      ],
+      "required": ["os", "node"],
       "properties": {
         "os": {
           "type": "string",
@@ -94,10 +85,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "commit"
-        ],
+        "required": ["id", "commit"],
         "properties": {
           "id": {
             "type": "string",
@@ -113,11 +101,7 @@
     "runs": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "perTaskPerCondition",
-        "perCondition",
-        "total"
-      ],
+      "required": ["perTaskPerCondition", "perCondition", "total"],
       "properties": {
         "perTaskPerCondition": {
           "const": 3
