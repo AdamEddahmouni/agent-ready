@@ -554,6 +554,16 @@ Named here so "experimental" cannot quietly become "stable by silence":
 5. **The diagnostic registry is unchanged.** No `DISCOVERY_*` code is added,
    renamed, or renumbered. `DISCOVERY_GRAPH_PROVENANCE_INVALID` already covers
    the defect the study found, and already said the right thing about it.
+6. **The webpack half of amendment 3's evidence was a misreading.** The pinned
+   `tsconfig.json` at `e95be18b4651` explicitly lists `lib/**/*.js` in `include`
+   (with `allowJs`/`checkJs`, `noEmit`), so its 640 modules in `lib/` are a
+   **declared** TypeScript program, not a default-`**/*` accident. Excluding that
+   tree would silently narrow a universe the repository named. The corpus now
+   pins the inclusion as correct behaviour in the normative case
+   `declared-include-admits-generated-tree`; the fallback-walk limitation in
+   `known-inaccurate-fallback-source-universe` is the only remaining route, and
+   amendment 3's decision (no exclusion heuristic; `sourceUniverse` provisional,
+   `files` a lower bound) stands unchanged.
 
 ## Consequences
 
