@@ -2,16 +2,16 @@
  * Validates the Phase 1 benchmark protocol artifacts for every frozen version.
  * Does not run evaluation — structural checks only.
  *
- * v1 is frozen with its own record and results; v2 supersedes it by correcting
- * the `axios-01` script oracle (proposal 0001). Both are checked here, because
- * a v1 record and a v2 record are never comparable and both must stay readable.
+ * v1 is frozen with its own record and results; v2 corrects the `axios-01`
+ * oracle; v3 makes verification selection inapplicability explicit (proposal
+ * 0002). All remain independently frozen and readable.
  */
 
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const VERSIONS = [1, 2].map((version) => ({
+const VERSIONS = [1, 2, 3].map((version) => ({
   version,
   dir: `docs/research/phase1-benchmark-protocol/v${String(version)}`,
 }));
