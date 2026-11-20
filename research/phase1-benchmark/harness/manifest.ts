@@ -24,6 +24,12 @@ const RUN_MANIFEST_SCHEMA_PATHS: Readonly<Record<ProtocolVersion, string>> = {
       import.meta.url,
     ),
   ),
+  3: fileURLToPath(
+    new URL(
+      "../../../schemas/research/phase1-benchmark-run-manifest-v3.schema.json",
+      import.meta.url,
+    ),
+  ),
 };
 
 /** The v1 schema path, kept for callers that predate v2. */
@@ -98,8 +104,8 @@ export function parseRunManifest(input: unknown): RunManifest {
     typeof input === "object" && input !== null
       ? (input as Record<string, unknown>)["protocolVersion"]
       : undefined;
-  if (declared !== 1 && declared !== 2) {
-    throw new RunManifestError(["protocolVersion must be 1 or 2"]);
+  if (declared !== 1 && declared !== 2 && declared !== 3) {
+    throw new RunManifestError(["protocolVersion must be 1, 2 or 3"]);
   }
   const validate = manifestValidator(declared);
   if (!validate(input)) {
