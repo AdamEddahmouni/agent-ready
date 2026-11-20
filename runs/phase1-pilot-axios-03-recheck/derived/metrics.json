@@ -1,0 +1,149 @@
+{
+  "protocolVersion": 1,
+  "runManifestIds": [
+    "phase1-v1-2026-11-19"
+  ],
+  "decision": "noDemonstratedBenefit",
+  "summaries": {
+    "raw": {
+      "condition": "raw",
+      "n": 1,
+      "taskSuccessRate": 1,
+      "invalidAssumptionRate": 0,
+      "incorrectDependencyReasoningRate": 0,
+      "verificationSelectionFailureRate": 0,
+      "unnecessaryFileReadsMedian": 0,
+      "variance": {
+        "taskSuccessRate": null,
+        "invalidAssumptionRate": null,
+        "incorrectDependencyReasoningRate": null,
+        "verificationSelectionFailureRate": null,
+        "unnecessaryFileReads": null
+      },
+      "wilson": {
+        "taskSuccessRate": {
+          "lower": 0.20654329147389294,
+          "upper": 1,
+          "center": 0.6032716457369465
+        },
+        "verificationSelectionFailureRate": {
+          "lower": 0,
+          "upper": 0.7934567085261071,
+          "center": 0.39672835426305353
+        }
+      }
+    },
+    "agent-ready": {
+      "condition": "agent-ready",
+      "n": 1,
+      "taskSuccessRate": 1,
+      "invalidAssumptionRate": 0,
+      "incorrectDependencyReasoningRate": 0,
+      "verificationSelectionFailureRate": 0,
+      "unnecessaryFileReadsMedian": 0,
+      "variance": {
+        "taskSuccessRate": null,
+        "invalidAssumptionRate": null,
+        "incorrectDependencyReasoningRate": null,
+        "verificationSelectionFailureRate": null,
+        "unnecessaryFileReads": null
+      },
+      "wilson": {
+        "taskSuccessRate": {
+          "lower": 0.20654329147389294,
+          "upper": 1,
+          "center": 0.6032716457369465
+        },
+        "verificationSelectionFailureRate": {
+          "lower": 0,
+          "upper": 0.7934567085261071,
+          "center": 0.39672835426305353
+        }
+      }
+    }
+  },
+  "perTask": [
+    {
+      "taskId": "axios-03-add-sponsor-data-check",
+      "condition": "raw",
+      "n": 1,
+      "taskSuccessRate": 1,
+      "invalidAssumptionRate": 0,
+      "incorrectDependencyReasoningRate": 0,
+      "verificationSelectionFailureRate": 0,
+      "unnecessaryFileReadsMedian": 0,
+      "variance": {
+        "taskSuccessRate": null,
+        "invalidAssumptionRate": null,
+        "incorrectDependencyReasoningRate": null,
+        "verificationSelectionFailureRate": null,
+        "unnecessaryFileReads": null
+      },
+      "wilson": {
+        "taskSuccessRate": {
+          "lower": 0.20654329147389294,
+          "upper": 1,
+          "center": 0.6032716457369465
+        },
+        "verificationSelectionFailureRate": {
+          "lower": 0,
+          "upper": 0.7934567085261071,
+          "center": 0.39672835426305353
+        }
+      }
+    },
+    {
+      "taskId": "axios-03-add-sponsor-data-check",
+      "condition": "agent-ready",
+      "n": 1,
+      "taskSuccessRate": 1,
+      "invalidAssumptionRate": 0,
+      "incorrectDependencyReasoningRate": 0,
+      "verificationSelectionFailureRate": 0,
+      "unnecessaryFileReadsMedian": 0,
+      "variance": {
+        "taskSuccessRate": null,
+        "invalidAssumptionRate": null,
+        "incorrectDependencyReasoningRate": null,
+        "verificationSelectionFailureRate": null,
+        "unnecessaryFileReads": null
+      },
+      "wilson": {
+        "taskSuccessRate": {
+          "lower": 0.20654329147389294,
+          "upper": 1,
+          "center": 0.6032716457369465
+        },
+        "verificationSelectionFailureRate": {
+          "lower": 0,
+          "upper": 0.7934567085261071,
+          "center": 0.39672835426305353
+        }
+      }
+    }
+  ],
+  "validRunCount": 2,
+  "excludedRuns": [],
+  "checksums": {
+    "algorithm": "sha256",
+    "combined": "81692bd590c1328232193f38ee65b5f5fdf01d9b06c39b2e6535a7ef01cc6ca4",
+    "files": [
+      {
+        "file": "axios-03-add-sponsor-data-check--agent-ready--0.json",
+        "sha256": "e4dc829254722f047ed102979d8ee092b66b4dee92655c13706dc77ad34047a3"
+      },
+      {
+        "file": "axios-03-add-sponsor-data-check--raw--0.json",
+        "sha256": "90017e07d0cb45b52ebf8693918cf06b10ac71ddeee4594e309c6de140e4adbb"
+      }
+    ]
+  },
+  "limitations": [
+    "Results are screened with the predeclared decision rule; this is not a significance test.",
+    "All valid runs are reported. No best-of-N selection or task cherry-picking is applied.",
+    "Wilson intervals apply to binary rates; variance is sample variance (n - 1) and is null for n < 2.",
+    "Unnecessary-read counts depend on post-hoc adjudication; unadjudicated runs count only reads explicitly marked unnecessary.",
+    "Manual-rubric outcomes require two reviewers and a third reviewer for disagreement; adjudications live outside raw logs.",
+    "Token metrics may be null where the evaluation environment did not report them."
+  ]
+}

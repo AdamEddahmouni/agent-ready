@@ -1,10 +1,11 @@
 import { execFile as execFileCallback } from "node:child_process";
-import { mkdtemp, mkdir, rm } from "node:fs/promises";
+import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { runTwinBuild } from "../../../src/cli/commands/twinBuild.js";
 import { NodeFileSystem } from "../../../src/filesystem/nodeFileSystem.js";
+import { removeTree } from "../../../src/filesystem/removeTree.js";
 import type { Condition, RepositoryPin } from "./types.js";
 
 const execFile = promisify(execFileCallback);
@@ -123,7 +124,7 @@ export async function prepareWorkspace(options: {
       destination,
     });
   } catch (error) {
-    await rm(runRoot, { recursive: true, force: true });
+    await removeTree(runRoot);
     throw error;
   }
 
@@ -164,5 +165,5 @@ export async function prepareConditionWorkspace(
 export async function removePreparedWorkspace(
   workspace: Pick<PreparedWorkspace, "runRoot">,
 ): Promise<void> {
-  await rm(workspace.runRoot, { recursive: true, force: true });
+  await removeTree(workspace.runRoot);
 }

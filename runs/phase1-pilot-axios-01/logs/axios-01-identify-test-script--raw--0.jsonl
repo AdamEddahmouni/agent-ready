@@ -1,0 +1,6 @@
+{"type":"thread.started","thread_id":"01a1f5c7-51ae-7442-879f-402c3faddda2"}
+{"type":"turn.started"}
+{"type":"item.started","item":{"id":"item_0","type":"command_execution","command":"/bin/bash -lc \"rg -n '\\\"test:vitest:unit\\\"' package.json\"","aggregated_output":"","exit_code":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_0","type":"command_execution","command":"/bin/bash -lc \"rg -n '\\\"test:vitest:unit\\\"' package.json\"","aggregated_output":"124:    \"test:vitest:unit\": \"vitest run --project unit\",\n","exit_code":0,"status":"completed"}}
+{"type":"item.completed","item":{"id":"item_1","type":"agent_message","text":"{\"script\":\"test:vitest:unit\",\"body\":\"vitest run --project unit\"}"}}
+{"type":"turn.completed","usage":{"input_tokens":35854,"cached_input_tokens":31488,"cache_write_input_tokens":0,"output_tokens":58,"reasoning_output_tokens":0}}

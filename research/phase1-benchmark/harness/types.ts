@@ -18,8 +18,15 @@ export interface RepositoryPin {
   readonly rationale: string;
 }
 
+/**
+ * A frozen protocol version. v1 and v2 are both readable: v2 supersedes v1 by
+ * correcting one task oracle, and records from different versions are never
+ * aggregated together.
+ */
+export type ProtocolVersion = 1 | 2;
+
 export interface ProtocolManifest {
-  readonly protocolVersion: 1;
+  readonly protocolVersion: ProtocolVersion;
   readonly title: string;
   readonly conditions: readonly { readonly id: Condition; readonly description: string }[];
   readonly runsPerTaskPerCondition: number;

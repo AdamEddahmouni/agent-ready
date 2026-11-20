@@ -43,7 +43,7 @@ TypeScript package, not just a specification document:
   embedding the validation pipeline in another tool — see
   [docs/specification/api-stability.md](specification/api-stability.md).
 - Unit and integration tests, a CI pipeline
-  (`.github/workflows/ci.yml`), 48 Architecture Decision Records
+  (`.github/workflows/ci.yml`), 49 Architecture Decision Records
   (`docs/decisions/`), a threat model, and a stated pre-1.0
   compatibility policy.
 - Offline Phase 1 research tooling on `main` under

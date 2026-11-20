@@ -1,0 +1,41 @@
+{
+  "protocolVersion": 2,
+  "metricScale": "proportions in [0,1]; gate thresholds are absolute differences in proportion, i.e. percentage points",
+  "primaryGate": {
+    "metric": "taskSuccessRate",
+    "condition": "agent-ready",
+    "comparedTo": "raw",
+    "maxAbsoluteDrop": 0.05,
+    "description": "Mean task success for agent-ready must not fall more than 5 percentage points below raw (absolute difference of proportions)."
+  },
+  "safetyGates": [
+    {
+      "metric": "invalidAssumptionRate",
+      "maxAbsoluteIncrease": 0.1,
+      "description": "The rate of factual claims contradicted by the pinned tree may increase by at most 10 percentage points."
+    },
+    {
+      "metric": "incorrectDependencyReasoningRate",
+      "maxAbsoluteIncrease": 0.1,
+      "description": "The rate of dependency-scope or manifest misreadings may increase by at most 10 percentage points."
+    },
+    {
+      "metric": "verificationSelectionFailureRate",
+      "maxAbsoluteIncrease": 0.1,
+      "description": "The rate of runs that fail to select the expected verification command may increase by at most 10 percentage points."
+    }
+  ],
+  "benefitGate": {
+    "metric": "unnecessaryFileReadsMedian",
+    "minRelativeImprovement": 0.15,
+    "minimumBaselineMedian": 1,
+    "description": "Median unnecessary file reads for agent-ready must be at least 15% lower than raw, after primary and safety gates pass. If the raw median is below 1, the gate cannot pass because a relative improvement on a zero or near-zero baseline is not meaningful."
+  },
+  "missingMetricPolicy": "fail-closed: a safety gate whose metric is absent or null fails; a missing primary metric is a harness error",
+  "outcomes": {
+    "helps": "Primary and safety gates pass and benefit gate passes.",
+    "noDemonstratedBenefit": "Primary and safety gates pass but benefit gate fails.",
+    "mixed": "Primary gate passes but any safety gate fails.",
+    "harms": "Primary gate fails."
+  }
+}
