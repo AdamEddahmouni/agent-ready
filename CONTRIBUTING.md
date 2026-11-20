@@ -63,6 +63,7 @@ succeeds:
 ```bash
 pnpm format:check
 pnpm check:action-pins
+pnpm check:commit-signing
 pnpm lint
 pnpm typecheck
 pnpm test
@@ -97,10 +98,46 @@ Guidelines:
 ## Commit and PR style
 
 - Keep commits focused; prefer a few well-described commits over one huge
-  one.
+  one, and sign each one (see below).
 - Describe _why_ in the PR description, not just _what_ — link the issue
   it addresses.
 - Update `CHANGELOG.md` for any user-visible change.
+
+### Commit signing is required
+
+`main` requires verified commit signatures on the commits it receives, so
+configure signing before your first commit:
+
+```bash
+git config --global gpg.format ssh
+git config --global user.signingkey ~/.ssh/id_ed25519.pub
+git config --global commit.gpgsign true
+```
+
+Add the same public key to GitHub under **Settings → SSH and GPG keys → New SSH
+key**, choosing **Signing key** as the key type. GPG signing works too; see
+GitHub's [commit signature verification](https://docs.github.com/authentication/managing-commit-signature-verification)
+guide.
+
+The `commit signing` CI job checks every commit in the pull request, and
+`pnpm check:commit-signing` runs the same check locally against
+`origin/main..HEAD`. It verifies that a signature is present, not that GitHub
+can verify it — a key that is not on your GitHub account still blocks a merge
+commit or rebase merge.
+
+**Squash merging is signed by GitHub.** A squash merge creates one new commit on
+`main`, and GitHub signs it, so a pull request whose branch commits are unsigned
+can still land with **Squash and merge**; the commit on `main` is verified even
+though the `commit signing` job is red on the branch. Merge commits and rebase
+merges are not signed this way and stay blocked.
+
+If an unsigned commit is already pushed, re-sign the branch and update it with a
+lease:
+
+```bash
+git rebase --exec 'git commit --amend --no-edit -S' origin/main
+git push --force-with-lease
+```
 
 ## Reporting bugs
 
