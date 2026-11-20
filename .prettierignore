@@ -6,3 +6,8 @@ compatibility/adapter-output/**/expected/
 # Fixture repositories are data, and some deliberately contain invalid JSON
 # (the partial-observation case) or files a formatter would rewrite.
 conformance/
+# Reproduction fixtures are generated output verified byte-for-byte by the
+# benchmark-protocol CI job; formatting them would defeat that check.
+research/phase1-benchmark/fixtures/**/derived/
+research/phase1-benchmark/fixtures/**/report/
+research/phase1-benchmark/fixtures/**/plan.json

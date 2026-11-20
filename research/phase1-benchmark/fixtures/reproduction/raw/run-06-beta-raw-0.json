@@ -1,0 +1,21 @@
+{
+  "protocolVersion": 1,
+  "runManifestId": "fixture-reproduction-2026-11-17",
+  "taskId": "fixture-task-beta",
+  "condition": "raw",
+  "runIndex": 0,
+  "startTime": "2026-11-17T01:00:00.000Z",
+  "endTime": "2026-11-17T01:01:00.000Z",
+  "timeToFirstCorrectModification": null,
+  "success": false,
+  "toolCalls": [],
+  "fileReads": [],
+  "fileWrites": [],
+  "tokenMetrics": { "input": null, "output": null, "cached": null, "reasoning": null },
+  "assumptions": [],
+  "dependencyReasoningFindings": [],
+  "verificationSelectionResult": false,
+  "finalPatch": null,
+  "infrastructureFailure": true,
+  "notes": "agent runner failed: fixture timeout"
+}

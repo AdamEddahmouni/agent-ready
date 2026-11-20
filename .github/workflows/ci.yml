@@ -605,6 +605,12 @@ jobs:
       - name: Validate frozen protocol v1
         run: pnpm research:benchmark-validate-protocol
 
+      - name: Reproduce fixture report byte-for-byte
+        run: pnpm research:benchmark-reproduce --raw research/phase1-benchmark/fixtures/reproduction/raw --out research/phase1-benchmark/fixtures/reproduction --adjudications research/phase1-benchmark/fixtures/reproduction/adjudications.json --check
+
+      - name: Validate pilot dry-run plan byte-for-byte
+        run: pnpm research:benchmark-pilot-dry-run --manifest research/phase1-benchmark/fixtures/pilot/run-manifest.json --out research/phase1-benchmark/fixtures/pilot/plan.json --check
+
       - name: Protocol and harness tests
         run: pnpm research:benchmark-test
 

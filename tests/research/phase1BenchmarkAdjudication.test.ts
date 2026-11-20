@@ -5,9 +5,14 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adjudicateManualRubric,
   parseAdjudications,
+  parseUnnecessaryReadAdjudications,
   readAdjudicationFile,
+  readUnnecessaryReadAdjudicationFile,
   serializeAdjudications,
+  serializeUnnecessaryReadAdjudications,
+  unnecessaryReadAdjudicationMap,
   writeAdjudicationFile,
+  writeUnnecessaryReadAdjudicationFile,
   type ManualRubricReview,
 } from "../../research/phase1-benchmark/adjudication.js";
 
@@ -125,5 +130,44 @@ describe("manual-rubric adjudication", () => {
     });
     expect(() => parseAdjudications(invalid)).toThrow(/exactly two reviewers/);
     expect(() => serializeAdjudications([adjudication, adjudication])).toThrow(/duplicate/);
+  });
+
+  it("round-trips the unnecessary-read sidecar and rejects malformed counts", async () => {
+    const first = {
+      runKey: "manifest#task-b#raw#0",
+      unnecessaryFileReads: 2,
+    } as const;
+    const second = {
+      runKey: "manifest#task-a#agent-ready#1",
+      unnecessaryFileReads: 0,
+    } as const;
+    const text = serializeUnnecessaryReadAdjudications([first, second]);
+    expect(JSON.parse(text)).toEqual({
+      protocolVersion: 1,
+      unnecessaryFileReads: [second, first],
+    });
+    expect(parseUnnecessaryReadAdjudications(text).unnecessaryFileReads).toEqual([second, first]);
+    expect(() => serializeUnnecessaryReadAdjudications([first, first])).toThrow(/duplicate/);
+    expect(() =>
+      parseUnnecessaryReadAdjudications(
+        JSON.stringify({
+          protocolVersion: 1,
+          unnecessaryFileReads: [{ runKey: "run-1", unnecessaryFileReads: -1 }],
+        }),
+      ),
+    ).toThrow(/non-negative integer/);
+    expect(() =>
+      parseUnnecessaryReadAdjudications(
+        JSON.stringify({ protocolVersion: 2, unnecessaryFileReads: [] }),
+      ),
+    ).toThrow(/protocolVersion 1/);
+
+    const path = join(baseDirectory, "read-adjudications.json");
+    await writeUnnecessaryReadAdjudicationFile(path, [first, second]);
+    const loaded = await readUnnecessaryReadAdjudicationFile(path);
+    expect(unnecessaryReadAdjudicationMap(loaded)).toEqual({
+      "manifest#task-a#agent-ready#1": { unnecessaryFileReads: 0 },
+      "manifest#task-b#raw#0": { unnecessaryFileReads: 2 },
+    });
   });
 });
