@@ -11,13 +11,8 @@
         "path": "script",
         "value": "test:vitest:unit"
       },
-      "forbidden": [
-        "modifying any file",
-        "running install"
-      ],
-      "verificationSurface": [
-        "package.json scripts.test"
-      ],
+      "forbidden": ["modifying any file", "running install"],
+      "verificationSurface": ["package.json scripts.test"],
       "timeoutMinutes": 15
     },
     {
@@ -30,13 +25,8 @@
         "pointer": "/dependencies/semver",
         "value": "^7.6.0"
       },
-      "forbidden": [
-        "changing unrelated dependencies",
-        "modifying lockfile"
-      ],
-      "verificationSurface": [
-        "package.json"
-      ],
+      "forbidden": ["changing unrelated dependencies", "modifying lockfile"],
+      "verificationSurface": ["package.json"],
       "timeoutMinutes": 20
     },
     {
@@ -58,14 +48,8 @@
           }
         ]
       },
-      "forbidden": [
-        "modifying files other than package.json",
-        "running install"
-      ],
-      "verificationSurface": [
-        "package.json scripts",
-        "docs/data/sponsors.json"
-      ],
+      "forbidden": ["modifying files other than package.json", "running install"],
+      "verificationSurface": ["package.json scripts", "docs/data/sponsors.json"],
       "timeoutMinutes": 20
     },
     {
@@ -77,12 +61,8 @@
         "rubricId": "jest-workspace-declaration-count",
         "rubric": "Correct when the answer states the number of glob entries in the root package.json workspaces declaration and names those entries. Wrong if it counts directories on disk, counts only packages that exist, or counts an expanded package set."
       },
-      "forbidden": [
-        "modifying files"
-      ],
-      "verificationSurface": [
-        "package.json workspaces"
-      ],
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["package.json workspaces"],
       "timeoutMinutes": 15
     },
     {
@@ -94,12 +74,8 @@
         "rubricId": "jest-package-test-script",
         "rubric": "Correct when the cited path is an existing packages/*/package.json at the pinned commit and the quoted script body matches that file exactly. A path outside packages/, a script name other than test, or a paraphrased body is wrong."
       },
-      "forbidden": [
-        "modifying files"
-      ],
-      "verificationSurface": [
-        "packages/*/package.json"
-      ],
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["packages/*/package.json"],
       "timeoutMinutes": 20
     },
     {
@@ -121,14 +97,8 @@
           }
         ]
       },
-      "forbidden": [
-        "modifying files other than package.json",
-        "running install"
-      ],
-      "verificationSurface": [
-        "package.json scripts",
-        "package.json workspaces"
-      ],
+      "forbidden": ["modifying files other than package.json", "running install"],
+      "verificationSurface": ["package.json scripts", "package.json workspaces"],
       "timeoutMinutes": 20
     },
     {
@@ -140,12 +110,8 @@
         "rubricId": "vite-package-manager-field",
         "rubric": "Correct when the packageManager string is quoted verbatim, including name, version and any +sha suffix, as it appears in the root package.json at the pinned commit. A partial answer or a version inferred from a lockfile comment is wrong."
       },
-      "forbidden": [
-        "modifying files"
-      ],
-      "verificationSurface": [
-        "package.json packageManager"
-      ],
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["package.json packageManager"],
       "timeoutMinutes": 15
     },
     {
@@ -157,12 +123,8 @@
         "rubricId": "vite-playground-manifest",
         "rubric": "Correct when the cited path is repository-relative, exists at the pinned commit, and is a playground/<name>/package.json. Paths under packages/, templates, node_modules, or directories without a manifest are wrong."
       },
-      "forbidden": [
-        "modifying files"
-      ],
-      "verificationSurface": [
-        "playground/**/package.json"
-      ],
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["playground/**/package.json"],
       "timeoutMinutes": 20
     },
     {
@@ -174,12 +136,8 @@
         "rubricId": "lodash-dist-present",
         "rubric": "Correct when the answer is yes and cites a .js path under dist/ that exists at the pinned commit. A no answer, or a path that is generated at build time and not committed, is wrong."
       },
-      "forbidden": [
-        "modifying files"
-      ],
-      "verificationSurface": [
-        "dist/**"
-      ],
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["dist/**"],
       "timeoutMinutes": 15
     },
     {
@@ -191,12 +149,8 @@
         "rubricId": "lodash-verification-script",
         "rubric": "Correct when the named script exists in the root package.json scripts at the pinned commit and its body is quoted exactly. Naming a script that does not exist, or describing tooling that is not declared there, is wrong."
       },
-      "forbidden": [
-        "modifying files"
-      ],
-      "verificationSurface": [
-        "package.json scripts"
-      ],
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["package.json scripts"],
       "timeoutMinutes": 15
     },
     {
@@ -208,13 +162,8 @@
         "rubricId": "nestjs-package-count",
         "rubric": "Correct when the count equals the number of directories under packages/ containing a readable package.json at the pinned commit and the listed paths match that set. Counting sample/ manifests or the root package.json is wrong."
       },
-      "forbidden": [
-        "modifying files"
-      ],
-      "verificationSurface": [
-        "package.json workspaces",
-        "packages/*"
-      ],
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["package.json workspaces", "packages/*"],
       "timeoutMinutes": 20
     },
     {
@@ -226,12 +175,8 @@
         "rubricId": "nestjs-sample-outside-scope",
         "rubric": "Correct when the answer is yes and the cited sample/*/package.json exists at the pinned commit and is not matched by the root workspaces declaration. A no answer, or a path that is a workspace member, is wrong."
       },
-      "forbidden": [
-        "modifying files"
-      ],
-      "verificationSurface": [
-        "sample/**/package.json"
-      ],
+      "forbidden": ["modifying files"],
+      "verificationSurface": ["sample/**/package.json"],
       "timeoutMinutes": 20
     },
     {
@@ -253,14 +198,8 @@
           }
         ]
       },
-      "forbidden": [
-        "modifying files other than package.json",
-        "running install"
-      ],
-      "verificationSurface": [
-        "package.json scripts",
-        "sample/*/package.json"
-      ],
+      "forbidden": ["modifying files other than package.json", "running install"],
+      "verificationSurface": ["package.json scripts", "sample/*/package.json"],
       "timeoutMinutes": 25
     }
   ]
